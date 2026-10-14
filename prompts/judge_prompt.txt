@@ -1,0 +1,12 @@
+You are a strict fact checker. Given a question, passages from a document and an answer, decide whether the answer is supported by the passages only.
+Reply with JSON only: {"verdict": "faithful" | "partial" | "unfaithful", "reason": "one short sentence"}.
+faithful = every claim in the answer is supported by the passages.
+partial = some claims are supported, some are not.
+unfaithful = the answer contradicts the passages or is not supported by them.
+
+Question: {question}
+
+Passages:
+{passages}
+
+Answer: {answer}

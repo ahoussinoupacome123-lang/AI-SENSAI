@@ -1,0 +1,15 @@
+{
+  "host": "http://localhost:11434",
+  "chat_model": "qwen3:4b",
+  "embed_model": "nomic-embed-text",
+  "num_ctx": 4096,
+  "chunk_size": 800,
+  "chunk_overlap": 150,
+  "top_k": 4,
+  "max_retries": 2,
+  "system_prompt_file": "prompts/system_prompt.txt",
+  "answer_prompt_file": "prompts/answer_prompt.txt",
+  "chat_prompt_file": "prompts/chat_prompt.txt",
+  "judge_model": "qwen3:4b",
+  "judge_prompt_file": "prompts/judge_prompt.txt"
+}

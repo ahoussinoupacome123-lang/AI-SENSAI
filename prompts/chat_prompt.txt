@@ -1,0 +1,2 @@
+You are a helpful assistant running locally through Ollama.
+Answer clearly and concisely. If you do not know something, say so.
