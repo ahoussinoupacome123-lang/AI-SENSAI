@@ -56,13 +56,18 @@ def stream_reply(host, model, messages):
         raise RuntimeError(f"Ollama returned HTTP {r.status_code}: {r.text.strip()}")
 
     reply = []
+    thinking_shown = False
     for line in r.iter_lines(chunk_size=1):
         if not line:
             continue
         chunk = json.loads(line)
         if "error" in chunk:
             raise RuntimeError(chunk["error"])
-        text = chunk.get("message", {}).get("content", "")
+        message = chunk.get("message", {})
+        if message.get("thinking") and not thinking_shown:
+            print("(thinking...) ", end="", flush=True)  # Qwen3 reasons before answering
+            thinking_shown = True
+        text = message.get("content", "")
         print(text, end="", flush=True)
         reply.append(text)
         if chunk.get("done"):
