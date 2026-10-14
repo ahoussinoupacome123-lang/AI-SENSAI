@@ -1,4 +1,8 @@
+This is the official school README
 
+<p align="center">
+  <img src="docs/assets/sensai-banner.png" alt="SENSAI_ - WATASHI WA NIHONGO O SUKOSHI SHIKA HANASEMASEN" width="420">
+</p>
 
 ---
 
