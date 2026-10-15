@@ -126,7 +126,9 @@ def main(argv=None):
             raise CliError(f"PDF not found: {pdf}")
         questions = read_questions(args.questions)
         if args.only is not None and not 1 <= args.only <= len(questions):
-            raise CliError(f"--only {args.only} is out of range: the file has {len(questions)} questions")
+            count = len(questions)
+            raise CliError(f"--only {args.only} is out of range: the file has "
+                           f"{count} question{'' if count == 1 else 's'}")
         output = Path(args.output) if args.output else pdf.with_name("answers.md")
         records = ingestion.ingest(pdf, config, force=args.force)
     except NotImplementedError as e:

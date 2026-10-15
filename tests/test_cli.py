@@ -269,3 +269,10 @@ def test_ctrl_c_keeps_what_was_written_and_exits_130(env, monkeypatch, capsys):
     assert run(env) == 130
     assert list(sections(env["out"].read_text())) == [1]
     assert "Interrupted" in capsys.readouterr().out
+
+
+def test_out_of_range_message_uses_the_singular_for_one_question(env, capsys):
+    env["questions"].write_text("Only one?\n")
+    assert run(env, "--only", "5") == 1
+    assert "the file has 1 question" in capsys.readouterr().err
+    assert "1 questions" not in capsys.readouterr().err
