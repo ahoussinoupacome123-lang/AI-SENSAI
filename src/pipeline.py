@@ -1,9 +1,9 @@
 """One question -> Checked answer: embed, search, prompt, JSON, validate, retry, quote check."""
 import json
-import re
 from pathlib import Path
 
 from src import ollama_client, store
+from src.quote_check import quote_is_supported  # noqa: F401  (re-exported for callers and tests)
 
 ROOT = Path(__file__).resolve().parent.parent
 
@@ -70,19 +70,6 @@ def _validate(raw):
 # ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------
-
-def quote_is_supported(quote, chunks):
-    """True if *quote* appears in the retrieved chunks (case and extra spaces ignored)."""
-    if not quote:
-        return False
-    # Normalise: lower-case and collapse whitespace
-    norm_quote = re.sub(r"\s+", " ", quote.strip().lower())
-    for chunk in chunks:
-        norm_text = re.sub(r"\s+", " ", chunk["text"].strip().lower())
-        if norm_quote in norm_text:
-            return True
-    return False
-
 
 def answer(question, chunks, config):
     """Return a Checked answer dict for *question* using the already-retrieved *chunks*.
