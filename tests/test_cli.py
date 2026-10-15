@@ -48,7 +48,7 @@ def env(tmp_path, monkeypatch):
         return {"verdict": "faithful", "reason": "ok"}
 
     monkeypatch.setattr(ingestion, "ingest", fake_ingest)
-    monkeypatch.setattr(pipeline, "answer", fake_answer)
+    monkeypatch.setattr(pipeline, "retrieve_and_answer", fake_answer)
     monkeypatch.setattr(judge, "evaluate", fake_judge)
     return {"dir": tmp_path, "pdf": pdf, "questions": questions, "config": config,
             "out": tmp_path / "answers.md", "calls": calls}
@@ -105,7 +105,7 @@ def test_all_questions_failing_writes_no_file(env):
 def test_only_rewrites_just_that_section(env, monkeypatch):
     run(env)
     before = digests(env["out"])
-    monkeypatch.setattr(pipeline, "answer", lambda q, r, c: {
+    monkeypatch.setattr(pipeline, "retrieve_and_answer", lambda q, r, c: {
         "question": q, "answer": "NEW ANSWER", "page": 7, "quote": "new", "status": "supported"})
     assert run(env, "--only", "2") == 0
     after = digests(env["out"])
@@ -184,7 +184,7 @@ def test_ollama_error_during_ingestion_is_printed(env, monkeypatch, capsys):
 def test_unimplemented_pipeline_names_the_unfinished_function(env, monkeypatch, capsys):
     def todo(*args):
         raise NotImplementedError
-    monkeypatch.setattr(pipeline, "answer", todo)
+    monkeypatch.setattr(pipeline, "retrieve_and_answer", todo)
     assert run(env) == 1
     err = capsys.readouterr().err
     assert "todo is not implemented yet" in err and "()" not in err
@@ -217,7 +217,7 @@ def test_judge_failure_marks_unknown_and_keeps_the_answer(env, monkeypatch):
 
 
 def test_judge_is_skipped_when_the_pipeline_already_judged(env, monkeypatch):
-    monkeypatch.setattr(pipeline, "answer", lambda q, r, c: {
+    monkeypatch.setattr(pipeline, "retrieve_and_answer", lambda q, r, c: {
         "question": q, "answer": "a", "page": 1, "quote": "q", "status": "supported",
         "verdict": "partial", "reason": "r"})
     run(env)
@@ -265,7 +265,7 @@ def test_ctrl_c_keeps_what_was_written_and_exits_130(env, monkeypatch, capsys):
         if "two" in question:
             raise KeyboardInterrupt
         return {"question": question, "answer": "a", "page": 1, "quote": "q", "status": "supported"}
-    monkeypatch.setattr(pipeline, "answer", interrupt_on_two)
+    monkeypatch.setattr(pipeline, "retrieve_and_answer", interrupt_on_two)
     assert run(env) == 130
     assert list(sections(env["out"].read_text())) == [1]
     assert "Interrupted" in capsys.readouterr().out

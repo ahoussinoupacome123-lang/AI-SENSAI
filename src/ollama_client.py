@@ -26,8 +26,12 @@ def chat(messages, model, schema=None, stream=False, host="http://localhost:1143
 
     Notes
     -----
-    - Do NOT pass think=False: tested, qwen3:4b then leaks its reasoning into
-      message.content.  Keep default thinking and read only message.content.
+    - With a schema we send think=False and temperature 0. Tested on qwen3:4b: a
+      schema with default thinking can return EMPTY content after 40+ s or hang,
+      while think=False gives clean JSON in 2-8 s.
+    - Without a schema we do NOT send think=False: tested, the model then leaks
+      its reasoning into message.content. Keep default thinking and read only
+      message.content.
     - num_ctx is forwarded as an Ollama option so RAM stays bounded.
     """
     payload = {
@@ -38,6 +42,8 @@ def chat(messages, model, schema=None, stream=False, host="http://localhost:1143
     }
     if schema is not None:
         payload["format"] = schema
+        payload["think"] = False
+        payload["options"]["temperature"] = 0
 
     r = _post(f"{host}/api/chat", payload)
 

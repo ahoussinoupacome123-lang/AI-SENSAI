@@ -79,12 +79,12 @@ def _disagree(checked):
 
 
 def answer_question(question, records, config):
-    """Run the pipeline, then the judge if the pipeline did not already judge.
+    """Retrieve the best chunks and answer, then judge if the pipeline did not already.
 
     A missing or failing judge never loses the answer: it is just left unevaluated
     (judge not implemented) or marked 'unknown' (judge error).
     """
-    checked = dict(pipeline.answer(question, records, config))
+    checked = dict(pipeline.retrieve_and_answer(question, records, config))
     checked.setdefault("question", question)
     if "verdict" not in checked:
         try:

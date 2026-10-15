@@ -149,4 +149,6 @@ def retrieve_and_answer(question, index_chunks, config, client_embed=None):
     question_vector = vectors[0]
 
     top_chunks = store.search(index_chunks, question_vector, k=top_k)
-    return answer(question, top_chunks, config)
+    result = answer(question, top_chunks, config)
+    result["chunks"] = top_chunks  # the judge (EV1) must see the same passages
+    return result
