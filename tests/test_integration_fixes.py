@@ -44,3 +44,9 @@ def test_retrieve_and_answer_returns_the_retrieved_chunks_for_the_judge():
                                               client_embed=lambda texts, model, host=None: [[1.0, 0.0]])
     assert [c["page"] for c in result["chunks"]] == [1]
     assert result["status"] == "supported"
+
+
+def test_judge_schema_asks_for_the_reason_before_the_verdict():
+    from src import judge
+    assert list(judge.VERDICT_SCHEMA["properties"]) == ["reason", "verdict"]
+    assert set(judge.VERDICT_SCHEMA["required"]) == {"reason", "verdict"}

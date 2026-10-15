@@ -6,13 +6,17 @@ from src import ollama_client
 
 ROOT = Path(__file__).resolve().parent.parent
 
+# "reason" comes BEFORE "verdict" on purpose: the model writes its short justification first,
+# then decides. Tested on the demo questions: with the verdict first, wrongly refused answers
+# were judged "faithful" while the reason said the passages contained the answer (2 of 2 missed);
+# with the reason first, 5 of 5 hand-checked cases were right.
 VERDICT_SCHEMA = {
     "type": "object",
     "properties": {
-        "verdict": {"type": "string", "enum": ["faithful", "partial", "unfaithful"]},
         "reason": {"type": "string"},
+        "verdict": {"type": "string", "enum": ["faithful", "partial", "unfaithful"]},
     },
-    "required": ["verdict", "reason"],
+    "required": ["reason", "verdict"],
 }
 
 _VALID_VERDICTS = frozenset({"faithful", "partial", "unfaithful"})
