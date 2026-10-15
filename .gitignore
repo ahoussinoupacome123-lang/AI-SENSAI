@@ -4,3 +4,4 @@ __pycache__/
 data/*.index.json
 .pytest_cache/
 .claude/
+data/answers.md

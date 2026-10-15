@@ -87,6 +87,16 @@ Ollama has a `format` parameter that accepts a JSON schema and constrains the ou
 
 **Quote check**: our simple defence. After the model answers, plain code checks that the `quote` really appears (word for word, ignoring extra spaces and case) in the retrieved chunks. If not, the answer is flagged "not supported" in the file. It is deterministic: no second model, no guessing. Limit: it proves the quote exists, not that the answer is a correct reading of it. We say this honestly in the keynote.
 
+**LLM judge (feature EV1)**: a second model call that reads the question, the retrieved passages and the answer, and returns a verdict: `faithful` (everything is supported by the passages), `partial` (some claims are) or `unfaithful` (contradicted or unsupported), with a one-line reason. It reads the whole answer, so it can catch a real quote that is misread, which the quote check cannot. It is the same small model that wrote the answer, so it can be lenient: that is why we keep the quote check as an independent anchor.
+
+**Disagreement flag**: when the quote check and the judge contradict each other (quote `supported` but judge `unfaithful`, or quote `not supported` but judge `faithful`), the section is marked "Review needed". It is how a wrong refusal is caught.
+
+**Thinking mode**: `qwen3:4b` reasons silently before it answers (about 10 seconds). In plain chat we leave that on. When we force a JSON schema we turn it off (`think=false`) and use temperature 0: tested, thinking plus a schema can return an empty answer or hang for minutes.
+
+**Refusal**: when the passages do not contain the answer, the model must say "The document does not cover this." with an empty quote instead of guessing. A refusal has no quote, so its quote check shows "not supported".
+
+**Atomic write**: the writer saves the file to a temporary name and then renames it, so a crash can never leave a half-written `answers.md`.
+
 ---
 
 ## 4. One full run, step by step
@@ -101,8 +111,9 @@ questions.txt, for each question:
    4. ask qwen3:4b, forcing the JSON schema -> {answer, page, quote}
    5. validate the JSON (retry if invalid)
    6. quote check: is the quote inside the chunks?  -> supported / not supported
-   7. writer updates ONLY this question's section in answers.md
-end: print "7/8 answers supported, 1 failed"
+   7. judge: is the answer faithful to the chunks?  -> faithful / partial / unfaithful
+   8. writer updates ONLY this question's section in answers.md
+end: print the summary (answered / failed, quote check, judge, answers to review)
 ```
 
 If the PDF does not contain the answer, the system prompt tells the model to say "The document does not cover this" with an empty quote. That is the demo moment that shows the tool does not invent.
@@ -111,24 +122,48 @@ If the PDF does not contain the answer, the system prompt tells the model to say
 
 ## 5. How the project is built
 
-**Base loop (done)**: a working CLI chatbot (`src/chat.py`) with streaming, history, system prompt from a file, model chosen by argument or config, clean errors. It earns no points alone but it is the foundation: its Ollama-calling code becomes `ollama_client.py`.
+**Base loop**: a working CLI chatbot (`src/chat.py`) with streaming, history, system prompt from a file, model chosen by argument or config, clean errors. It earns no points alone but it is the foundation.
 
-**Features (next)**: add the pieces on top, in this order:
+**The features, all built** (in the order they were made):
 1. `ollama_client.py`: the one place that talks to Ollama (chat, JSON schema, embeddings).
-2. `ingestion.py` + `store.py` (R1).
-3. `pipeline.py` (retrieve, prompt, JSON, retry) (R1 + T5).
-4. `writer.py` and the quote check (M4).
+2. `ingestion.py` + `store.py` (R1): PDF to chunks to vectors to a local index, and cosine search.
+3. `pipeline.py` (R1 + T5): retrieve, prompt, force the JSON schema, validate, retry.
+4. `quote_check.py` and `judge.py` (EV1): two independent checks on every answer, plus `eval_summary.py` for the run summary and the disagreement flag.
+5. `writer.py` (M4): update exactly one section of `answers.md`.
+6. `cli.py`: wires it all: `python -m src.cli <pdf> <questions.txt>`.
 
-Read next: `USE_CASE.md` (why), `USER_STORIES.md` (what must work), `ARCHITECTURE.md` (how the files fit), `MODEL_SELECTION.md` (which models and why).
+Read next: `USE_CASE.md` (why), `USER_STORIES.md` (what must work), `ARCHITECTURE.md` (how the files fit), `MODEL_SELECTION.md` (which models and why), `RESULTS.md` (what we measured), `KEYNOTE.md` (how we present it).
 
 ---
 
 ## 6. Questions you should be able to answer at the keynote
 
-- Why can't we give the whole PDF to the model? (context window)
-- What is an embedding, and why does it find passages with different words? (meaning as numbers)
-- What is cosine similarity? (angle between vectors)
-- Why chunk with overlap? Why store the page number?
-- Why force JSON? What happens when the model breaks it? (validate, retry, never write on failure)
-- How do you know an answer is not invented? What does your check prove and not prove?
-- Why a local model? (privacy, no cost, works offline)
+Each answer has a short version to say out loud and the reason behind it.
+
+**1. Why can't we give the whole PDF to the model?**
+*Say it:* a model reads a limited amount of text at once (its context window); a 40-page PDF does not fit, so we give it only the few passages that matter.
+*Behind it:* we set the window to 4096 tokens (about 3,000 words); the demo PDF has about 5,500 words. A bigger window also needs more RAM and is slower, and small models get worse at finding details in long text. So we search first and send only the best 4 chunks: that is RAG.
+
+**2. What is an embedding, and why does it find passages with different words?**
+*Say it:* an embedding turns a text into a list of numbers that stands for its meaning; similar meanings give similar numbers, so we find a passage by meaning, not by exact words.
+*Behind it:* `nomic-embed-text` gives 768 numbers per text. "How do plants make food?" lands near "photosynthesis turns light into sugar" although they share no word, where a keyword search (Ctrl+F) finds nothing. Chunks and questions are embedded with the same model so they can be compared.
+
+**3. What is cosine similarity?**
+*Say it:* a score for how much two vectors point the same way: close to 1 means very similar meaning, close to 0 unrelated.
+*Behind it:* two arrows from the same point; a small angle gives a score near 1, a right angle gives 0. With question [1, 0], chunk A [0.9, 0.1] scores about 0.99 and chunk B [0, 1] scores 0, so we pick A. Real vectors have 768 numbers but the idea is the same. We keep the 4 best scores.
+
+**4. Why chunk with overlap? Why store the page number?**
+*Say it:* small chunks give sharper matches and fit in the prompt; the overlap keeps a sentence cut at a border whole in one chunk; the page lets the reader check the source.
+*Behind it:* a whole page mixes topics, so its embedding is vague. With a 150-character overlap, a sentence split at character 800 still appears whole in the next chunk. The page number is free (we know it when we read the page) and it is the whole point of a sourced answer. Trade-off: too small loses context, too big makes the match vague, so both sizes are settings in `config.json`.
+
+**5. Why force JSON? What happens when the model breaks it?**
+*Say it:* our code must use the answer (put it in a file), and free text is hard to parse; so we force a strict shape, validate it, retry twice, and never write a broken result.
+*Behind it:* we need three separate fields (`answer`, `page`, `quote`). Ollama's `format` parameter constrains the output to a JSON schema; our code still validates it. After the retries the question is reported as failed, the file is not touched, and the run continues with the next question.
+
+**6. How do you know an answer is not invented? What do your checks prove and not prove?**
+*Say it:* the model must give a word-for-word quote; plain code checks that the quote is really in the retrieved text, and a second model call judges the whole answer. The quote check proves the quote exists, not that the answer reads it correctly; the judge reads the whole answer but is a small, lenient model.
+*Behind it:* the quote check is deterministic (case, spaces and typography ignored). It cannot tell a misread quote from a right one. The judge can, but it is the same 4B model, so it sometimes misses a wrong refusal. We flag the answers where the two disagree for manual review. We measured this: see `RESULTS.md`.
+
+**7. Why a local model?**
+*Say it:* the document stays on the machine, it costs nothing per question, and it works offline.
+*Behind it:* course notes, contracts or reports can be confidential, and a cloud API would receive the text. Honest trade-off: a 4B model is weaker than a large cloud model and slow on a laptop CPU (about 30 s per question). We compensate with retrieval, which hands the model exactly the text it needs, and with the two checks, which catch many of its mistakes.
