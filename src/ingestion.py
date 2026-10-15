@@ -5,7 +5,10 @@ from pathlib import Path
 from pypdf import PdfReader
 from pypdf.errors import PyPdfError
 
+from src import ollama_client, store
+
 MIN_TEXT_CHARS = 50  # below this in the whole PDF, we assume it is scanned
+EMBED_BATCH_SIZE = 16  # chunks sent to the embedding model per request
 
 
 class IngestionError(Exception):
@@ -87,9 +90,49 @@ def chunk_pages(pages, size, overlap):
     return chunks
 
 
-def ingest(pdf_path, config):
-    """Extract, chunk and embed; return chunk records for the store."""
-    raise NotImplementedError
+def index_path(pdf_path):
+    """Where the index of a PDF lives, next to it: course.pdf -> course.index.json."""
+    return Path(pdf_path).with_suffix(".index.json")
+
+
+def ingest(pdf_path, config, force=False):
+    """Extract, chunk and embed a PDF; save and return its chunk records.
+
+    Each record is {id, text, page, vector}. If an index newer than the PDF already
+    exists it is reused (no embedding) unless force is True. The index is written
+    only after every chunk is embedded, so a failure never leaves a partial index.
+    Settings used: chunk_size, chunk_overlap, embed_model, host, embed_batch_size.
+    After changing chunk settings, rebuild with force=True.
+    """
+    path = index_path(pdf_path)
+    if not force and path.exists() and path.stat().st_mtime >= Path(pdf_path).stat().st_mtime:
+        print(f"Index found: {path} (rebuild with --force)")
+        return store.load(path)
+
+    pages = extract_pages(pdf_path)
+    chunks = chunk_pages(pages, config["chunk_size"], config["chunk_overlap"])
+    if not chunks:
+        raise NoTextError(f"{pdf_path} produced no text chunks.")
+
+    batch_size = config.get("embed_batch_size", EMBED_BATCH_SIZE)
+    vectors = []
+    for start in range(0, len(chunks), batch_size):
+        texts = [chunk["text"] for chunk in chunks[start:start + batch_size]]
+        batch = ollama_client.embed(texts, config["embed_model"], host=config["host"])
+        if len(batch) != len(texts):
+            raise IngestionError(
+                f"The embedding model returned {len(batch)} vectors for {len(texts)} texts."
+            )
+        vectors.extend(batch)
+        print(f"Embedded {len(vectors)}/{len(chunks)} chunks")
+
+    records = [
+        {"id": number, "text": chunk["text"], "page": chunk["page"], "vector": vector}
+        for number, (chunk, vector) in enumerate(zip(chunks, vectors))
+    ]
+    store.save(records, path)
+    print(f"Index saved: {path} ({len(records)} chunks)")
+    return records
 
 
 if __name__ == "__main__":
