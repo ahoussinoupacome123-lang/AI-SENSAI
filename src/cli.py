@@ -1,9 +1,172 @@
-"""Wiring only: read args and config, ingest once, loop over questions, print the summary."""
+"""Wiring only: read args and config, ingest once, loop over questions, print the summary.
+
+    python -m src.cli <pdf> <questions.txt> [--only N] [--force] [--output FILE] [--config FILE]
+"""
+import argparse
+import json
+import sys
+from pathlib import Path
+
+from src import ingestion, judge, pipeline, writer
+
+ROOT = Path(__file__).resolve().parent.parent
+REQUIRED_CONFIG = ("host", "chat_model", "embed_model", "chunk_size", "chunk_overlap", "top_k")
 
 
-def main():
-    raise NotImplementedError
+class CliError(Exception):
+    """A usage or input problem. The message is printed as 'Error: ...'."""
+
+
+def parse_args(argv=None):
+    parser = argparse.ArgumentParser(
+        prog="python -m src.cli",
+        description="Answer a list of questions about a PDF and write a sourced answers.md.",
+    )
+    parser.add_argument("pdf", help="the text PDF to read")
+    parser.add_argument("questions", help="text file with one question per line")
+    parser.add_argument("--only", type=int, metavar="N",
+                        help="answer only question number N (1-based); other sections stay untouched")
+    parser.add_argument("--force", action="store_true",
+                        help="rebuild the index even if one exists (use after changing chunk settings)")
+    parser.add_argument("--output", help="answers file (default: answers.md next to the PDF)")
+    parser.add_argument("--config", default=str(ROOT / "config.json"), help="settings file")
+    return parser.parse_args(argv)
+
+
+def load_config(path):
+    try:
+        config = json.loads(Path(path).read_text(encoding="utf-8"))
+    except FileNotFoundError:
+        raise CliError(f"config file not found: {path}")
+    except (OSError, json.JSONDecodeError) as e:
+        raise CliError(f"cannot read config file {path}: {e}")
+    missing = [key for key in REQUIRED_CONFIG if key not in config]
+    if missing:
+        raise CliError(f"config file {path} is missing: {', '.join(missing)}")
+    return config
+
+
+def read_questions(path):
+    """One question per line; blank lines are ignored."""
+    try:
+        lines = Path(path).read_text(encoding="utf-8").splitlines()
+    except FileNotFoundError:
+        raise CliError(f"questions file not found: {path}")
+    except (OSError, UnicodeDecodeError) as e:
+        raise CliError(f"cannot read questions file {path}: {e}")
+    questions = [line.strip() for line in lines if line.strip()]
+    if not questions:
+        raise CliError(f"no questions found in {path} (write one question per line)")
+    return questions
+
+
+def _not_implemented(error):
+    """Name the unfinished function from the traceback, for example 'ollama_client.py:embed'."""
+    frame = error.__traceback__
+    while frame and frame.tb_next:
+        frame = frame.tb_next
+    if frame is None:
+        return "a required module is not implemented yet"
+    code = frame.tb_frame.f_code
+    return f"{Path(code.co_filename).name}:{code.co_name} is not implemented yet"
+
+
+def _disagree(checked):
+    """The cheap quote check and the judge contradict each other."""
+    verdict = checked.get("verdict")
+    return ((checked.get("status") == "supported" and verdict == "unfaithful")
+            or (checked.get("status") == "not supported" and verdict == "faithful"))
+
+
+def answer_question(question, records, config):
+    """Run the pipeline, then the judge if the pipeline did not already judge.
+
+    A missing or failing judge never loses the answer: it is just left unevaluated
+    (judge not implemented) or marked 'unknown' (judge error).
+    """
+    checked = dict(pipeline.answer(question, records, config))
+    checked.setdefault("question", question)
+    if "verdict" not in checked:
+        try:
+            checked.update(judge.evaluate(question, checked.get("answer", ""),
+                                          checked.get("chunks", []), config))
+        except NotImplementedError:
+            pass
+        except Exception as e:  # noqa: BLE001 - one judge failure must not stop the run
+            checked.update(verdict="unknown", reason=f"judge failed: {e}")
+    checked.setdefault("disagreement", _disagree(checked))
+    return checked
+
+
+def build_summary(total, answered, failed, output):
+    """answered: list of (index, checked); failed: list of (index, message)."""
+    lines = [f"Done: {len(answered)}/{total} questions answered, {len(failed)} failed -> {output}"]
+    if answered:
+        supported = sum(1 for _, c in answered if c.get("status") == "supported")
+        lines.append(f"Quote check: {supported} supported, {len(answered) - supported} not supported")
+        verdicts = [c["verdict"] for _, c in answered if c.get("verdict")]
+        if verdicts:
+            counts = ", ".join(f"{verdicts.count(v)} {v}"
+                               for v in ("faithful", "partial", "unfaithful", "unknown"))
+            lines.append(f"Judge: {counts}")
+        review = [f"Q{i}" for i, c in answered if c.get("disagreement")]
+        if review:
+            lines.append(f"Review needed (quote check and judge disagree): {', '.join(review)}")
+    for index, message in failed:
+        lines.append(f"Failed: Q{index} ({message})")
+    return "\n".join(lines)
+
+
+def main(argv=None):
+    args = parse_args(argv)
+    try:
+        config = load_config(args.config)
+        pdf = Path(args.pdf)
+        if not pdf.is_file():
+            raise CliError(f"PDF not found: {pdf}")
+        questions = read_questions(args.questions)
+        if args.only is not None and not 1 <= args.only <= len(questions):
+            raise CliError(f"--only {args.only} is out of range: the file has {len(questions)} questions")
+        output = Path(args.output) if args.output else pdf.with_name("answers.md")
+        records = ingestion.ingest(pdf, config, force=args.force)
+    except NotImplementedError as e:
+        print(f"Error: {_not_implemented(e)}", file=sys.stderr)
+        return 1
+    except KeyboardInterrupt:
+        print("\nInterrupted.", file=sys.stderr)
+        return 130
+    except Exception as e:  # noqa: BLE001 - CliError, IngestionError, Ollama errors
+        print(f"Error: {e}", file=sys.stderr)
+        return 1
+
+    selected = [(i, q) for i, q in enumerate(questions, start=1) if args.only in (None, i)]
+    answered, failed, interrupted = [], [], False
+    for position, (index, question) in enumerate(selected, start=1):
+        print(f"[{position}/{len(selected)}] Q{index}: {question}")
+        try:
+            checked = answer_question(question, records, config)
+            writer.upsert_section(output, index, checked)
+        except KeyboardInterrupt:
+            print("\nInterrupted: answers written so far are kept.")
+            interrupted = True
+            break
+        except NotImplementedError as e:
+            print(f"Error: {_not_implemented(e)}", file=sys.stderr)
+            return 1
+        except Exception as e:  # noqa: BLE001 - one failed question must not stop the run
+            print(f"  failed: {e}")
+            failed.append((index, str(e)))
+            continue
+        answered.append((index, checked))
+        judge_text = checked.get("verdict", "not evaluated")
+        print(f"  {checked['status']}, page {checked['page']}, judge: {judge_text}")
+
+    print()
+    print(build_summary(len(selected), answered, failed, output))
+    if interrupted:
+        return 130
+    return 1 if failed else 0
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())
