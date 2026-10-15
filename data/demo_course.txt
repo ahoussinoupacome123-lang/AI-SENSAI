@@ -1,0 +1,262 @@
+Chapter 1 - Introduction to computer networks
+
+A computer network is a group of devices that can exchange data with one another. The devices may be personal computers, phones, printers, servers or sensors, and they are connected by cables or by radio waves. The main reason for building a network is to share: files, printers, an internet connection and applications can all be used by many people at the same time instead of being copied to every machine.
+
+Every network is built from the same basic ingredients. Hosts are the devices that send and receive data. Links are the media that carry the signals between them. Intermediate devices such as switches and routers decide where the data goes next. Finally, protocols are the agreed rules that describe how a message is formatted, addressed, sent and acknowledged. Without common protocols, equipment from different manufacturers could not work together.
+
+These notes follow the data on its journey. We start with the cables and the radio signals, move up through addressing and routing, and finish with the services that people use every day, such as the web and e-mail. Each chapter is short and ends with the key ideas to remember. The notes are written for beginners, so every new term is defined when it first appears, and examples are kept small enough to be checked by hand.
+
+A useful habit is to follow one message from the sender to the receiver and ask at each step which device handles it and which rule it follows. This habit will make the later chapters on layers and routing much easier to understand.
+
+=====
+Chapter 2 - Types of networks
+
+Networks are often classified by the area they cover. A personal area network, or PAN, connects devices around one person, for example a phone and a wireless headset, over a few metres. A local area network, or LAN, covers a single building or campus such as a home, a school or an office. A metropolitan area network, or MAN, links several sites inside a city. A wide area network, or WAN, spans cities, countries or even continents and usually relies on lines rented from telecommunication companies.
+
+The Internet is not one network but a network of networks. Thousands of independent organisations, called autonomous systems, operate their own networks and agree to exchange traffic with each other. Internet service providers connect homes and companies to this global mesh. When you open a web page, your request may cross the networks of several different operators before it reaches the server.
+
+Networks can also be classified by who controls them. A private network, such as a company intranet, is reserved for its owner and its authorised users. A public network, such as the Internet, can be reached by anyone with a connection. An extranet gives selected outside partners limited access to part of a private network.
+
+Another distinction is the architecture. In a client-server network, dedicated servers provide services to clients that request them. In a peer-to-peer network, every host can act as both client and server. Most of what we use daily, from web browsing to streaming, follows the client-server model.
+
+=====
+Chapter 3 - Network topologies
+
+The topology of a network describes how its devices are arranged and connected. The physical topology is the real layout of cables and devices, while the logical topology describes the path that data actually follows. The two do not have to be the same.
+
+In a bus topology all devices share a single cable. It is cheap, but a break in the cable stops the whole network and every device competes for the same medium. In a ring topology each device is connected to exactly two neighbours and data travels around the ring in one direction. In a star topology every device has its own cable to a central switch. The star is by far the most common layout in modern offices and homes, because a failing cable only disconnects one device and new devices are easy to add.
+
+A full mesh topology connects every device directly to every other device. It is very reliable because there are many alternative paths, but the number of links grows quickly: a full mesh of ten devices needs forty-five links. For this reason full meshes are used only for a few critical connections, while a partial mesh is common between routers on the Internet. A tree topology combines several star networks by linking their central devices in a hierarchy, which is how large buildings are usually wired.
+
+When choosing a topology, designers weigh cost, the effort of adding devices, the effect of a failure, and the performance under heavy traffic.
+
+=====
+Chapter 4 - The OSI model
+
+To make the design of networks manageable, engineers split the work into layers. Each layer offers a service to the layer above it and uses the services of the layer below. The best known reference is the OSI model, published by the International Organization for Standardization. The OSI model has seven layers: physical, data link, network, transport, session, presentation and application.
+
+The physical layer deals with signals on the medium: voltages, light pulses and radio waves. The data link layer moves frames between two directly connected devices and detects transmission errors. The network layer chooses the path across several networks and uses logical addresses. The transport layer provides end-to-end communication between programs, with or without reliability. The session layer manages dialogues between applications, the presentation layer handles data formats, encryption and compression, and the application layer is where network services meet the user.
+
+A popular way to remember the order from the top is the sentence "All People Seem To Need Data Processing". The model is a teaching tool and a common vocabulary rather than a description of real software: engineers say that a switch works at layer 2 and a router at layer 3, meaning the data link and network layers.
+
+The strength of layering is that a layer can be changed without touching the others. Wi-Fi can replace a cable at the lower layers, and the web keeps working unchanged above them.
+
+=====
+Chapter 5 - The TCP/IP model
+
+The protocols that run the Internet follow a simpler model with four layers. The link layer covers the physical connection and the local delivery of frames. The internet layer, based on the Internet Protocol, handles addressing and routing across networks. The transport layer contains the two main protocols, TCP and UDP. The application layer groups everything that programs use directly, such as HTTP, DNS and SMTP.
+
+The TCP/IP model was developed together with the protocols themselves, whereas the OSI model was designed first as a general framework. In practice the four-layer model describes what is really implemented, and the seven-layer model is used for discussion. The OSI session, presentation and application layers correspond to the single application layer of TCP/IP, and the OSI physical and data link layers correspond to its link layer.
+
+One idea explains the success of TCP/IP: the network in the middle stays simple. Routers only forward packets on a best-effort basis and do not guarantee delivery. Reliability, ordering and flow control are handled by the hosts at the ends. This end-to-end principle made it easy to add new applications without changing the core of the network, which is why the same infrastructure can carry web pages, video calls and games.
+
+The Internet Engineering Task Force publishes the standards as documents called RFCs, short for Request for Comments.
+
+=====
+Chapter 6 - Encapsulation
+
+When an application sends data, each layer adds its own information in front of the data, a block called a header. This process is called encapsulation. At the receiving side, each layer reads and removes its own header before passing the data up. This is called decapsulation.
+
+The unit of data has a different name at each level. At the transport layer it is a segment for TCP or a datagram for UDP. At the network layer it is a packet. At the data link layer it is a frame, and at the physical layer it is simply a stream of bits. The data created by the application is wrapped in a transport header holding the port numbers, then in a network header holding the source and destination IP addresses, then in a link header holding the hardware addresses.
+
+Headers cost space. A tiny message of ten bytes can be carried by a frame several times larger, and this overhead explains why sending many small messages is less efficient than sending a few large ones. The link layer also adds a trailer with a checksum so that the receiver can detect damaged frames.
+
+Encapsulation also explains how devices at different levels can ignore details that are not theirs. A switch reads only the frame header, a router reads the packet header, and a web server reads the application data. None of them needs to understand the layers it does not handle.
+
+=====
+Chapter 7 - The physical layer
+
+The physical layer turns bits into signals and carries them over a medium. The most common wired medium in buildings is twisted pair copper cable, in which pairs of wires are twisted together to reduce interference. Categories describe its quality. Category 5e and Category 6 cables support gigabit Ethernet over a maximum length of 100 metres between two devices. Category 6a and above support ten gigabits per second over the same distance.
+
+Fibre optic cable carries light instead of electricity. It is immune to electrical interference, supports very high speeds and covers long distances. Multimode fibre uses a wide core and suits distances of a few hundred metres inside a building or a data centre. Single-mode fibre uses a very narrow core and can span tens of kilometres, which is why it is used for links between cities and under the sea.
+
+Wireless media use radio waves, and they share the air between all users in range. The medium chosen affects speed, cost, range and sensitivity to noise. Coaxial cable, once the standard for early Ethernet, is now mostly found in cable television and broadband access.
+
+Signal quality degrades with distance because of attenuation, which is the loss of signal strength, and because of noise and crosstalk between neighbouring wires. Repeaters regenerate the signal, and the 100 metre limit for copper exists precisely because beyond it the signal becomes too weak to be read reliably.
+
+=====
+Chapter 8 - Ethernet and MAC addresses
+
+Ethernet is the dominant technology for wired local networks. Every Ethernet interface has a unique hardware address called a MAC address, which is 48 bits long and usually written as six pairs of hexadecimal digits, for example 3C:52:82:1A:9F:07. The first half identifies the manufacturer and the second half identifies the individual card. A special address made of all ones, FF:FF:FF:FF:FF:FF, means "every device on this network" and is called the broadcast address.
+
+Data travels in Ethernet frames. A frame starts with the destination and source MAC addresses, followed by a type field, the payload and a checksum used to detect errors. The maximum payload of an Ethernet frame is 1500 bytes, a limit known as the maximum transmission unit, or MTU. A larger packet must be split into fragments before it can be sent over Ethernet. The smallest frame is 64 bytes, and shorter payloads are padded.
+
+Ethernet speeds have grown from ten megabits per second in the early days to ten, forty and even hundreds of gigabits per second today. Modern links are full duplex, which means that both sides can send at the same time without colliding. In the older shared-cable version, devices used a method called CSMA/CD to detect and recover from collisions, but this is no longer needed on switched networks.
+
+MAC addresses only matter on the local network. When a packet crosses a router, the frame is rebuilt with new MAC addresses for the next hop.
+
+=====
+Chapter 9 - Switches and hubs
+
+A hub is a very simple device that repeats every signal it receives to all its other ports. All devices connected to a hub share the same bandwidth and the same collision domain, so performance drops quickly as more devices talk. Hubs are obsolete today.
+
+A switch is smarter. It reads the destination MAC address of each frame and sends the frame only to the port where that device is connected. To do this it builds a MAC address table. When a frame arrives, the switch records the source address and the port it came from. If the destination is already in the table, the frame goes out of that single port. If the destination is unknown, or if it is a broadcast, the switch floods the frame to all ports except the one it arrived on. This simple learning process needs no configuration.
+
+Because each switch port is its own collision domain, a switch allows several conversations to happen at the same time at full speed. However, all ports of a switch still belong to the same broadcast domain, so a broadcast frame reaches every device. On very large networks, too many broadcasts waste capacity, which is one of the reasons for splitting the network into VLANs or separate subnets.
+
+Switches can be unmanaged, with no settings at all, or managed, which add features such as VLANs, monitoring and port security. Redundant links between switches are protected from loops by the Spanning Tree Protocol.
+
+=====
+Chapter 10 - VLANs
+
+A virtual LAN, or VLAN, splits one physical switch into several separate logical networks. Devices in different VLANs cannot talk to each other directly, even if they are plugged into the same switch, and broadcasts stay inside their own VLAN. Companies use VLANs to separate departments, guests and servers without buying extra hardware, which improves both security and performance.
+
+A port can be an access port, belonging to a single VLAN and connected to an ordinary device, or a trunk port, which carries the traffic of several VLANs between switches. To tell the VLANs apart on a trunk, the switch inserts a tag into each frame, as defined by the IEEE 802.1Q standard. The 802.1Q tag is 4 bytes long, and 12 of its bits hold the VLAN identifier. Twelve bits would give 4096 values, but two of them are reserved, which leaves 4094 usable VLAN numbers.
+
+Traffic that must pass from one VLAN to another needs a router, or a layer 3 switch that can route. This design is often called router on a stick when a single trunk link connects the switch to the router. VLANs are only logical: moving a user to another VLAN is a configuration change and does not require recabling.
+
+A good practice is to leave VLAN 1, the default, unused for user traffic and to give each VLAN a clear name that describes its purpose.
+
+=====
+Chapter 11 - IPv4 addressing
+
+The Internet Protocol gives every interface a logical address. An IPv4 address is 32 bits long and is written as four decimal numbers between 0 and 255 separated by dots, such as 192.168.1.10. Each number represents eight bits, called an octet. An address has two parts: the network part, shared by all devices on the same network, and the host part, which identifies one device.
+
+Some ranges are reserved for private use and are not routed on the public Internet. These are 10.0.0.0 to 10.255.255.255, 172.16.0.0 to 172.31.255.255, and 192.168.0.0 to 192.168.255.255. Almost every home and office network uses one of them. The address 127.0.0.1 is the loopback address, which always refers to the machine itself, and the range starting with 169.254 is used when a device cannot obtain an address automatically.
+
+The first address of a network identifies the network itself and the last address is the broadcast address for that network, so neither can be assigned to a host. Public addresses are handed out by regional registries, and the total supply of IPv4 addresses is limited, which led to widespread use of address translation and to the creation of a new version of the protocol.
+
+The older system of classes A, B and C, which fixed the size of the network part, has been replaced by classless addressing. In classless addressing the boundary between the network and host parts can be placed anywhere, and a prefix length such as /24 states how many bits belong to the network part.
+
+=====
+Chapter 12 - Subnetting
+
+Subnetting splits a large network into smaller ones. A subnet mask, or its shorter prefix notation, shows which bits belong to the network part. The mask 255.255.255.0 is written /24: the first 24 bits identify the network and the last 8 bits identify the host. With 8 host bits there are 256 combinations, but two are reserved for the network and broadcast addresses, so a /24 network offers 254 usable host addresses.
+
+The general rule is that a network with h host bits offers 2 to the power h, minus 2, usable addresses. A /25 network has 7 host bits and therefore 126 usable addresses. A /26 network has 6 host bits, so it gives 64 addresses in total and 62 usable host addresses. A /27 network gives 30 usable addresses, a /28 gives 14, and a /30 gives only 2, which is exactly what is needed for a link between two routers.
+
+To split a network, we borrow bits from the host part. Splitting a /24 by borrowing two bits creates four /26 subnets: for example 192.168.10.0/26, 192.168.10.64/26, 192.168.10.128/26 and 192.168.10.192/26. Each subnet increases by 64 addresses, the size of the block.
+
+Subnetting has several advantages. It limits the size of broadcast domains, it lets an administrator apply different rules to different groups of devices, and it uses the available addresses more efficiently. Variable length subnet masking allows each subnet to have the size that it really needs.
+
+=====
+Chapter 13 - IPv6
+
+IPv6 was designed to replace IPv4 when its addresses started to run out. An IPv6 address is 128 bits long, which gives about 3.4 times ten to the power 38 addresses, an amount large enough to give a unique address to every device for the foreseeable future. Addresses are written in hexadecimal as eight groups of four digits separated by colons, for example 2001:0db8:0000:0000:0000:0000:0000:0001.
+
+Because such addresses are long, two shortening rules exist. Leading zeros inside a group can be dropped, and one single run of groups made only of zeros can be replaced by a double colon. The example above becomes 2001:db8::1. The double colon may appear only once in an address, otherwise it would be ambiguous.
+
+IPv6 brings other improvements. The header has a simpler, fixed structure that routers process faster. There are no broadcasts: multicast is used instead. Devices can configure their own addresses automatically, and the huge address space removes the need for address translation, restoring the end-to-end connectivity of the original Internet. A typical home connection receives a block of addresses from its provider and each device builds its own address inside it.
+
+IPv4 and IPv6 will coexist for many years. Dual stack hosts run both protocols at once, and tunnelling and translation mechanisms connect IPv6-only networks with the IPv4 world.
+
+=====
+Chapter 14 - Routing
+
+A router connects different networks and forwards packets between them. To decide where to send a packet, it consults its routing table, which lists known destination networks together with the next hop and the outgoing interface for each of them. The router chooses the entry with the longest matching prefix. When no entry matches, the packet follows the default route, which usually points to the internet provider. Hosts use a default gateway, normally the local router, for every destination outside their own network.
+
+Routes can be configured by hand, which is called static routing and is simple and predictable on small networks, or learned automatically by routing protocols. Protocols such as OSPF are used inside one organisation, while the Border Gateway Protocol, BGP, exchanges routes between the autonomous systems that make up the Internet.
+
+Every IP packet carries a field called TTL, which means time to live. The TTL field limits the lifetime of a packet: each router that forwards the packet decreases the value by one, and when it reaches zero the router discards the packet and sends an error message back to the sender. This prevents packets from circling forever if a routing loop occurs. Typical starting values are 64 on Linux systems and 128 on Windows.
+
+The tool traceroute uses this behaviour on purpose. It sends packets with increasing TTL values and records which router answers at each step, which reveals the path across the network.
+
+=====
+Chapter 15 - DHCP and NAT
+
+Typing an address into every device would be tedious and error-prone, so networks use the Dynamic Host Configuration Protocol, DHCP, to configure devices automatically. A DHCP server hands out an IP address, a subnet mask, a default gateway and the address of a DNS server for a limited time called a lease. The process has four steps known as DORA: Discover, Offer, Request and Acknowledge. The client broadcasts a Discover message, the server answers with an Offer, the client asks for that address with a Request, and the server confirms with an Acknowledge. DHCP uses UDP, with port 67 for the server and port 68 for the client.
+
+Because private addresses are not routed on the Internet, a home router performs Network Address Translation, NAT. It replaces the private source address of outgoing packets by its single public address and remembers the connection in a translation table. When the reply returns, the router uses the table to send it to the right internal device. The most common form also changes the port number, which allows many devices to share one public address.
+
+NAT delayed the exhaustion of IPv4 addresses, but it has side effects. Devices behind a NAT cannot be reached directly from outside unless the router is told to forward a port, and some protocols that carry addresses inside their data need special handling.
+
+Many small networks use a single device that combines the functions of a switch, a router, a DHCP server, a NAT gateway and a wireless access point.
+
+=====
+Chapter 16 - TCP and UDP
+
+The transport layer connects programs rather than machines. The two main protocols differ in the service they provide. The Transmission Control Protocol, TCP, is connection-oriented and reliable. It numbers every byte, acknowledges what arrives, retransmits what is lost, delivers the data in order, and slows down when the network is congested. The User Datagram Protocol, UDP, is connectionless and unreliable. It simply sends independent datagrams without any guarantee, which makes it lighter and faster.
+
+Before exchanging data, TCP opens a connection with a three-way handshake. The client sends a segment with the SYN flag set, the server replies with SYN-ACK, and the client confirms with ACK. Only then does data flow. The connection is closed in an orderly way with FIN segments. The handshake costs one round trip, which is one reason why short exchanges can feel slow on distant links.
+
+TCP is used when every byte must arrive correctly, for web pages, e-mail and file transfer. UDP is chosen when speed matters more than perfection or when the application handles reliability itself, for example voice and video calls, online games and DNS queries. A lost video frame is better ignored than resent late.
+
+TCP also includes flow control, using a window that tells the sender how much data the receiver can accept, and congestion control, which reduces the sending rate when packets are lost.
+
+=====
+Chapter 17 - Ports and sockets
+
+An IP address identifies a machine, but a machine runs many programs at once. Port numbers, which are 16-bit values from 0 to 65535, tell the transport layer which program should receive the data. The combination of an IP address and a port number is called a socket, and a connection is identified by the sockets at its two ends.
+
+Ports from 0 to 1023 are the well-known ports, assigned to standard services. The SSH protocol for secure remote login uses port 22. Telnet uses 23, SMTP uses 25, HTTP uses 80 and HTTPS uses 443. Ports from 1024 to 49151 are registered ports used by many applications, and ports from 49152 to 65535 are dynamic, or ephemeral, ports that a client picks at random for the source of each outgoing connection.
+
+A server program listens on a known port and waits for connections. When a client connects, the client uses an ephemeral port as its own end, so one server can handle thousands of clients at once because every connection has a different pair of sockets.
+
+Knowing the port numbers is useful when configuring firewalls, which allow or block traffic according to ports, and when diagnosing problems with commands such as netstat or ss that list the open sockets on a machine.
+
+=====
+Chapter 18 - The domain name system
+
+People prefer names to numbers, so the Domain Name System, DNS, translates names such as www.example.org into IP addresses. DNS is a distributed database organised as a tree. At the top are the root servers, below them the top-level domains such as .com, .org or country codes, and below them the authoritative servers that hold the records of a particular domain. DNS listens on port 53, using UDP for most queries and TCP for large answers.
+
+A program asks a recursive resolver, usually run by the internet provider or a public service, which does the work of following the tree: it asks a root server where to find the top-level domain, then asks the top-level server where to find the domain, and finally asks the authoritative server for the answer. The resolver returns the result to the client and keeps it in a cache for the time given by the record's TTL, so repeated questions are answered immediately.
+
+Records have types. An A record maps a name to an IPv4 address and an AAAA record maps it to an IPv6 address. A CNAME record makes one name an alias of another, an MX record names the mail servers of a domain, and an NS record names its authoritative servers. A PTR record performs the reverse lookup from an address to a name.
+
+DNS was originally unprotected, so attackers can try to forge answers. DNSSEC adds digital signatures to the records to detect such tampering.
+
+=====
+Chapter 19 - HTTP and the web
+
+The web is built on the Hypertext Transfer Protocol, HTTP, a request and response protocol between a browser and a server. The browser sends a request made of a method, a path, headers and sometimes a body. The server answers with a status code, headers and the content. The most common methods are GET, which reads a resource, and POST, which sends data to the server. PUT replaces a resource and DELETE removes it.
+
+The status code tells the result at a glance. Codes starting with 2 mean success, and 200 means that everything went well. Codes starting with 3 are redirections, such as 301 for a permanent move. Codes starting with 4 are client errors: HTTP status code 404 means that the requested resource was not found on the server, and 403 means that access is forbidden. Codes starting with 5 are server errors, such as 500 for an internal error and 503 when the service is unavailable.
+
+HTTP is stateless: the server does not remember previous requests, so websites use cookies to recognise a returning visitor. Resources are named by URLs, which combine the protocol, the host name, an optional port and the path.
+
+The protocol has evolved. HTTP/1.1 opened one request after another on a connection, HTTP/2 multiplexes many requests over a single connection to load pages faster, and HTTP/3 runs over a transport called QUIC, which is built on UDP and reduces the delay caused by lost packets.
+
+=====
+Chapter 20 - Electronic mail
+
+Electronic mail uses several protocols, each with its own job. A mail client sends a message to its provider with the Simple Mail Transfer Protocol, SMTP. Mail servers also use SMTP to relay the message to the recipient's server. SMTP between servers uses port 25, while clients submitting mail normally use port 587 with authentication and encryption.
+
+To read the mail, the recipient's client fetches it from the server. With POP3, the Post Office Protocol, the client downloads the messages and usually removes them from the server, which is simple but ties the mailbox to one device. With IMAP, the Internet Message Access Protocol, the messages stay on the server and the client shows a synchronised view, so the same mailbox looks identical on a phone and a laptop. IMAP uses port 143, or 993 when protected by TLS, and POP3 uses 110, or 995 when protected.
+
+The destination servers are found through MX records in the DNS. If several MX records exist, each has a priority and the sender tries the lowest number first. A message that cannot be delivered is kept in a queue and retried for some days before an error is returned to the sender.
+
+E-mail was designed in a time of trust, so unwanted messages are a constant problem. Techniques such as SPF, DKIM and DMARC let a receiving server check that a message really comes from the domain it claims to come from.
+
+=====
+Chapter 21 - Network security
+
+Because networks carry sensitive data, several mechanisms protect them. A firewall filters traffic according to rules, for example by address and port. A stateful firewall remembers established connections and automatically allows the replies, while a packet filter judges each packet alone. A demilitarised zone, or DMZ, is a separate network segment for servers that must be reachable from outside, so that a compromised server does not give access to the internal network.
+
+Encryption protects the content. The Transport Layer Security protocol, TLS, secures protocols such as HTTPS. TLS 1.3, standardised in 2018, is the current version. During the handshake the server proves its identity with a digital certificate signed by a certificate authority, and the two sides agree on keys that are then used to encrypt the data. Certificates are what the padlock in a browser stands for.
+
+A virtual private network, VPN, creates an encrypted tunnel across an untrusted network such as the Internet, so remote users can reach a company network as if they were inside it. Common technologies include IPsec, OpenVPN and WireGuard.
+
+Security also depends on people and habits: strong and unique passwords, multi-factor authentication, regular updates, and the principle of least privilege, which gives every user and program only the access it needs. Monitoring and logging help detect attacks early, and backups limit the damage when an attack succeeds.
+
+=====
+Chapter 22 - Wireless networks
+
+Wireless local networks follow the IEEE 802.11 family of standards, marketed as Wi-Fi. They work in unlicensed radio bands, mainly 2.4 GHz and 5 GHz, and newer devices also use 6 GHz. The 2.4 GHz band reaches further and passes through walls better, but it is crowded and offers only a few channels. It has channels 1 to 13 in most countries, but they are so close together that neighbouring channels overlap. The three channels 1, 6 and 11 do not overlap, so access points close to each other should use them to avoid interference.
+
+The standards have improved through the years. 802.11b offered 11 Mbit/s, 802.11g reached 54 Mbit/s, 802.11n introduced several antennas, MIMO, and 802.11ac concentrated on the 5 GHz band. Wi-Fi 6, which is the name for IEEE 802.11ax, reaches a theoretical maximum of 9.6 Gbit/s and is designed to work better when many devices are connected at once. Real speeds are always lower than the theoretical maximum because the air is shared and signals weaken with distance and obstacles.
+
+A wireless network is identified by its SSID, the name that users see. Wi-Fi traffic can be intercepted by anyone in range, so it must be encrypted. The old WEP method is broken and WPA2 has long been the standard, while WPA3, introduced in 2018, strengthens the protection of passwords.
+
+Good coverage depends on the position of the access points, which should be central and high, and on avoiding sources of interference such as microwave ovens.
+
+=====
+Chapter 23 - Troubleshooting tools
+
+When a network does not work, a method helps more than guessing. A common approach is to work from the bottom up: first check the cable and the lights, then the address configuration, then the connection to the gateway, and finally the name resolution and the application.
+
+The ping command sends ICMP echo requests to a host and measures how long the replies take. It shows whether the host is reachable and how much delay and packet loss there is. The traceroute command, called tracert on Windows, lists the routers along the path by using the TTL field, and it shows where a connection stops or slows down. The ipconfig command on Windows and ip addr on Linux display the addresses of the local interfaces.
+
+The nslookup and dig commands query the DNS and help to find out whether a problem comes from the name resolution. The netstat and ss commands show open connections and listening ports. For deeper analysis, a packet analyser such as Wireshark captures the traffic and displays each frame decoded layer by layer, which is excellent for learning how protocols really behave.
+
+It is useful to write down what was changed and what the result was. Changing one thing at a time makes it possible to find the real cause, and comparing the situation with a known working configuration often reveals the difference at once.
+
+=====
+Chapter 24 - Summary and glossary
+
+This last chapter brings the main ideas together. A network is a set of devices that exchange data using shared protocols. The work is divided into layers, and each layer adds a header to the data as it travels down the stack at the sender and removes it at the receiver. Local delivery relies on hardware addresses and switches, while delivery between networks relies on IP addresses and routers. Transport protocols connect programs through port numbers, and applications such as the web and e-mail use names resolved by the DNS.
+
+Short glossary. Bandwidth is the maximum amount of data a link can carry per second. Latency is the time a message takes to travel from the sender to the receiver. Throughput is the speed actually achieved. A protocol is a set of rules for communication. A packet is a unit of data at the network layer. A gateway is a device that connects a network to others. A firewall is a filter for traffic. An autonomous system is a network under a single administrative control.
+
+To go further, build a small lab with virtual machines, capture the traffic with a packet analyser and compare it with what these chapters describe. Reading the original RFC documents is a good next step for each protocol, and practising subnetting with a few examples every day quickly makes it automatic.
+
+Understanding networks takes time, but the reward is large: almost every modern service depends on the ideas covered in these notes.

@@ -1,0 +1,285 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [4 0 R 6 0 R 8 0 R 10 0 R 12 0 R 14 0 R 16 0 R 18 0 R 20 0 R 22 0 R 24 0 R 26 0 R 28 0 R 30 0 R 32 0 R 34 0 R 36 0 R 38 0 R 40 0 R 42 0 R 44 0 R 46 0 R 48 0 R 50 0 R] /Count 24 >>
+endobj
+3 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+4 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R >> >> /Contents 5 0 R >>
+endobj
+5 0 obj
+<< /Length 1810 >>
+stream
+BT /F1 12 Tf 72 720 Td 14 TL (Chapter 1 - Introduction to computer networks) Tj T* () Tj T* (A computer network is a group of devices that can exchange data with one another.) Tj T* (The devices may be personal computers, phones, printers, servers or sensors, and) Tj T* (they are connected by cables or by radio waves. The main reason for building a) Tj T* (network is to share: files, printers, an internet connection and applications can) Tj T* (all be used by many people at the same time instead of being copied to every) Tj T* (machine.) Tj T* () Tj T* (Every network is built from the same basic ingredients. Hosts are the devices that) Tj T* (send and receive data. Links are the media that carry the signals between them.) Tj T* (Intermediate devices such as switches and routers decide where the data goes next.) Tj T* (Finally, protocols are the agreed rules that describe how a message is formatted,) Tj T* (addressed, sent and acknowledged. Without common protocols, equipment from different) Tj T* (manufacturers could not work together.) Tj T* () Tj T* (These notes follow the data on its journey. We start with the cables and the radio) Tj T* (signals, move up through addressing and routing, and finish with the services that) Tj T* (people use every day, such as the web and e-mail. Each chapter is short and ends) Tj T* (with the key ideas to remember. The notes are written for beginners, so every new) Tj T* (term is defined when it first appears, and examples are kept small enough to be) Tj T* (checked by hand.) Tj T* () Tj T* (A useful habit is to follow one message from the sender to the receiver and ask at) Tj T* (each step which device handles it and which rule it follows. This habit will make) Tj T* (the later chapters on layers and routing much easier to understand.) Tj T* ET
+endstream
+endobj
+6 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R >> >> /Contents 7 0 R >>
+endobj
+7 0 obj
+<< /Length 1792 >>
+stream
+BT /F1 12 Tf 72 720 Td 14 TL (Chapter 2 - Types of networks) Tj T* () Tj T* (Networks are often classified by the area they cover. A personal area network, or) Tj T* (PAN, connects devices around one person, for example a phone and a wireless headset,) Tj T* (over a few metres. A local area network, or LAN, covers a single building or campus) Tj T* (such as a home, a school or an office. A metropolitan area network, or MAN, links) Tj T* (several sites inside a city. A wide area network, or WAN, spans cities, countries or) Tj T* (even continents and usually relies on lines rented from telecommunication companies.) Tj T* () Tj T* (The Internet is not one network but a network of networks. Thousands of independent) Tj T* (organisations, called autonomous systems, operate their own networks and agree to) Tj T* (exchange traffic with each other. Internet service providers connect homes and) Tj T* (companies to this global mesh. When you open a web page, your request may cross the) Tj T* (networks of several different operators before it reaches the server.) Tj T* () Tj T* (Networks can also be classified by who controls them. A private network, such as a) Tj T* (company intranet, is reserved for its owner and its authorised users. A public) Tj T* (network, such as the Internet, can be reached by anyone with a connection. An) Tj T* (extranet gives selected outside partners limited access to part of a private) Tj T* (network.) Tj T* () Tj T* (Another distinction is the architecture. In a client-server network, dedicated) Tj T* (servers provide services to clients that request them. In a peer-to-peer network,) Tj T* (every host can act as both client and server. Most of what we use daily, from web) Tj T* (browsing to streaming, follows the client-server model.) Tj T* ET
+endstream
+endobj
+8 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R >> >> /Contents 9 0 R >>
+endobj
+9 0 obj
+<< /Length 1682 >>
+stream
+BT /F1 12 Tf 72 720 Td 14 TL (Chapter 3 - Network topologies) Tj T* () Tj T* (The topology of a network describes how its devices are arranged and connected. The) Tj T* (physical topology is the real layout of cables and devices, while the logical) Tj T* (topology describes the path that data actually follows. The two do not have to be) Tj T* (the same.) Tj T* () Tj T* (In a bus topology all devices share a single cable. It is cheap, but a break in the) Tj T* (cable stops the whole network and every device competes for the same medium. In a) Tj T* (ring topology each device is connected to exactly two neighbours and data travels) Tj T* (around the ring in one direction. In a star topology every device has its own cable) Tj T* (to a central switch. The star is by far the most common layout in modern offices and) Tj T* (homes, because a failing cable only disconnects one device and new devices are easy) Tj T* (to add.) Tj T* () Tj T* (A full mesh topology connects every device directly to every other device. It is) Tj T* (very reliable because there are many alternative paths, but the number of links) Tj T* (grows quickly: a full mesh of ten devices needs forty-five links. For this reason) Tj T* (full meshes are used only for a few critical connections, while a partial mesh is) Tj T* (common between routers on the Internet. A tree topology combines several star) Tj T* (networks by linking their central devices in a hierarchy, which is how large) Tj T* (buildings are usually wired.) Tj T* () Tj T* (When choosing a topology, designers weigh cost, the effort of adding devices, the) Tj T* (effect of a failure, and the performance under heavy traffic.) Tj T* ET
+endstream
+endobj
+10 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R >> >> /Contents 11 0 R >>
+endobj
+11 0 obj
+<< /Length 1735 >>
+stream
+BT /F1 12 Tf 72 720 Td 14 TL (Chapter 4 - The OSI model) Tj T* () Tj T* (To make the design of networks manageable, engineers split the work into layers.) Tj T* (Each layer offers a service to the layer above it and uses the services of the layer) Tj T* (below. The best known reference is the OSI model, published by the International) Tj T* (Organization for Standardization. The OSI model has seven layers: physical, data) Tj T* (link, network, transport, session, presentation and application.) Tj T* () Tj T* (The physical layer deals with signals on the medium: voltages, light pulses and) Tj T* (radio waves. The data link layer moves frames between two directly connected devices) Tj T* (and detects transmission errors. The network layer chooses the path across several) Tj T* (networks and uses logical addresses. The transport layer provides end-to-end) Tj T* (communication between programs, with or without reliability. The session layer) Tj T* (manages dialogues between applications, the presentation layer handles data formats,) Tj T* (encryption and compression, and the application layer is where network services meet) Tj T* (the user.) Tj T* () Tj T* (A popular way to remember the order from the top is the sentence "All People Seem To) Tj T* (Need Data Processing". The model is a teaching tool and a common vocabulary rather) Tj T* (than a description of real software: engineers say that a switch works at layer 2) Tj T* (and a router at layer 3, meaning the data link and network layers.) Tj T* () Tj T* (The strength of layering is that a layer can be changed without touching the others.) Tj T* (Wi-Fi can replace a cable at the lower layers, and the web keeps working unchanged) Tj T* (above them.) Tj T* ET
+endstream
+endobj
+12 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R >> >> /Contents 13 0 R >>
+endobj
+13 0 obj
+<< /Length 1664 >>
+stream
+BT /F1 12 Tf 72 720 Td 14 TL (Chapter 5 - The TCP/IP model) Tj T* () Tj T* (The protocols that run the Internet follow a simpler model with four layers. The) Tj T* (link layer covers the physical connection and the local delivery of frames. The) Tj T* (internet layer, based on the Internet Protocol, handles addressing and routing) Tj T* (across networks. The transport layer contains the two main protocols, TCP and UDP.) Tj T* (The application layer groups everything that programs use directly, such as HTTP,) Tj T* (DNS and SMTP.) Tj T* () Tj T* (The TCP/IP model was developed together with the protocols themselves, whereas the) Tj T* (OSI model was designed first as a general framework. In practice the four-layer) Tj T* (model describes what is really implemented, and the seven-layer model is used for) Tj T* (discussion. The OSI session, presentation and application layers correspond to the) Tj T* (single application layer of TCP/IP, and the OSI physical and data link layers) Tj T* (correspond to its link layer.) Tj T* () Tj T* (One idea explains the success of TCP/IP: the network in the middle stays simple.) Tj T* (Routers only forward packets on a best-effort basis and do not guarantee delivery.) Tj T* (Reliability, ordering and flow control are handled by the hosts at the ends. This) Tj T* (end-to-end principle made it easy to add new applications without changing the core) Tj T* (of the network, which is why the same infrastructure can carry web pages, video) Tj T* (calls and games.) Tj T* () Tj T* (The Internet Engineering Task Force publishes the standards as documents called) Tj T* (RFCs, short for Request for Comments.) Tj T* ET
+endstream
+endobj
+14 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R >> >> /Contents 15 0 R >>
+endobj
+15 0 obj
+<< /Length 1585 >>
+stream
+BT /F1 12 Tf 72 720 Td 14 TL (Chapter 6 - Encapsulation) Tj T* () Tj T* (When an application sends data, each layer adds its own information in front of the) Tj T* (data, a block called a header. This process is called encapsulation. At the) Tj T* (receiving side, each layer reads and removes its own header before passing the data) Tj T* (up. This is called decapsulation.) Tj T* () Tj T* (The unit of data has a different name at each level. At the transport layer it is a) Tj T* (segment for TCP or a datagram for UDP. At the network layer it is a packet. At the) Tj T* (data link layer it is a frame, and at the physical layer it is simply a stream of) Tj T* (bits. The data created by the application is wrapped in a transport header holding) Tj T* (the port numbers, then in a network header holding the source and destination IP) Tj T* (addresses, then in a link header holding the hardware addresses.) Tj T* () Tj T* (Headers cost space. A tiny message of ten bytes can be carried by a frame several) Tj T* (times larger, and this overhead explains why sending many small messages is less) Tj T* (efficient than sending a few large ones. The link layer also adds a trailer with a) Tj T* (checksum so that the receiver can detect damaged frames.) Tj T* () Tj T* (Encapsulation also explains how devices at different levels can ignore details that) Tj T* (are not theirs. A switch reads only the frame header, a router reads the packet) Tj T* (header, and a web server reads the application data. None of them needs to) Tj T* (understand the layers it does not handle.) Tj T* ET
+endstream
+endobj
+16 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R >> >> /Contents 17 0 R >>
+endobj
+17 0 obj
+<< /Length 1691 >>
+stream
+BT /F1 12 Tf 72 720 Td 14 TL (Chapter 7 - The physical layer) Tj T* () Tj T* (The physical layer turns bits into signals and carries them over a medium. The most) Tj T* (common wired medium in buildings is twisted pair copper cable, in which pairs of) Tj T* (wires are twisted together to reduce interference. Categories describe its quality.) Tj T* (Category 5e and Category 6 cables support gigabit Ethernet over a maximum length of) Tj T* (100 metres between two devices. Category 6a and above support ten gigabits per) Tj T* (second over the same distance.) Tj T* () Tj T* (Fibre optic cable carries light instead of electricity. It is immune to electrical) Tj T* (interference, supports very high speeds and covers long distances. Multimode fibre) Tj T* (uses a wide core and suits distances of a few hundred metres inside a building or a) Tj T* (data centre. Single-mode fibre uses a very narrow core and can span tens of) Tj T* (kilometres, which is why it is used for links between cities and under the sea.) Tj T* () Tj T* (Wireless media use radio waves, and they share the air between all users in range.) Tj T* (The medium chosen affects speed, cost, range and sensitivity to noise. Coaxial) Tj T* (cable, once the standard for early Ethernet, is now mostly found in cable television) Tj T* (and broadband access.) Tj T* () Tj T* (Signal quality degrades with distance because of attenuation, which is the loss of) Tj T* (signal strength, and because of noise and crosstalk between neighbouring wires.) Tj T* (Repeaters regenerate the signal, and the 100 metre limit for copper exists precisely) Tj T* (because beyond it the signal becomes too weak to be read reliably.) Tj T* ET
+endstream
+endobj
+18 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R >> >> /Contents 19 0 R >>
+endobj
+19 0 obj
+<< /Length 1719 >>
+stream
+BT /F1 12 Tf 72 720 Td 14 TL (Chapter 8 - Ethernet and MAC addresses) Tj T* () Tj T* (Ethernet is the dominant technology for wired local networks. Every Ethernet) Tj T* (interface has a unique hardware address called a MAC address, which is 48 bits long) Tj T* (and usually written as six pairs of hexadecimal digits, for example) Tj T* (3C:52:82:1A:9F:07. The first half identifies the manufacturer and the second half) Tj T* (identifies the individual card. A special address made of all ones,) Tj T* (FF:FF:FF:FF:FF:FF, means "every device on this network" and is called the broadcast) Tj T* (address.) Tj T* () Tj T* (Data travels in Ethernet frames. A frame starts with the destination and source MAC) Tj T* (addresses, followed by a type field, the payload and a checksum used to detect) Tj T* (errors. The maximum payload of an Ethernet frame is 1500 bytes, a limit known as the) Tj T* (maximum transmission unit, or MTU. A larger packet must be split into fragments) Tj T* (before it can be sent over Ethernet. The smallest frame is 64 bytes, and shorter) Tj T* (payloads are padded.) Tj T* () Tj T* (Ethernet speeds have grown from ten megabits per second in the early days to ten,) Tj T* (forty and even hundreds of gigabits per second today. Modern links are full duplex,) Tj T* (which means that both sides can send at the same time without colliding. In the) Tj T* (older shared-cable version, devices used a method called CSMA/CD to detect and) Tj T* (recover from collisions, but this is no longer needed on switched networks.) Tj T* () Tj T* (MAC addresses only matter on the local network. When a packet crosses a router, the) Tj T* (frame is rebuilt with new MAC addresses for the next hop.) Tj T* ET
+endstream
+endobj
+20 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R >> >> /Contents 21 0 R >>
+endobj
+21 0 obj
+<< /Length 1660 >>
+stream
+BT /F1 12 Tf 72 720 Td 14 TL (Chapter 9 - Switches and hubs) Tj T* () Tj T* (A hub is a very simple device that repeats every signal it receives to all its other) Tj T* (ports. All devices connected to a hub share the same bandwidth and the same) Tj T* (collision domain, so performance drops quickly as more devices talk. Hubs are) Tj T* (obsolete today.) Tj T* () Tj T* (A switch is smarter. It reads the destination MAC address of each frame and sends) Tj T* (the frame only to the port where that device is connected. To do this it builds a) Tj T* (MAC address table. When a frame arrives, the switch records the source address and) Tj T* (the port it came from. If the destination is already in the table, the frame goes) Tj T* (out of that single port. If the destination is unknown, or if it is a broadcast, the) Tj T* (switch floods the frame to all ports except the one it arrived on. This simple) Tj T* (learning process needs no configuration.) Tj T* () Tj T* (Because each switch port is its own collision domain, a switch allows several) Tj T* (conversations to happen at the same time at full speed. However, all ports of a) Tj T* (switch still belong to the same broadcast domain, so a broadcast frame reaches every) Tj T* (device. On very large networks, too many broadcasts waste capacity, which is one of) Tj T* (the reasons for splitting the network into VLANs or separate subnets.) Tj T* () Tj T* (Switches can be unmanaged, with no settings at all, or managed, which add features) Tj T* (such as VLANs, monitoring and port security. Redundant links between switches are) Tj T* (protected from loops by the Spanning Tree Protocol.) Tj T* ET
+endstream
+endobj
+22 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R >> >> /Contents 23 0 R >>
+endobj
+23 0 obj
+<< /Length 1541 >>
+stream
+BT /F1 12 Tf 72 720 Td 14 TL (Chapter 10 - VLANs) Tj T* () Tj T* (A virtual LAN, or VLAN, splits one physical switch into several separate logical) Tj T* (networks. Devices in different VLANs cannot talk to each other directly, even if) Tj T* (they are plugged into the same switch, and broadcasts stay inside their own VLAN.) Tj T* (Companies use VLANs to separate departments, guests and servers without buying extra) Tj T* (hardware, which improves both security and performance.) Tj T* () Tj T* (A port can be an access port, belonging to a single VLAN and connected to an) Tj T* (ordinary device, or a trunk port, which carries the traffic of several VLANs between) Tj T* (switches. To tell the VLANs apart on a trunk, the switch inserts a tag into each) Tj T* (frame, as defined by the IEEE 802.1Q standard. The 802.1Q tag is 4 bytes long, and) Tj T* (12 of its bits hold the VLAN identifier. Twelve bits would give 4096 values, but two) Tj T* (of them are reserved, which leaves 4094 usable VLAN numbers.) Tj T* () Tj T* (Traffic that must pass from one VLAN to another needs a router, or a layer 3 switch) Tj T* (that can route. This design is often called router on a stick when a single trunk) Tj T* (link connects the switch to the router. VLANs are only logical: moving a user to) Tj T* (another VLAN is a configuration change and does not require recabling.) Tj T* () Tj T* (A good practice is to leave VLAN 1, the default, unused for user traffic and to give) Tj T* (each VLAN a clear name that describes its purpose.) Tj T* ET
+endstream
+endobj
+24 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R >> >> /Contents 25 0 R >>
+endobj
+25 0 obj
+<< /Length 1752 >>
+stream
+BT /F1 12 Tf 72 720 Td 14 TL (Chapter 11 - IPv4 addressing) Tj T* () Tj T* (The Internet Protocol gives every interface a logical address. An IPv4 address is 32) Tj T* (bits long and is written as four decimal numbers between 0 and 255 separated by) Tj T* (dots, such as 192.168.1.10. Each number represents eight bits, called an octet. An) Tj T* (address has two parts: the network part, shared by all devices on the same network,) Tj T* (and the host part, which identifies one device.) Tj T* () Tj T* (Some ranges are reserved for private use and are not routed on the public Internet.) Tj T* (These are 10.0.0.0 to 10.255.255.255, 172.16.0.0 to 172.31.255.255, and 192.168.0.0) Tj T* (to 192.168.255.255. Almost every home and office network uses one of them. The) Tj T* (address 127.0.0.1 is the loopback address, which always refers to the machine) Tj T* (itself, and the range starting with 169.254 is used when a device cannot obtain an) Tj T* (address automatically.) Tj T* () Tj T* (The first address of a network identifies the network itself and the last address is) Tj T* (the broadcast address for that network, so neither can be assigned to a host. Public) Tj T* (addresses are handed out by regional registries, and the total supply of IPv4) Tj T* (addresses is limited, which led to widespread use of address translation and to the) Tj T* (creation of a new version of the protocol.) Tj T* () Tj T* (The older system of classes A, B and C, which fixed the size of the network part,) Tj T* (has been replaced by classless addressing. In classless addressing the boundary) Tj T* (between the network and host parts can be placed anywhere, and a prefix length such) Tj T* (as /24 states how many bits belong to the network part.) Tj T* ET
+endstream
+endobj
+26 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R >> >> /Contents 27 0 R >>
+endobj
+27 0 obj
+<< /Length 1640 >>
+stream
+BT /F1 12 Tf 72 720 Td 14 TL (Chapter 12 - Subnetting) Tj T* () Tj T* (Subnetting splits a large network into smaller ones. A subnet mask, or its shorter) Tj T* (prefix notation, shows which bits belong to the network part. The mask 255.255.255.0) Tj T* (is written /24: the first 24 bits identify the network and the last 8 bits identify) Tj T* (the host. With 8 host bits there are 256 combinations, but two are reserved for the) Tj T* (network and broadcast addresses, so a /24 network offers 254 usable host addresses.) Tj T* () Tj T* (The general rule is that a network with h host bits offers 2 to the power h, minus) Tj T* (2, usable addresses. A /25 network has 7 host bits and therefore 126 usable) Tj T* (addresses. A /26 network has 6 host bits, so it gives 64 addresses in total and 62) Tj T* (usable host addresses. A /27 network gives 30 usable addresses, a /28 gives 14, and) Tj T* (a /30 gives only 2, which is exactly what is needed for a link between two routers.) Tj T* () Tj T* (To split a network, we borrow bits from the host part. Splitting a /24 by borrowing) Tj T* (two bits creates four /26 subnets: for example 192.168.10.0/26, 192.168.10.64/26,) Tj T* (192.168.10.128/26 and 192.168.10.192/26. Each subnet increases by 64 addresses, the) Tj T* (size of the block.) Tj T* () Tj T* (Subnetting has several advantages. It limits the size of broadcast domains, it lets) Tj T* (an administrator apply different rules to different groups of devices, and it uses) Tj T* (the available addresses more efficiently. Variable length subnet masking allows each) Tj T* (subnet to have the size that it really needs.) Tj T* ET
+endstream
+endobj
+28 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R >> >> /Contents 29 0 R >>
+endobj
+29 0 obj
+<< /Length 1598 >>
+stream
+BT /F1 12 Tf 72 720 Td 14 TL (Chapter 13 - IPv6) Tj T* () Tj T* (IPv6 was designed to replace IPv4 when its addresses started to run out. An IPv6) Tj T* (address is 128 bits long, which gives about 3.4 times ten to the power 38 addresses,) Tj T* (an amount large enough to give a unique address to every device for the foreseeable) Tj T* (future. Addresses are written in hexadecimal as eight groups of four digits) Tj T* (separated by colons, for example 2001:0db8:0000:0000:0000:0000:0000:0001.) Tj T* () Tj T* (Because such addresses are long, two shortening rules exist. Leading zeros inside a) Tj T* (group can be dropped, and one single run of groups made only of zeros can be) Tj T* (replaced by a double colon. The example above becomes 2001:db8::1. The double colon) Tj T* (may appear only once in an address, otherwise it would be ambiguous.) Tj T* () Tj T* (IPv6 brings other improvements. The header has a simpler, fixed structure that) Tj T* (routers process faster. There are no broadcasts: multicast is used instead. Devices) Tj T* (can configure their own addresses automatically, and the huge address space removes) Tj T* (the need for address translation, restoring the end-to-end connectivity of the) Tj T* (original Internet. A typical home connection receives a block of addresses from its) Tj T* (provider and each device builds its own address inside it.) Tj T* () Tj T* (IPv4 and IPv6 will coexist for many years. Dual stack hosts run both protocols at) Tj T* (once, and tunnelling and translation mechanisms connect IPv6-only networks with the) Tj T* (IPv4 world.) Tj T* ET
+endstream
+endobj
+30 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R >> >> /Contents 31 0 R >>
+endobj
+31 0 obj
+<< /Length 1730 >>
+stream
+BT /F1 12 Tf 72 720 Td 14 TL (Chapter 14 - Routing) Tj T* () Tj T* (A router connects different networks and forwards packets between them. To decide) Tj T* (where to send a packet, it consults its routing table, which lists known destination) Tj T* (networks together with the next hop and the outgoing interface for each of them. The) Tj T* (router chooses the entry with the longest matching prefix. When no entry matches,) Tj T* (the packet follows the default route, which usually points to the internet provider.) Tj T* (Hosts use a default gateway, normally the local router, for every destination) Tj T* (outside their own network.) Tj T* () Tj T* (Routes can be configured by hand, which is called static routing and is simple and) Tj T* (predictable on small networks, or learned automatically by routing protocols.) Tj T* (Protocols such as OSPF are used inside one organisation, while the Border Gateway) Tj T* (Protocol, BGP, exchanges routes between the autonomous systems that make up the) Tj T* (Internet.) Tj T* () Tj T* (Every IP packet carries a field called TTL, which means time to live. The TTL field) Tj T* (limits the lifetime of a packet: each router that forwards the packet decreases the) Tj T* (value by one, and when it reaches zero the router discards the packet and sends an) Tj T* (error message back to the sender. This prevents packets from circling forever if a) Tj T* (routing loop occurs. Typical starting values are 64 on Linux systems and 128 on) Tj T* (Windows.) Tj T* () Tj T* (The tool traceroute uses this behaviour on purpose. It sends packets with increasing) Tj T* (TTL values and records which router answers at each step, which reveals the path) Tj T* (across the network.) Tj T* ET
+endstream
+endobj
+32 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R >> >> /Contents 33 0 R >>
+endobj
+33 0 obj
+<< /Length 1754 >>
+stream
+BT /F1 12 Tf 72 720 Td 14 TL (Chapter 15 - DHCP and NAT) Tj T* () Tj T* (Typing an address into every device would be tedious and error-prone, so networks) Tj T* (use the Dynamic Host Configuration Protocol, DHCP, to configure devices) Tj T* (automatically. A DHCP server hands out an IP address, a subnet mask, a default) Tj T* (gateway and the address of a DNS server for a limited time called a lease. The) Tj T* (process has four steps known as DORA: Discover, Offer, Request and Acknowledge. The) Tj T* (client broadcasts a Discover message, the server answers with an Offer, the client) Tj T* (asks for that address with a Request, and the server confirms with an Acknowledge.) Tj T* (DHCP uses UDP, with port 67 for the server and port 68 for the client.) Tj T* () Tj T* (Because private addresses are not routed on the Internet, a home router performs) Tj T* (Network Address Translation, NAT. It replaces the private source address of outgoing) Tj T* (packets by its single public address and remembers the connection in a translation) Tj T* (table. When the reply returns, the router uses the table to send it to the right) Tj T* (internal device. The most common form also changes the port number, which allows) Tj T* (many devices to share one public address.) Tj T* () Tj T* (NAT delayed the exhaustion of IPv4 addresses, but it has side effects. Devices) Tj T* (behind a NAT cannot be reached directly from outside unless the router is told to) Tj T* (forward a port, and some protocols that carry addresses inside their data need) Tj T* (special handling.) Tj T* () Tj T* (Many small networks use a single device that combines the functions of a switch, a) Tj T* (router, a DHCP server, a NAT gateway and a wireless access point.) Tj T* ET
+endstream
+endobj
+34 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R >> >> /Contents 35 0 R >>
+endobj
+35 0 obj
+<< /Length 1653 >>
+stream
+BT /F1 12 Tf 72 720 Td 14 TL (Chapter 16 - TCP and UDP) Tj T* () Tj T* (The transport layer connects programs rather than machines. The two main protocols) Tj T* (differ in the service they provide. The Transmission Control Protocol, TCP, is) Tj T* (connection-oriented and reliable. It numbers every byte, acknowledges what arrives,) Tj T* (retransmits what is lost, delivers the data in order, and slows down when the) Tj T* (network is congested. The User Datagram Protocol, UDP, is connectionless and) Tj T* (unreliable. It simply sends independent datagrams without any guarantee, which makes) Tj T* (it lighter and faster.) Tj T* () Tj T* (Before exchanging data, TCP opens a connection with a three-way handshake. The) Tj T* (client sends a segment with the SYN flag set, the server replies with SYN-ACK, and) Tj T* (the client confirms with ACK. Only then does data flow. The connection is closed in) Tj T* (an orderly way with FIN segments. The handshake costs one round trip, which is one) Tj T* (reason why short exchanges can feel slow on distant links.) Tj T* () Tj T* (TCP is used when every byte must arrive correctly, for web pages, e-mail and file) Tj T* (transfer. UDP is chosen when speed matters more than perfection or when the) Tj T* (application handles reliability itself, for example voice and video calls, online) Tj T* (games and DNS queries. A lost video frame is better ignored than resent late.) Tj T* () Tj T* (TCP also includes flow control, using a window that tells the sender how much data) Tj T* (the receiver can accept, and congestion control, which reduces the sending rate when) Tj T* (packets are lost.) Tj T* ET
+endstream
+endobj
+36 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R >> >> /Contents 37 0 R >>
+endobj
+37 0 obj
+<< /Length 1443 >>
+stream
+BT /F1 12 Tf 72 720 Td 14 TL (Chapter 17 - Ports and sockets) Tj T* () Tj T* (An IP address identifies a machine, but a machine runs many programs at once. Port) Tj T* (numbers, which are 16-bit values from 0 to 65535, tell the transport layer which) Tj T* (program should receive the data. The combination of an IP address and a port number) Tj T* (is called a socket, and a connection is identified by the sockets at its two ends.) Tj T* () Tj T* (Ports from 0 to 1023 are the well-known ports, assigned to standard services. The) Tj T* (SSH protocol for secure remote login uses port 22. Telnet uses 23, SMTP uses 25,) Tj T* (HTTP uses 80 and HTTPS uses 443. Ports from 1024 to 49151 are registered ports used) Tj T* (by many applications, and ports from 49152 to 65535 are dynamic, or ephemeral, ports) Tj T* (that a client picks at random for the source of each outgoing connection.) Tj T* () Tj T* (A server program listens on a known port and waits for connections. When a client) Tj T* (connects, the client uses an ephemeral port as its own end, so one server can handle) Tj T* (thousands of clients at once because every connection has a different pair of) Tj T* (sockets.) Tj T* () Tj T* (Knowing the port numbers is useful when configuring firewalls, which allow or block) Tj T* (traffic according to ports, and when diagnosing problems with commands such as) Tj T* (netstat or ss that list the open sockets on a machine.) Tj T* ET
+endstream
+endobj
+38 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R >> >> /Contents 39 0 R >>
+endobj
+39 0 obj
+<< /Length 1638 >>
+stream
+BT /F1 12 Tf 72 720 Td 14 TL (Chapter 18 - The domain name system) Tj T* () Tj T* (People prefer names to numbers, so the Domain Name System, DNS, translates names) Tj T* (such as www.example.org into IP addresses. DNS is a distributed database organised) Tj T* (as a tree. At the top are the root servers, below them the top-level domains such as) Tj T* (.com, .org or country codes, and below them the authoritative servers that hold the) Tj T* (records of a particular domain. DNS listens on port 53, using UDP for most queries) Tj T* (and TCP for large answers.) Tj T* () Tj T* (A program asks a recursive resolver, usually run by the internet provider or a) Tj T* (public service, which does the work of following the tree: it asks a root server) Tj T* (where to find the top-level domain, then asks the top-level server where to find the) Tj T* (domain, and finally asks the authoritative server for the answer. The resolver) Tj T* (returns the result to the client and keeps it in a cache for the time given by the) Tj T* (record's TTL, so repeated questions are answered immediately.) Tj T* () Tj T* (Records have types. An A record maps a name to an IPv4 address and an AAAA record) Tj T* (maps it to an IPv6 address. A CNAME record makes one name an alias of another, an MX) Tj T* (record names the mail servers of a domain, and an NS record names its authoritative) Tj T* (servers. A PTR record performs the reverse lookup from an address to a name.) Tj T* () Tj T* (DNS was originally unprotected, so attackers can try to forge answers. DNSSEC adds) Tj T* (digital signatures to the records to detect such tampering.) Tj T* ET
+endstream
+endobj
+40 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R >> >> /Contents 41 0 R >>
+endobj
+41 0 obj
+<< /Length 1659 >>
+stream
+BT /F1 12 Tf 72 720 Td 14 TL (Chapter 19 - HTTP and the web) Tj T* () Tj T* (The web is built on the Hypertext Transfer Protocol, HTTP, a request and response) Tj T* (protocol between a browser and a server. The browser sends a request made of a) Tj T* (method, a path, headers and sometimes a body. The server answers with a status code,) Tj T* (headers and the content. The most common methods are GET, which reads a resource,) Tj T* (and POST, which sends data to the server. PUT replaces a resource and DELETE removes) Tj T* (it.) Tj T* () Tj T* (The status code tells the result at a glance. Codes starting with 2 mean success,) Tj T* (and 200 means that everything went well. Codes starting with 3 are redirections,) Tj T* (such as 301 for a permanent move. Codes starting with 4 are client errors: HTTP) Tj T* (status code 404 means that the requested resource was not found on the server, and) Tj T* (403 means that access is forbidden. Codes starting with 5 are server errors, such as) Tj T* (500 for an internal error and 503 when the service is unavailable.) Tj T* () Tj T* (HTTP is stateless: the server does not remember previous requests, so websites use) Tj T* (cookies to recognise a returning visitor. Resources are named by URLs, which combine) Tj T* (the protocol, the host name, an optional port and the path.) Tj T* () Tj T* (The protocol has evolved. HTTP/1.1 opened one request after another on a connection,) Tj T* (HTTP/2 multiplexes many requests over a single connection to load pages faster, and) Tj T* (HTTP/3 runs over a transport called QUIC, which is built on UDP and reduces the) Tj T* (delay caused by lost packets.) Tj T* ET
+endstream
+endobj
+42 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R >> >> /Contents 43 0 R >>
+endobj
+43 0 obj
+<< /Length 1623 >>
+stream
+BT /F1 12 Tf 72 720 Td 14 TL (Chapter 20 - Electronic mail) Tj T* () Tj T* (Electronic mail uses several protocols, each with its own job. A mail client sends a) Tj T* (message to its provider with the Simple Mail Transfer Protocol, SMTP. Mail servers) Tj T* (also use SMTP to relay the message to the recipient's server. SMTP between servers) Tj T* (uses port 25, while clients submitting mail normally use port 587 with) Tj T* (authentication and encryption.) Tj T* () Tj T* (To read the mail, the recipient's client fetches it from the server. With POP3, the) Tj T* (Post Office Protocol, the client downloads the messages and usually removes them) Tj T* (from the server, which is simple but ties the mailbox to one device. With IMAP, the) Tj T* (Internet Message Access Protocol, the messages stay on the server and the client) Tj T* (shows a synchronised view, so the same mailbox looks identical on a phone and a) Tj T* (laptop. IMAP uses port 143, or 993 when protected by TLS, and POP3 uses 110, or 995) Tj T* (when protected.) Tj T* () Tj T* (The destination servers are found through MX records in the DNS. If several MX) Tj T* (records exist, each has a priority and the sender tries the lowest number first. A) Tj T* (message that cannot be delivered is kept in a queue and retried for some days before) Tj T* (an error is returned to the sender.) Tj T* () Tj T* (E-mail was designed in a time of trust, so unwanted messages are a constant problem.) Tj T* (Techniques such as SPF, DKIM and DMARC let a receiving server check that a message) Tj T* (really comes from the domain it claims to come from.) Tj T* ET
+endstream
+endobj
+44 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R >> >> /Contents 45 0 R >>
+endobj
+45 0 obj
+<< /Length 1697 >>
+stream
+BT /F1 12 Tf 72 720 Td 14 TL (Chapter 21 - Network security) Tj T* () Tj T* (Because networks carry sensitive data, several mechanisms protect them. A firewall) Tj T* (filters traffic according to rules, for example by address and port. A stateful) Tj T* (firewall remembers established connections and automatically allows the replies,) Tj T* (while a packet filter judges each packet alone. A demilitarised zone, or DMZ, is a) Tj T* (separate network segment for servers that must be reachable from outside, so that a) Tj T* (compromised server does not give access to the internal network.) Tj T* () Tj T* (Encryption protects the content. The Transport Layer Security protocol, TLS, secures) Tj T* (protocols such as HTTPS. TLS 1.3, standardised in 2018, is the current version.) Tj T* (During the handshake the server proves its identity with a digital certificate) Tj T* (signed by a certificate authority, and the two sides agree on keys that are then) Tj T* (used to encrypt the data. Certificates are what the padlock in a browser stands for.) Tj T* () Tj T* (A virtual private network, VPN, creates an encrypted tunnel across an untrusted) Tj T* (network such as the Internet, so remote users can reach a company network as if they) Tj T* (were inside it. Common technologies include IPsec, OpenVPN and WireGuard.) Tj T* () Tj T* (Security also depends on people and habits: strong and unique passwords, multi-) Tj T* (factor authentication, regular updates, and the principle of least privilege, which) Tj T* (gives every user and program only the access it needs. Monitoring and logging help) Tj T* (detect attacks early, and backups limit the damage when an attack succeeds.) Tj T* ET
+endstream
+endobj
+46 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R >> >> /Contents 47 0 R >>
+endobj
+47 0 obj
+<< /Length 1722 >>
+stream
+BT /F1 12 Tf 72 720 Td 14 TL (Chapter 22 - Wireless networks) Tj T* () Tj T* (Wireless local networks follow the IEEE 802.11 family of standards, marketed as Wi-) Tj T* (Fi. They work in unlicensed radio bands, mainly 2.4 GHz and 5 GHz, and newer devices) Tj T* (also use 6 GHz. The 2.4 GHz band reaches further and passes through walls better,) Tj T* (but it is crowded and offers only a few channels. It has channels 1 to 13 in most) Tj T* (countries, but they are so close together that neighbouring channels overlap. The) Tj T* (three channels 1, 6 and 11 do not overlap, so access points close to each other) Tj T* (should use them to avoid interference.) Tj T* () Tj T* (The standards have improved through the years. 802.11b offered 11 Mbit/s, 802.11g) Tj T* (reached 54 Mbit/s, 802.11n introduced several antennas, MIMO, and 802.11ac) Tj T* (concentrated on the 5 GHz band. Wi-Fi 6, which is the name for IEEE 802.11ax,) Tj T* (reaches a theoretical maximum of 9.6 Gbit/s and is designed to work better when many) Tj T* (devices are connected at once. Real speeds are always lower than the theoretical) Tj T* (maximum because the air is shared and signals weaken with distance and obstacles.) Tj T* () Tj T* (A wireless network is identified by its SSID, the name that users see. Wi-Fi traffic) Tj T* (can be intercepted by anyone in range, so it must be encrypted. The old WEP method) Tj T* (is broken and WPA2 has long been the standard, while WPA3, introduced in 2018,) Tj T* (strengthens the protection of passwords.) Tj T* () Tj T* (Good coverage depends on the position of the access points, which should be central) Tj T* (and high, and on avoiding sources of interference such as microwave ovens.) Tj T* ET
+endstream
+endobj
+48 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R >> >> /Contents 49 0 R >>
+endobj
+49 0 obj
+<< /Length 1578 >>
+stream
+BT /F1 12 Tf 72 720 Td 14 TL (Chapter 23 - Troubleshooting tools) Tj T* () Tj T* (When a network does not work, a method helps more than guessing. A common approach) Tj T* (is to work from the bottom up: first check the cable and the lights, then the) Tj T* (address configuration, then the connection to the gateway, and finally the name) Tj T* (resolution and the application.) Tj T* () Tj T* (The ping command sends ICMP echo requests to a host and measures how long the) Tj T* (replies take. It shows whether the host is reachable and how much delay and packet) Tj T* (loss there is. The traceroute command, called tracert on Windows, lists the routers) Tj T* (along the path by using the TTL field, and it shows where a connection stops or) Tj T* (slows down. The ipconfig command on Windows and ip addr on Linux display the) Tj T* (addresses of the local interfaces.) Tj T* () Tj T* (The nslookup and dig commands query the DNS and help to find out whether a problem) Tj T* (comes from the name resolution. The netstat and ss commands show open connections) Tj T* (and listening ports. For deeper analysis, a packet analyser such as Wireshark) Tj T* (captures the traffic and displays each frame decoded layer by layer, which is) Tj T* (excellent for learning how protocols really behave.) Tj T* () Tj T* (It is useful to write down what was changed and what the result was. Changing one) Tj T* (thing at a time makes it possible to find the real cause, and comparing the) Tj T* (situation with a known working configuration often reveals the difference at once.) Tj T* ET
+endstream
+endobj
+50 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R >> >> /Contents 51 0 R >>
+endobj
+51 0 obj
+<< /Length 1703 >>
+stream
+BT /F1 12 Tf 72 720 Td 14 TL (Chapter 24 - Summary and glossary) Tj T* () Tj T* (This last chapter brings the main ideas together. A network is a set of devices that) Tj T* (exchange data using shared protocols. The work is divided into layers, and each) Tj T* (layer adds a header to the data as it travels down the stack at the sender and) Tj T* (removes it at the receiver. Local delivery relies on hardware addresses and) Tj T* (switches, while delivery between networks relies on IP addresses and routers.) Tj T* (Transport protocols connect programs through port numbers, and applications such as) Tj T* (the web and e-mail use names resolved by the DNS.) Tj T* () Tj T* (Short glossary. Bandwidth is the maximum amount of data a link can carry per second.) Tj T* (Latency is the time a message takes to travel from the sender to the receiver.) Tj T* (Throughput is the speed actually achieved. A protocol is a set of rules for) Tj T* (communication. A packet is a unit of data at the network layer. A gateway is a) Tj T* (device that connects a network to others. A firewall is a filter for traffic. An) Tj T* (autonomous system is a network under a single administrative control.) Tj T* () Tj T* (To go further, build a small lab with virtual machines, capture the traffic with a) Tj T* (packet analyser and compare it with what these chapters describe. Reading the) Tj T* (original RFC documents is a good next step for each protocol, and practising) Tj T* (subnetting with a few examples every day quickly makes it automatic.) Tj T* () Tj T* (Understanding networks takes time, but the reward is large: almost every modern) Tj T* (service depends on the ideas covered in these notes.) Tj T* ET
+endstream
+endobj
+xref
+0 52
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000275 00000 n 
+0000000345 00000 n 
+0000000471 00000 n 
+0000002333 00000 n 
+0000002459 00000 n 
+0000004303 00000 n 
+0000004429 00000 n 
+0000006163 00000 n 
+0000006291 00000 n 
+0000008079 00000 n 
+0000008207 00000 n 
+0000009924 00000 n 
+0000010052 00000 n 
+0000011690 00000 n 
+0000011818 00000 n 
+0000013562 00000 n 
+0000013690 00000 n 
+0000015462 00000 n 
+0000015590 00000 n 
+0000017303 00000 n 
+0000017431 00000 n 
+0000019025 00000 n 
+0000019153 00000 n 
+0000020958 00000 n 
+0000021086 00000 n 
+0000022779 00000 n 
+0000022907 00000 n 
+0000024558 00000 n 
+0000024686 00000 n 
+0000026469 00000 n 
+0000026597 00000 n 
+0000028404 00000 n 
+0000028532 00000 n 
+0000030238 00000 n 
+0000030366 00000 n 
+0000031862 00000 n 
+0000031990 00000 n 
+0000033681 00000 n 
+0000033809 00000 n 
+0000035521 00000 n 
+0000035649 00000 n 
+0000037325 00000 n 
+0000037453 00000 n 
+0000039203 00000 n 
+0000039331 00000 n 
+0000041106 00000 n 
+0000041234 00000 n 
+0000042865 00000 n 
+0000042993 00000 n 
+trailer
+<< /Size 52 /Root 1 0 R >>
+startxref
+44749
+%%EOF

@@ -1,1 +1,9 @@
-What is the main topic of the document?
+How many bits long is an IPv6 address?
+What are the four steps of the DHCP process?
+How many usable host addresses does a /26 subnet give?
+Which Wi-Fi channels in the 2.4 GHz band do not overlap?
+What is the maximum payload size of an Ethernet frame?
+Which port does SSH use?
+What does the TTL field do in an IP packet?
+How long is an 802.1Q VLAN tag?
+Who invented the World Wide Web?
