@@ -75,7 +75,7 @@ sensai/
 | Poor retrieval | Chunk size, overlap and top-k are settings; test on a PDF with known answers |
 | Model returns invalid JSON | JSON-schema `format`, validation, 2 retries, never write on failure |
 | Quote check proves only that the quote exists | The EV1 judge adds a second opinion; state the limits of both honestly in the keynote |
-| Small judge is lenient or inconsistent | Short fixed-label output, thinking off, keep the quote check as anchor, report disagreements |
+| Small judge is lenient or inconsistent | Short fixed-label output, keep the quote check as anchor, report disagreements |
 | Low RAM | Small models, `num_ctx` 4096, one chat model at a time |
 | Live demo crashes | Pre-warm the model, record a fallback video |
 

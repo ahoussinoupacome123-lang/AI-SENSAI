@@ -52,7 +52,7 @@ def evaluate(question, answer, chunks, config):
     """Return {verdict, reason}. Falls back to 'unknown' after 1 retry.
 
     Uses prompts/judge_prompt.txt with {question}, {passages}, {answer} placeholders.
-    Same model as chat (qwen3:4b), default thinking, very short JSON output.
+    Same model as chat (qwen3:4b), schema mode (thinking off), very short JSON output.
     """
     host = config.get("host", "http://localhost:11434")
     model = config.get("judge_model", config.get("chat_model", "qwen3:4b"))
