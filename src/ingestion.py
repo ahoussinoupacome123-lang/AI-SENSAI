@@ -95,6 +95,19 @@ def index_path(pdf_path):
     return Path(pdf_path).with_suffix(".index.json")
 
 
+def _load_index(path):
+    """Load a saved index and check its shape; a bad file gets a message that says how to fix it."""
+    try:
+        records = store.load(path)
+    except (ValueError, OSError) as e:  # JSONDecodeError and StoreError are ValueErrors
+        raise IngestionError(f"The saved index {path} cannot be read ({e}). Rebuild it with --force.")
+    required = {"id", "text", "page", "vector"}
+    if not (isinstance(records, list) and records
+            and all(isinstance(r, dict) and required <= set(r) for r in records)):
+        raise IngestionError(f"The saved index {path} is not a valid index. Rebuild it with --force.")
+    return records
+
+
 def ingest(pdf_path, config, force=False):
     """Extract, chunk and embed a PDF; save and return its chunk records.
 
@@ -107,7 +120,7 @@ def ingest(pdf_path, config, force=False):
     path = index_path(pdf_path)
     if not force and path.exists() and path.stat().st_mtime >= Path(pdf_path).stat().st_mtime:
         print(f"Index found: {path} (rebuild with --force)")
-        return store.load(path)
+        return _load_index(path)
 
     pages = extract_pages(pdf_path)
     chunks = chunk_pages(pages, config["chunk_size"], config["chunk_overlap"])

@@ -138,3 +138,21 @@ def test_wrong_number_of_vectors_raises(pdf, monkeypatch):
     monkeypatch.setattr(store, "save", lambda chunks, path: None)
     with pytest.raises(IngestionError, match="vectors"):
         ingest(pdf, CONFIG)
+
+
+@pytest.mark.parametrize("content", ["{ not json", "", "{}", "[]", '[{"id": 0}]', "[1, 2]"])
+def test_unreadable_or_invalid_index_gives_a_message_that_says_how_to_fix_it(pdf, fakes, content):
+    ingest(pdf, CONFIG)                                  # builds a good index
+    index_path(pdf).write_text(content)
+    calls_before = len(fakes)
+    with pytest.raises(IngestionError, match="--force"):
+        ingest(pdf, CONFIG)
+    assert len(fakes) == calls_before                    # nothing was embedded or overwritten
+    assert index_path(pdf).read_text() == content
+
+
+def test_force_replaces_a_corrupt_index(pdf, fakes):
+    ingest(pdf, CONFIG)
+    index_path(pdf).write_text("{ not json")
+    records = ingest(pdf, CONFIG, force=True)
+    assert records and json.loads(index_path(pdf).read_text())
