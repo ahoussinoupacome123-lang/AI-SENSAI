@@ -7,7 +7,7 @@ import json
 import sys
 from pathlib import Path
 
-from src import ingestion, judge, pipeline, writer
+from src import eval_summary, ingestion, judge, pipeline, writer
 
 ROOT = Path(__file__).resolve().parent.parent
 REQUIRED_CONFIG = ("host", "chat_model", "embed_model", "chunk_size", "chunk_overlap", "top_k")
@@ -99,19 +99,14 @@ def answer_question(question, records, config):
 
 
 def build_summary(total, answered, failed, output):
-    """answered: list of (index, checked); failed: list of (index, message)."""
+    """answered: list of (index, checked); failed: list of (index, message).
+
+    The quote-check and judge statistics come from eval_summary.summarize (M6).
+    """
     lines = [f"Done: {len(answered)}/{total} questions answered, {len(failed)} failed -> {output}"]
     if answered:
-        supported = sum(1 for _, c in answered if c.get("status") == "supported")
-        lines.append(f"Quote check: {supported} supported, {len(answered) - supported} not supported")
-        verdicts = [c["verdict"] for _, c in answered if c.get("verdict")]
-        if verdicts:
-            counts = ", ".join(f"{verdicts.count(v)} {v}"
-                               for v in ("faithful", "partial", "unfaithful", "unknown"))
-            lines.append(f"Judge: {counts}")
-        review = [f"Q{i}" for i, c in answered if c.get("disagreement")]
-        if review:
-            lines.append(f"Review needed (quote check and judge disagree): {', '.join(review)}")
+        text, _ = eval_summary.summarize([checked for _, checked in answered])
+        lines += ["", text]
     for index, message in failed:
         lines.append(f"Failed: Q{index} ({message})")
     return "\n".join(lines)

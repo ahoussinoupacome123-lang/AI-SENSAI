@@ -229,7 +229,7 @@ def test_disagreement_is_flagged_in_file_and_summary(env, monkeypatch, capsys):
     monkeypatch.setattr(judge, "evaluate", lambda *a: {"verdict": "unfaithful", "reason": "wrong"})
     run(env)
     assert "**Review needed:**" in env["out"].read_text()
-    assert "Review needed (quote check and judge disagree): Q1, Q2, Q3" in capsys.readouterr().out
+    assert "3 answer(s) where quote check and judge disagree" in capsys.readouterr().out
 
 
 def test_summary_counts_quote_check_and_judge(env, monkeypatch, capsys):
@@ -237,8 +237,8 @@ def test_summary_counts_quote_check_and_judge(env, monkeypatch, capsys):
     monkeypatch.setattr(judge, "evaluate", lambda *a: {"verdict": next(verdicts), "reason": "r"})
     run(env)
     out = capsys.readouterr().out
-    assert "Quote check: 3 supported, 0 not supported" in out
-    assert "Judge: 1 faithful, 1 partial, 1 unfaithful, 0 unknown" in out
+    assert "Supported    : 3/3" in out and "Not supported: 0/3" in out
+    assert "Faithful  : 1/3" in out and "Partial   : 1/3" in out and "Unfaithful: 1/3" in out
 
 
 def test_progress_lines_are_printed(env, capsys):
