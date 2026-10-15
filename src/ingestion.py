@@ -53,8 +53,38 @@ def extract_pages(pdf_path, min_chars=MIN_TEXT_CHARS):
 
 
 def chunk_pages(pages, size, overlap):
-    """Cut each page into overlapping chunks that keep their page number."""
-    raise NotImplementedError
+    """Cut each page into overlapping chunks that keep their page number.
+
+    pages: [(page_number, text), ...] as returned by extract_pages.
+    Returns [{"text": ..., "page": ...}, ...] in page order.
+
+    - Whitespace is collapsed to single spaces so chunks are clean text.
+    - A chunk never mixes pages, so its page number is always exact.
+    - Chunks are at most `size` characters; consecutive chunks of a page share
+      exactly `overlap` characters, so a sentence cut at a border stays whole
+      in one of them.
+    - Pages with no text are skipped.
+    """
+    if size <= 0:
+        raise ValueError(f"chunk size must be positive, got {size}")
+    if overlap < 0:
+        raise ValueError(f"overlap cannot be negative, got {overlap}")
+    if overlap >= size:
+        raise ValueError(f"overlap ({overlap}) must be smaller than chunk size ({size})")
+
+    step = size - overlap
+    chunks = []
+    for page, raw in pages:
+        text = " ".join(raw.split())
+        if not text:
+            continue
+        start = 0
+        while True:
+            chunks.append({"text": text[start:start + size], "page": page})
+            if start + size >= len(text):
+                break
+            start += step
+    return chunks
 
 
 def ingest(pdf_path, config):
@@ -63,12 +93,23 @@ def ingest(pdf_path, config):
 
 
 if __name__ == "__main__":
-    # Debug helper: python -m src.ingestion some.pdf
-    if len(sys.argv) != 2:
-        sys.exit("usage: python -m src.ingestion <file.pdf>")
+    # Debug helper: python -m src.ingestion some.pdf [--chunks]
+    args = [a for a in sys.argv[1:] if a != "--chunks"]
+    if len(args) != 1:
+        sys.exit("usage: python -m src.ingestion <file.pdf> [--chunks]")
     try:
-        for number, text in extract_pages(sys.argv[1]):
-            preview = " ".join(text.split())[:70]
-            print(f"page {number:>3}: {len(text):>5} chars | {preview}")
+        pages = extract_pages(args[0])
+        if "--chunks" in sys.argv:
+            import json
+            config = json.loads((Path(__file__).resolve().parent.parent / "config.json").read_text())
+            size, overlap = config["chunk_size"], config["chunk_overlap"]
+            chunks = chunk_pages(pages, size, overlap)
+            print(f"{len(chunks)} chunks (size {size}, overlap {overlap})")
+            for chunk in chunks[:6]:
+                print(f"page {chunk['page']:>3}, {len(chunk['text']):>4} chars | {chunk['text'][:60]}")
+        else:
+            for number, text in pages:
+                preview = " ".join(text.split())[:70]
+                print(f"page {number:>3}: {len(text):>5} chars | {preview}")
     except IngestionError as e:
         sys.exit(f"Error: {e}")
