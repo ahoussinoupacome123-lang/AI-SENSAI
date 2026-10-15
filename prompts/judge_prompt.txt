@@ -3,6 +3,7 @@ Reply with JSON only: {"verdict": "faithful" | "partial" | "unfaithful", "reason
 faithful = every claim in the answer is supported by the passages.
 partial = some claims are supported, some are not.
 unfaithful = the answer contradicts the passages or is not supported by them.
+Special case: if the answer says "The document does not cover this.", look at the passages. If none of them contains the answer to the question, the verdict is faithful. If a passage does contain the answer, the verdict is unfaithful.
 
 Question: {question}
 
