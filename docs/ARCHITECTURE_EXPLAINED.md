@@ -141,7 +141,7 @@ For "capital of France" the model should answer "The document does not cover thi
 python -m src.cli course.pdf questions.txt
  1. read config.json and prompts/
  2. ingest course.pdf (skip if index.json already exists)
- 3. for each question: pipeline.answer(q) -> writer.upsert_section(...)
+ 3. for each question: pipeline.retrieve_and_answer(q) -> judge.evaluate(...) -> writer.upsert_section(...)
  4. print: "2/3 supported, 1 not supported"
 ```
 Keeping it dumb makes the other files easy to test alone.
@@ -176,8 +176,9 @@ Files exchange data in fixed shapes, so they must agree *before* coding. Otherwi
 | `client.chat(messages, model, schema=None, stream=False) -> str \| dict` | "Send these messages to this model. If a schema is given, force JSON and return a dict; otherwise return text." |
 | `client.embed(texts, model) -> list[list[float]]` | "Give me one vector for each text." |
 | `store.save(chunks)` / `store.search(vector, k)` | "Save these chunks." / "Give me the k chunks closest to this vector." |
-| `pipeline.answer(question) -> Checked` | "Answer one question and tell me if it is supported." |
-| `writer.upsert_section(index, checked)` | "Put this answer into section number `index` of the file." Returns nothing. |
+| `pipeline.retrieve_and_answer(question, index_chunks, config) -> Checked` | "Find the best chunks for this question, answer it, and tell me if the quote is supported." The result also carries the retrieved `chunks`, because the judge needs them. |
+| `pipeline.answer(question, chunks, config) -> Checked` | "Same, but for chunks I already retrieved." |
+| `writer.upsert_section(path, index, checked)` | "Put this answer into section number `index` of the file at `path`." Returns nothing; refuses a failed answer. |
 
 ---
 
