@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<meta name="description" content="Ask questions about a PDF and get sourced answers, locally.">
+<title>SENSAI Q&amp;A</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230b45ff'/%3E%3Ctext x='32' y='45' font-family='Arial' font-weight='800' font-size='38' text-anchor='middle' fill='white'%3ES%3C/text%3E%3Crect x='40' y='47' width='14' height='5' fill='%23ff5b37'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="static/style.css">
+<script>try{var t=localStorage.getItem("sensai-theme");if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t);}catch(e){}</script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to the content</a>
+<div class="bg" aria-hidden="true"><i class="blob b1"></i><i class="blob b2"></i><i class="blob b3"></i><div class="dots"></div></div>
+
+<header class="top" id="top">
+  <div class="brand" aria-label="Sensai Q and A"><span class="logo">SENSAI<span class="us">_</span></span><span class="tag">Q&amp;A</span></div>
+  <nav class="tabs" id="tabs" role="tablist" aria-label="Sections">
+    <span class="tab-indicator" id="tab-indicator" aria-hidden="true"></span>
+    <button class="tab-btn active" role="tab" data-tab="qa" aria-selected="true"><span data-icon="file"></span><span class="lbl">Ask a PDF</span></button>
+    <button class="tab-btn" role="tab" data-tab="chat" aria-selected="false"><span data-icon="chat"></span><span class="lbl">Chat</span></button>
+    <button class="tab-btn" role="tab" data-tab="settings" aria-selected="false"><span data-icon="gear"></span><span class="lbl">Settings</span></button>
+  </nav>
+  <div class="top-right">
+    <div id="status-pill" class="pill pill-wait" role="status" aria-live="polite"><span class="dot"></span><span id="status-text">checking Ollama...</span><span id="status-detail" class="detail"></span></div>
+    <button id="theme" class="theme-btn" type="button" aria-label="Switch between light and dark theme" title="Switch theme"><span data-icon="moon" class="ico-moon"></span><span data-icon="sun" class="ico-sun"></span></button>
+  </div>
+</header>
+
+<div id="banner" class="banner" role="alert" hidden></div>
+
+<!-- Shown only when this file is opened directly from disk instead of through the server -->
+<section id="needs-server" class="needs-server" hidden>
+  <div class="needs-card">
+    <h1>This page needs its server</h1>
+    <p>You opened the file directly. The interface talks to a small local server that runs the same code as the command line, so start it first:</p>
+    <pre>python WEB-UI/server.py</pre>
+    <p>then open <a href="http://127.0.0.1:8000">http://127.0.0.1:8000</a> in your browser.</p>
+    <p class="muted">Ollama must be running too (<code>ollama serve</code>). Everything stays on this computer.</p>
+  </div>
+</section>
+
+<main id="main">
+  <h1 class="sr-only">Sensai Q and A: ask questions about a PDF and get sourced answers</h1>
+
+  <!-- ============ ASK A PDF ============ -->
+  <section id="tab-qa" class="tab active" role="tabpanel" aria-label="Ask a PDF">
+    <aside class="setup">
+      <div class="card section rise" style="--i:1">
+        <h2><span class="step">1</span>Document</h2>
+        <div id="dropzone" class="dropzone" tabindex="0" role="button" aria-label="Choose or drop a PDF file">
+          <span data-icon="upload" class="dz-icon"></span>
+          <div><strong>Drop a PDF here</strong><br><span class="muted">or click to choose a file (text PDFs, up to 50 MB)</span></div>
+          <input type="file" id="upload" accept="application/pdf,.pdf" hidden>
+        </div>
+        <div id="doc-card" class="doc-card" hidden>
+          <span data-icon="file" class="doc-icon"></span>
+          <div class="doc-main">
+            <select id="doc-select" aria-label="Document"></select>
+            <div id="doc-info" class="doc-meta"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card section rise" style="--i:2">
+        <h2><span class="step">2</span>Questions</h2>
+        <textarea id="questions" rows="5" spellcheck="false" aria-label="Questions, one per line" aria-describedby="q-count"
+                  placeholder="Write one question per line, for example:&#10;How many bits long is an IPv6 address?&#10;Which port does SSH use?"></textarea>
+        <div class="row between">
+          <span id="q-count" class="muted small" aria-live="polite">0 questions</span>
+          <span class="links"><button id="load-example" type="button" class="link">Load examples</button><button id="load-all" type="button" class="link">Load all</button></span>
+        </div>
+      </div>
+
+      <div class="card section rise" style="--i:3">
+        <h2><span class="step">3</span>Run</h2>
+        <button id="run" class="primary big" type="button"><span data-icon="sparkles"></span>Answer all questions</button>
+        <p class="muted small hint">About 30 to 60 seconds per question on a laptop CPU. <kbd>Ctrl</kbd>+<kbd>Enter</kbd> runs.</p>
+        <details class="adv">
+          <summary>Advanced</summary>
+          <label class="check"><input type="checkbox" id="force"> Rebuild the index (after changing chunk settings)</label>
+        </details>
+        <div id="notice" class="notice" role="alert" hidden></div>
+      </div>
+    </aside>
+
+    <section class="results" aria-label="Results" aria-live="polite">
+      <!-- empty state -->
+      <div id="empty" class="card empty rise" style="--i:2">
+        <svg class="hero-art" viewBox="0 0 320 200" role="img" aria-label="A document being read by a magnifying glass">
+          <defs>
+            <linearGradient id="g1" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#0b45ff"/><stop offset="1" stop-color="#5b83ff"/></linearGradient>
+            <linearGradient id="g2" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ff5b37"/><stop offset="1" stop-color="#ff9a7a"/></linearGradient>
+          </defs>
+          <ellipse class="shadow" cx="160" cy="186" rx="92" ry="9" fill="currentColor" opacity=".12"/>
+          <g class="float-a">
+            <rect x="88" y="22" width="132" height="158" rx="14" fill="var(--surface)" stroke="var(--line)" stroke-width="2"/>
+            <rect x="104" y="42" width="62" height="9" rx="4.5" fill="url(#g1)"/>
+            <rect x="104" y="66" width="100" height="6" rx="3" fill="var(--line)"/><rect x="104" y="82" width="92" height="6" rx="3" fill="var(--line)"/>
+            <rect class="hl" x="100" y="96" width="106" height="14" rx="5" fill="#00e5a0" opacity=".28"/>
+            <rect x="104" y="99" width="96" height="6" rx="3" fill="var(--line)"/>
+            <rect x="104" y="122" width="102" height="6" rx="3" fill="var(--line)"/><rect x="104" y="138" width="70" height="6" rx="3" fill="var(--line)"/>
+            <rect x="104" y="156" width="40" height="6" rx="3" fill="var(--line)"/>
+          </g>
+          <g class="lens">
+            <circle cx="214" cy="108" r="30" fill="rgba(11,69,255,.08)" stroke="url(#g1)" stroke-width="7"/>
+            <path d="M236 131l26 28" stroke="url(#g1)" stroke-width="9" stroke-linecap="round"/>
+            <path d="M200 100a16 16 0 0 1 12-9" stroke="#fff" stroke-width="4" stroke-linecap="round" fill="none" opacity=".8"/>
+          </g>
+          <g class="spark s1"><path d="M52 52l3 9 9 3-9 3-3 9-3-9-9-3 9-3z" fill="url(#g2)"/></g>
+          <g class="spark s2"><path d="M268 42l2.4 7 7 2.4-7 2.4-2.4 7-2.4-7-7-2.4 7-2.4z" fill="url(#g1)"/></g>
+          <g class="spark s3"><circle cx="64" cy="140" r="5" fill="#00e5a0"/></g>
+          <g class="quote q1"><rect x="34" y="92" width="34" height="26" rx="9" fill="url(#g2)"/><path d="M44 118l-2 10 12-10z" fill="#ff7d5c"/><circle cx="46" cy="105" r="3.2" fill="#fff"/><circle cx="56" cy="105" r="3.2" fill="#fff"/></g>
+        </svg>
+        <h2>Ask questions about a PDF, get answers you can check</h2>
+        <p class="muted lead">Every answer comes with the page it was found on and a word-for-word quote, and is checked twice so you know which answers to trust.</p>
+        <ol class="how">
+          <li><span class="step">1</span><div><strong>Choose a document</strong><br><span class="muted">upload yours, or use the demo course</span></div></li>
+          <li><span class="step">2</span><div><strong>Write your questions</strong><br><span class="muted">one per line</span></div></li>
+          <li><span class="step">3</span><div><strong>Read the answers</strong><br><span class="muted">they arrive one by one, with page links</span></div></li>
+        </ol>
+        <button id="try-demo" class="primary attn" type="button"><span data-icon="sparkles"></span>Try the demo: 3 questions, about a minute</button>
+        <p class="muted small">Runs entirely on this computer through Ollama. Your documents never leave it.</p>
+      </div>
+
+      <!-- live progress -->
+      <div id="progress" class="card progress" hidden>
+        <div class="progress-top">
+          <span class="spinner" aria-hidden="true"></span>
+          <span class="done-ico" aria-hidden="true"></span>
+          <strong id="progress-text">Starting...</strong>
+          <span id="elapsed" class="muted small" aria-hidden="true"></span>
+          <button id="stop" type="button" class="danger" hidden><span data-icon="stop"></span>Stop</button>
+        </div>
+        <div class="bar" role="progressbar" aria-label="Run progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div id="bar-fill"></div></div>
+        <div id="burst" class="burst" aria-hidden="true"></div>
+      </div>
+
+      <!-- summary tiles -->
+      <div id="summary-panel" class="summary-panel" hidden>
+        <div id="tiles" class="tiles"></div>
+        <details class="raw"><summary>Full run summary</summary><pre id="summary"></pre></details>
+      </div>
+
+      <div id="cards"></div>
+
+      <details id="file-preview" class="card file-preview" hidden>
+        <summary><span data-icon="file"></span>answers.md
+          <span class="spacer"></span>
+          <button id="copy-md" type="button" class="small-btn"><span data-icon="copy"></span>Copy</button>
+          <a id="download" class="small-btn" href="#"><span data-icon="download"></span>Download</a>
+        </summary>
+        <pre id="answers-md"></pre>
+      </details>
+    </section>
+  </section>
+
+  <!-- ============ CHAT ============ -->
+  <section id="tab-chat" class="tab" role="tabpanel" aria-label="Chat" hidden>
+    <div class="chat-wrap card">
+      <div class="chat-head">
+        <div><h2>Chat</h2><p class="muted small">A plain conversation with the local model. It does not read your PDF: use <em>Ask a PDF</em> for that.</p></div>
+        <button id="chat-new" type="button" class="small-btn"><span data-icon="refresh"></span>New chat</button>
+      </div>
+      <div class="chat-body" id="chat-body">
+        <div id="messages" class="messages" aria-live="polite"></div>
+        <div id="chat-empty" class="chat-empty">
+          <svg class="hero-art small" viewBox="0 0 240 150" role="img" aria-label="Two chat bubbles">
+            <defs><linearGradient id="g3" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#0b45ff"/><stop offset="1" stop-color="#5b83ff"/></linearGradient></defs>
+            <g class="float-a"><rect x="20" y="18" width="130" height="52" rx="18" fill="var(--surface)" stroke="var(--line)" stroke-width="2"/><path d="M48 70l-6 18 24-18z" fill="var(--surface)" stroke="var(--line)" stroke-width="2" stroke-linejoin="round"/>
+              <rect x="36" y="34" width="70" height="7" rx="3.5" fill="var(--line)"/><rect x="36" y="48" width="44" height="7" rx="3.5" fill="var(--line)"/></g>
+            <g class="float-b"><rect x="92" y="78" width="130" height="52" rx="18" fill="url(#g3)"/><path d="M196 130l6 16-22-16z" fill="#4f78ff"/>
+              <circle class="td d1" cx="132" cy="104" r="5" fill="#fff"/><circle class="td d2" cx="152" cy="104" r="5" fill="#fff"/><circle class="td d3" cx="172" cy="104" r="5" fill="#fff"/></g>
+          </svg>
+          <h3>Say hello to your local model</h3>
+          <p class="muted small">Pick a starter or write your own message.</p>
+          <div class="chips" id="chips"></div>
+        </div>
+      </div>
+      <div class="composer-wrap">
+        <div class="meter" id="meter" title="How much of the model's context window this conversation uses">
+          <span class="muted small" id="meter-label">Context window</span>
+          <div class="bar slim" role="progressbar" aria-label="Context window used" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div id="meter-fill"></div></div>
+          <span id="meter-text" class="small">nothing sent yet</span>
+        </div>
+        <div class="composer">
+          <textarea id="chat-input" rows="1" placeholder="Message the model (Enter to send, Shift+Enter for a new line)" aria-label="Message"></textarea>
+          <button id="send" class="primary icon-btn" type="button" aria-label="Send message"><span data-icon="send"></span></button>
+          <button id="chat-stop" class="danger icon-btn" type="button" aria-label="Stop the reply" hidden><span data-icon="stop"></span></button>
+        </div>
+        <p class="muted small note">Token counts include the model's hidden reasoning, so a short reply can use many tokens.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ SETTINGS ============ -->
+  <section id="tab-settings" class="tab" role="tabpanel" aria-label="Settings" hidden>
+    <div class="settings-wrap">
+      <div class="page-head"><h2>Settings</h2><p class="muted small">These values override <code>config.json</code> for this server session only. The Ollama address cannot be changed from the browser.</p></div>
+      <form id="settings-form" autocomplete="off"></form>
+      <div class="actions">
+        <button id="settings-apply" class="primary" type="button">Apply</button>
+        <button id="settings-reset" type="button">Reset to defaults</button>
+      </div>
+      <div id="settings-msg" class="notice" role="status" hidden></div>
+      <datalist id="model-list"></datalist>
+    </div>
+  </section>
+</main>
+
+<!-- PDF page viewer: checking a quote without leaving the page -->
+<div id="drawer-backdrop" class="backdrop" hidden></div>
+<aside id="drawer" class="drawer" role="dialog" aria-modal="true" aria-labelledby="drawer-title" hidden>
+  <header class="drawer-head">
+    <strong id="drawer-title">PDF</strong>
+    <span class="spacer"></span>
+    <a id="drawer-open" class="small-btn" href="#" target="_blank" rel="noopener"><span data-icon="external"></span>Open in a new tab</a>
+    <button id="drawer-close" class="small-btn" type="button" aria-label="Close the PDF viewer"><span data-icon="x"></span>Close</button>
+  </header>
+  <iframe id="drawer-frame" title="PDF viewer"></iframe>
+</aside>
+
+<div id="toasts" class="toasts" aria-live="polite"></div>
+<footer class="foot muted small">Everything runs on this computer through Ollama: your documents never leave it.</footer>
+<script src="static/app.js"></script>
+</body>
+</html>

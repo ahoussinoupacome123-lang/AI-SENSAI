@@ -5,3 +5,4 @@ __pycache__/
 .claude/
 *.index.json
 answers.md
+WEB-UI/workspace/
