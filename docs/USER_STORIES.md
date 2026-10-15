@@ -77,6 +77,29 @@ Users: **Student** (prepares exams from course PDFs), **Researcher** (extracts a
 **US-EV1.3** As a student, I want to see where the quote check and the judge disagree, so that I know which answers to read myself.
 - When the quote check says `supported` but the judge says `unfaithful` (or the reverse), the section is flagged for review.
 
+## X1 – Web UI
+
+**US-X1.1** As a student who prefers a browser to a terminal, I want to upload a PDF, write my questions and watch the answers arrive, so that I get a sourced answers file without typing commands.
+- I can upload a PDF or choose the demo; a scanned or invalid PDF is refused with a clear message.
+- Pressing "Answer all questions" shows indexing progress, then one card per question filling in as its answer arrives.
+- Each card shows the answer, the page (a link that opens the PDF at that page), the word-for-word quote, the quote-check badge, the judge's verdict and a "review needed" badge when the checks disagree.
+- The answers file is shown on the page and can be downloaded.
+
+**US-X1.2** As a researcher, I want to edit one question and re-run only it, and to stop a long run, so that I can refine incrementally without waiting for everything.
+- "Re-run this question" changes only that card and only that section of the answers file; the other sections stay byte-for-byte identical.
+- "Stop" cancels the run; answers already written are kept and the interface is usable again at once.
+- A failing question is reported on its card and does not stop the others.
+
+**US-X1.3** As a user of the chatbot, I want to see the reply stream and how much of the model's context is used, so that I know when a conversation is getting too long.
+- The reply appears word by word, with a thinking indicator while the model reasons.
+- A meter shows the tokens used out of the context size (prompt plus reply), and a live count while the reply streams.
+- "Stop" cancels the reply cleanly; "New chat" clears the history.
+
+**US-X1.4** As a user, I want to change the models and numbers and to be told clearly when Ollama or a model is missing, so that I can fix a problem without reading logs.
+- A status indicator shows whether Ollama is reachable; a banner gives the exact `ollama pull ...` command for a missing model.
+- Settings are validated (types and ranges) and apply to the current server session; "Reset" restores `config.json`; the Ollama address cannot be changed from the browser.
+- The page and the server answer only on the local machine by default, and refuse requests from other sites.
+
 ## Traceability: which tests cover which stories
 
 | Feature | Stories | Automated tests | Manual check |
@@ -86,4 +109,5 @@ Users: **Student** (prepares exams from course PDFs), **Researcher** (extracts a
 | T5 | US-T5.1, US-T5.2 | `tests/test_m3_m4_pipeline.py`, `tests/test_cli.py` | a run where one question fails (see `tests/test_cli.py`) |
 | M4 | US-M4.1, US-M4.2 | `tests/test_writer.py`, `tests/test_cli.py` | re-run with `--only N` and `diff` the file |
 | Quote check | US-Q.1, US-Q.2 | `tests/test_quote_check.py`, `tests/test_m6_eval_summary.py` | summary printed at the end of a run |
+| X1 | US-X1.1, US-X1.2, US-X1.3, US-X1.4 | `tests/test_web_ui.py` (85 tests of the server), `tests/test_ollama_events.py`, `tests/test_ingest.py` (progress callback) | `python WEB-UI/server.py` and the checklist in `docs/TESTING.md`, level F |
 | EV1 | US-EV1.1, US-EV1.2, US-EV1.3 | `tests/test_m5_judge.py`, `tests/test_m6_eval_summary.py`, `tests/test_cli.py` | `Judge:` and `Review needed` lines in `answers.md` |
