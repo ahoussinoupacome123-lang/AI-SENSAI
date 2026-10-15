@@ -1,0 +1,223 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SENSAI Q&A Keynote</title>
+<style>
+  :root { --blue:#0b45ff; --navy:#08236b; --white:#fff; --orange:#ff5b37; --cyan:#00e5a0; --soft:rgba(255,255,255,.14); }
+  * { box-sizing:border-box; }
+  html, body { margin:0; height:100%; background:#061a52; font-family:"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif; color:var(--white); }
+  .deck { position:relative; width:100vw; height:100vh; overflow:hidden; }
+  .slide { position:absolute; inset:0; display:none; flex-direction:column; justify-content:center; padding:6vh 7vw 9vh; background:var(--blue); }
+  .slide.active { display:flex; }
+  .slide::after { content:""; position:absolute; left:7vw; bottom:5vh; width:7vw; height:.7vh; background:var(--orange); }
+  h1 { font-size:min(11vw,19vh); margin:0; letter-spacing:-.02em; line-height:1; }
+  h1 .us { color:var(--orange); }
+  h2 { font-size:min(4.6vw,8vh); margin:0 0 3vh; line-height:1.1; }
+  h2 small { font-size:.5em; color:var(--cyan); margin-left:.6em; font-weight:600; letter-spacing:.04em; }
+  .tag { font-size:min(2.4vw,4vh); line-height:1.3; }
+  .tag .b { color:var(--cyan); }
+  p, li { font-size:min(2.3vw,4.3vh); line-height:1.35; margin:.5vh 0; }
+  ul { margin:0; padding-left:1.2em; } li::marker { color:var(--orange); }
+  .muted { opacity:.8; }
+  .cols { display:grid; gap:2.5vw; grid-template-columns:repeat(3,1fr); }
+  .card { background:var(--soft); border-radius:1.2vw; padding:1.8vh 1.6vw; }
+  .card h3 { margin:0 0 1vh; font-size:min(2.5vw,4.6vh); color:var(--cyan); }
+  .card li, .card p { font-size:min(1.85vw,3.4vh); }
+  .flow { display:flex; align-items:stretch; gap:.7vw; flex-wrap:nowrap; }
+  .box { background:var(--navy); border:.25vh solid var(--cyan); border-radius:1vw; padding:1.4vh .8vw; flex:1; text-align:center; font-size:min(1.55vw,3vh); }
+  .box b { display:block; color:var(--cyan); font-size:1.1em; }
+  .arrow { align-self:center; color:var(--orange); font-size:min(2.4vw,4.4vh); }
+  pre { background:var(--navy); border-radius:1vw; padding:2vh 1.6vw; font-size:min(1.7vw,3.2vh); line-height:1.45; margin:1vh 0; overflow:hidden; color:#e8f0ff; }
+  pre .k { color:var(--cyan); } pre .o { color:#ffb199; }
+  table { border-collapse:collapse; width:100%; font-size:min(1.55vw,3vh); }
+  th { text-align:left; color:var(--cyan); border-bottom:.3vh solid var(--cyan); padding:.8vh .8vw; }
+  td { border-bottom:.15vh solid rgba(255,255,255,.25); padding:.7vh .8vw; vertical-align:top; }
+  .ok { color:var(--cyan); font-weight:700; } .bad { color:#ffd2c7; font-weight:700; }
+  .big { display:flex; gap:3vw; margin-bottom:2vh; }
+  .big div { background:var(--navy); border-radius:1.2vw; padding:1.6vh 1.6vw; flex:1; }
+  .big b { display:block; font-size:min(5.2vw,9vh); color:var(--orange); line-height:1; }
+  .big span { font-size:min(1.7vw,3.2vh); }
+  .hud { position:fixed; right:2vw; bottom:2.2vh; font-size:1.6vh; opacity:.7; z-index:5; }
+  .hint { position:fixed; left:2vw; bottom:2.2vh; font-size:1.6vh; opacity:.5; z-index:5; }
+  @media print {
+    @page { size: 13.333in 7.5in; margin:0; }
+    html, body { background:none; height:auto; }
+    .deck { height:auto; overflow:visible; }
+    .slide { display:flex !important; position:relative; width:13.333in; height:7.5in; page-break-after:always; break-after:page; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+    .hud, .hint { display:none; }
+  }
+</style>
+</head>
+<body>
+<div class="deck" id="deck">
+
+<section class="slide">
+  <h1>SENSAI<span class="us">_</span></h1>
+  <p class="tag" style="margin-top:3vh"><span class="b">&lt;</span> Ask a PDF, get sourced answers. Locally. <span class="b">/&gt;</span></p>
+  <p class="muted" style="margin-top:6vh">Pacome &middot; Murchid &middot; Fati &mdash; Epitech Tek3 &middot; G-AIA-500</p>
+</section>
+
+<section class="slide">
+  <h2>The scenario</h2>
+  <p class="tag">Lea is a networking student. The exam is in <b>two days</b>.</p>
+  <p class="tag">She has <b>24 pages</b> of private course notes (a PDF) and <b>9 questions</b> to prepare.</p>
+  <p class="tag muted" style="margin-top:3vh">She wants <b>one file</b>: an answer to each question, the <b>page</b> it comes from, and a <b>quote she can check</b>.</p>
+</section>
+
+<section class="slide">
+  <h2>Why not just a chatbot?</h2>
+  <ul>
+    <li>It has <b>not read your PDF</b>, so it may confidently <b>invent</b> an answer.</li>
+    <li>Your notes are <b>private</b>: they should not leave your machine.</li>
+    <li>A small local model <b>cannot read a whole PDF</b>: its context window is about 3,000 words, the notes are 5,500.</li>
+  </ul>
+  <p class="tag" style="margin-top:3vh">So: <span class="b">search first</span>, give the model only the few passages that matter, and <span class="b">check what it says</span>.</p>
+</section>
+
+<section class="slide">
+  <h2>The system in one picture</h2>
+  <div class="flow">
+    <div class="box"><b>PDF</b>24 pages</div><div class="arrow">&rarr;</div>
+    <div class="box"><b>Ingestion</b>chunks + page + vectors</div><div class="arrow">&rarr;</div>
+    <div class="box"><b>Retrieval</b>top-4 by cosine</div><div class="arrow">&rarr;</div>
+    <div class="box"><b>JSON answer</b>answer, page, quote</div><div class="arrow">&rarr;</div>
+    <div class="box"><b>Checks</b>quote + judge</div><div class="arrow">&rarr;</div>
+    <div class="box"><b>answers.md</b>one section each</div>
+  </div>
+  <p class="tag muted" style="margin-top:4vh">Local Ollama models: <b>qwen3:4b</b> (answers and judge) and <b>nomic-embed-text</b> (embeddings). No LLM framework: plain <b>requests</b>.</p>
+</section>
+
+<section class="slide">
+  <h2>R1 &middot; Retrieval <small>2 stars</small></h2>
+  <ul>
+    <li><b>Chunks</b> of 800 characters, <b>overlap</b> 150, each keeps its <b>page number</b>.</li>
+    <li><b>Embeddings</b>: a text becomes 768 numbers that stand for its meaning.</li>
+    <li><b>Cosine similarity</b> picks the 4 closest chunks to the question.</li>
+  </ul>
+  <pre><span class="o">"How do plants make food?"</span>  finds  <span class="k">"Photosynthesis turns light into sugar..."</span>
+no shared word, found by meaning. In our tests the right page was always in the top 4.</pre>
+  <p class="muted">Ruled out: SQLite or a vector database (a JSON file is enough for hundreds of chunks), LangChain (forbidden, and opaque).</p>
+</section>
+
+<section class="slide">
+  <h2>T5 &middot; Structured output <small>1 star</small></h2>
+  <p>Our code must <b>use</b> the answer, so the model must answer in a <b>fixed shape</b>:</p>
+<pre>{ <span class="k">"answer"</span>: "The maximum payload ... is 1500 bytes.",
+  <span class="k">"page"</span>:   8,
+  <span class="k">"quote"</span>:  "The maximum payload of an Ethernet frame is 1500 bytes" }</pre>
+  <ul>
+    <li>Ollama's <b>format</b> schema constrains the output; our code <b>validates</b> it.</li>
+    <li>Invalid? <b>Retry twice</b>, then the question is reported as failed. <b>Never written</b> to the file.</li>
+    <li>Finding: with a schema, <b>thinking must be off</b>, or the model returned empty answers or hung.</li>
+  </ul>
+</section>
+
+<section class="slide">
+  <h2>M4 &middot; A living document <small>2 stars</small></h2>
+  <p>The file is the <b>deliverable</b>, not a chat transcript. Re-run one question and <b>only its section changes</b>.</p>
+<pre>$ sed ... questions.txt &gt; /tmp/q.txt        <span class="o"># reword question 2</span>
+$ python -m src.cli data/demo.pdf /tmp/q.txt --only 2
+$ diff before.md answers.md               <span class="k"># only section 2 differs</span></pre>
+  <ul>
+    <li>Sections are found by invisible markers, in numeric order, written <b>atomically</b>.</li>
+    <li>Tested <b>byte for byte</b>: the other sections never change.</li>
+  </ul>
+</section>
+
+<section class="slide">
+  <h2>EV1 &middot; Can we trust the answer? <small>3 stars</small></h2>
+  <div class="cols">
+    <div class="card"><h3>Quote check</h3><p>Plain code: is the quote <b>really in the passages</b>? Exact and cheap. Cannot tell a misread quote.</p></div>
+    <div class="card"><h3>LLM judge</h3><p>Reads question, passages and answer: <b>faithful, partial or unfaithful</b>, with a reason. Smarter, but a small, lenient model.</p></div>
+    <div class="card"><h3>The flag</h3><p>When the two <b>disagree</b>, the section is marked <b>Review needed</b>. That is how a wrong refusal is caught.</p></div>
+  </div>
+</section>
+
+<section class="slide">
+  <h2>Live demo</h2>
+<pre><span class="k">$</span> python -m src.cli data/demo.pdf data/questions_demo.txt
+<span class="k">$</span> cat data/answers.md
+<span class="k">$</span> python -m src.cli data/demo.pdf /tmp/q.txt --only 2   <span class="o"># question 2, reworded</span>
+<span class="k">$</span> diff /tmp/before.md data/answers.md</pre>
+  <ul>
+    <li>3 questions chosen in advance; <b>Q3 is not in the notes</b>.</li>
+    <li>Look for: the <b>page and quote</b>, the <b>refusal</b>, the <b>flag</b>, the <b>diff</b>.</li>
+  </ul>
+  <p class="muted">Fallback: recorded run, <b>docs/examples/demo_run.txt</b>, <b>answers_demo.md</b>.</p>
+</section>
+
+<section class="slide">
+  <h2>What we measured</h2>
+  <div class="big">
+    <div><b>6 / 8</b><span>covered questions: right page and quote</span></div>
+    <div><b>1 / 1</b><span>question not in the PDF: correctly refused</span></div>
+    <div><b>~40 s</b><span>per question on average, CPU only (answer + judge)</span></div>
+  </div>
+  <table>
+    <tr><th>Q</th><th>Question</th><th>Expected</th><th>Result</th><th>Judge</th></tr>
+    <tr><td>1</td><td>bits in an IPv6 address</td><td>p13</td><td class="ok">p13</td><td>faithful</td></tr>
+    <tr><td>2</td><td>four steps of DHCP</td><td>p15</td><td class="bad">refused (wrong)</td><td>faithful (missed)</td></tr>
+    <tr><td>6</td><td>the port used by SSH</td><td>p17</td><td class="bad">refused (wrong)</td><td class="ok">unfaithful (caught)</td></tr>
+    <tr><td>9</td><td>who invented the Web</td><td>not in PDF</td><td class="ok">refused (right)</td><td>faithful</td></tr>
+  </table>
+  <p class="muted">Other 5 covered questions (3, 4, 5, 7, 8): all right. Details: docs/RESULTS.md.</p>
+</section>
+
+<section class="slide">
+  <h2>Tried and ruled out</h2>
+  <table>
+    <tr><th>We tried</th><th>Result</th></tr>
+    <tr><td>Thinking on, with a JSON schema</td><td class="bad">empty answers, hung for minutes &rarr; thinking off in schema mode</td></tr>
+    <tr><td>Terse system prompt</td><td class="bad">refused every question &rarr; explicit prompt</td></tr>
+    <tr><td>Quote first in the answer schema</td><td class="bad">5/8 and 3/8 vs 6/8 &rarr; kept the current order</td></tr>
+    <tr><td>A "reasoning" field before the answer</td><td class="bad">2/8 and 48 s per question &rarr; dropped</td></tr>
+    <tr><td>Judge: verdict first</td><td class="bad">called wrong refusals "faithful" &rarr; <b>reason first</b>: 5/5 in our hand-checked cases</td></tr>
+    <tr><td>Bigger model (8B)</td><td>too slow and too much RAM without a GPU</td></tr>
+  </table>
+</section>
+
+<section class="slide">
+  <h2>Honest assessment</h2>
+  <div class="cols">
+    <div class="card"><h3>Works well</h3><ul><li>Whole chain runs locally and automatically</li><li>Right page ranked first every time</li><li>File never corrupted, tested byte for byte</li><li>Two independent checks per answer</li><li>221 tests, none needs Ollama</li></ul></div>
+    <div class="card"><h3>Limits</h3><ul><li>The 4B model sometimes <b>refuses a question the PDF covers</b> (2 of 8)</li><li>The judge shares the model's weaknesses</li><li>About 40 s per question on CPU</li><li>Text PDFs only; one small sample</li></ul></div>
+    <div class="card"><h3>Next time</h3><ul><li>Fix a model test set <b>before</b> building</li><li>A separate status for refusals</li><li>Retry with more chunks when it refuses (reranking)</li><li>A bigger model if a GPU is available</li></ul></div>
+  </div>
+</section>
+
+<section class="slide">
+  <h1 style="font-size:min(8vw,14vh)">Questions?</h1>
+  <p class="tag" style="margin-top:4vh"><span class="b">&lt;</span> Why local? Why no LangChain? Why this judge? <span class="b">/&gt;</span></p>
+  <p class="muted" style="margin-top:2vh">Written answers: docs/EXPLANATION.md, section 6 &middot; Results: docs/RESULTS.md</p>
+</section>
+
+</div>
+<div class="hint">&larr; &rarr; or click to move &middot; F fullscreen &middot; print to PDF for a handout</div>
+<div class="hud" id="hud"></div>
+<script>
+(function () {
+  var slides = Array.prototype.slice.call(document.querySelectorAll(".slide"));
+  var hud = document.getElementById("hud");
+  var index = 0;
+  function show(n) {
+    index = Math.max(0, Math.min(slides.length - 1, n));
+    slides.forEach(function (s, i) { s.classList.toggle("active", i === index); });
+    hud.textContent = (index + 1) + " / " + slides.length;
+    try { history.replaceState(null, "", "#" + (index + 1)); } catch (e) {}
+  }
+  document.addEventListener("keydown", function (e) {
+    if (["ArrowRight", "PageDown", " ", "Enter"].indexOf(e.key) >= 0) { e.preventDefault(); show(index + 1); }
+    else if (["ArrowLeft", "PageUp", "Backspace"].indexOf(e.key) >= 0) { e.preventDefault(); show(index - 1); }
+    else if (e.key === "Home") show(0);
+    else if (e.key === "End") show(slides.length - 1);
+    else if (e.key === "f" || e.key === "F") { if (document.fullscreenElement) document.exitFullscreen(); else document.documentElement.requestFullscreen(); }
+  });
+  document.addEventListener("click", function (e) { show(e.clientX < window.innerWidth / 3 ? index - 1 : index + 1); });
+  var start = parseInt((location.hash || "#1").slice(1), 10);
+  show(isNaN(start) ? 0 : start - 1);
+})();
+</script>
+</body>
+</html>

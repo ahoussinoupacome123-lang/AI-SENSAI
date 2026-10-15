@@ -166,4 +166,4 @@ Each answer has a short version to say out loud and the reason behind it.
 
 **7. Why a local model?**
 *Say it:* the document stays on the machine, it costs nothing per question, and it works offline.
-*Behind it:* course notes, contracts or reports can be confidential, and a cloud API would receive the text. Honest trade-off: a 4B model is weaker than a large cloud model and slow on a laptop CPU (about 30 s per question). We compensate with retrieval, which hands the model exactly the text it needs, and with the two checks, which catch many of its mistakes.
+*Behind it:* course notes, contracts or reports can be confidential, and a cloud API would receive the text. Honest trade-off: a 4B model is weaker than a large cloud model and slow on a laptop CPU (about 40 s per question). We compensate with retrieval, which hands the model exactly the text it needs, and with the two checks, which catch many of its mistakes.

@@ -2,7 +2,7 @@
 
 What the subject asks for: open with a concrete scenario, demonstrate the features live in that scenario (one coherent system, not disconnected demos), explain the technical choices (what we considered, what we ruled out), and close with an honest assessment. A live system that crashes is a preparation failure, so a fallback is ready for everything that depends on the model.
 
-Suggested length: 12 to 15 minutes plus questions. The live demo is the longest part. A full run of the 9 questions takes about 7 minutes, so on stage we run a short list of 3 questions chosen in advance (`data/questions_demo.txt`, about 3 minutes) and show the full 9-question result from the recorded run, **including its two errors**.
+Suggested length: 12 to 15 minutes plus questions. The live demo is the longest part. A full run of the 9 questions takes 5 to 7 minutes, so on stage we run a short list of 3 questions chosen in advance (`data/questions_demo.txt`, about 3 minutes) and show the full 9-question result from the recorded run, **including its two errors**.
 
 ## 1. The scenario (the opening, 30 seconds)
 
@@ -23,12 +23,12 @@ That is exactly what Sensai produces, and it runs on her laptop with no cloud an
 | 7 | M4: A living document (2 stars) | `answers.md` is the deliverable; re-run one question and only its section changes | the `diff` |
 | 8 | EV1: Do we trust the answer? (3 stars) | quote check (exact, cheap) plus judge (reads the whole answer); where they disagree we flag it | two checks, one flag |
 | 9 | LIVE DEMO | see section 3 | terminal |
-| 10 | What we measured | 6 of 8 covered questions right (page and quote), the uncovered question refused, about 45 s per question | the results table |
+| 10 | What we measured | 6 of 8 covered questions right (page and quote), the uncovered question refused, about 40 s per question | the results table |
 | 11 | What we tried and ruled out | thinking mode, quote-first schema, reasoning-first answers, yes/no check | the table in section 5 |
 | 12 | Honest assessment | what works, what does not, what we would do differently | three columns |
 | 13 | Questions | | the 7 prepared questions |
 
-The deck itself is published separately (see the project board); this table is the script for it.
+The deck is [slides/keynote.html](slides/keynote.html): open it in any browser (no internet needed), move with the arrow keys or clicks, `F` for fullscreen, and print to PDF for a handout. This table is the script for it.
 
 ## 3. The live demo (4 minutes)
 
@@ -53,7 +53,7 @@ Close the browser and other heavy programs (the model needs about 4 GB of free R
 | 3. Read the result | `cat data/answers.md` (or open it) | "One section per question: answer, page, a quote you can check in the PDF, the quote check, the judge's verdict." | 30 s |
 | 4. The refusal | point at question 3 | "It did not invent an answer. It says the document does not cover this." | 15 s |
 | 5. The flag | point at a `Review needed` line (if one appears) | "Here the two checks disagree, so the tool tells us which answers to read ourselves." | 20 s |
-| 6. Living document | `cp data/answers.md /tmp/before.md; python -m src.cli data/demo.pdf data/questions_demo.txt --only 2; diff /tmp/before.md data/answers.md` | "I re-run one question. Only that section can change; every other byte of the file is identical. That is feature M4." | 45 s |
+| 6. Living document | `cp data/answers.md /tmp/before.md`, then `sed 's/maximum payload size of an Ethernet frame/largest payload an Ethernet frame can carry/' data/questions_demo.txt > /tmp/q.txt`, then `python -m src.cli data/demo.pdf /tmp/q.txt --only 2`, then `diff /tmp/before.md data/answers.md` | "I reword question 2 and re-run only that one. The diff shows that only section 2 changed; every other byte of the file is identical. That is feature M4." (The model answers deterministically, so re-running the *same* question would give an empty diff: reword it.) | 45 s |
 | 7. Verify a quote | open `data/demo.pdf` at the page shown | "The page and quote are real: that is what makes the answer checkable." | 20 s |
 
 Be open that the live questions were chosen in advance, and show the **full** 9-question result (slide 10, [RESULTS.md](RESULTS.md), `docs/examples/answers_demo.md`) with its two wrong refusals. If the live run is too slow, run only `--only 1` and show the recording for the rest.
@@ -98,7 +98,7 @@ Do not hide the weak points: the evaluation asks for an honest assessment. The d
 - 6 of 8 covered questions answered correctly on the demo PDF (75 %), the same in two runs and in a separate harness; a small sample
 - The 4B model sometimes refuses a question that the PDF does cover, even though retrieval found the right passage. It did not invent answers in our runs, but it is not complete.
 - The judge is the same small model as the answerer: lenient on some cases. It helps, it is not proof.
-- Speed: about 45 seconds per question on a CPU-only laptop.
+- Speed: about 40 seconds per question on average on a CPU-only laptop (10 to 60 s).
 - Only text PDFs (no OCR), one PDF at a time, and quotes are checked per chunk.
 - A correct refusal shows "Quote check: not supported" because it has no quote, which looks like a failure.
 

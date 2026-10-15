@@ -30,12 +30,14 @@ Measured on 2026-10-15 with the real chain and the real models: `python -m src.c
 - **Covered questions:** right page and quote **6 of 8 (75 %)**. Uncovered question: refused **1 of 1**. The checker says **PASS**.
 - **No invented answer:** in this run the model never made up an answer; its two errors were refusals ("the document does not cover this") for facts that were in the retrieved passages.
 - **Retrieval:** for all 8 covered questions, the right page was among the 4 retrieved chunks, including the two that the model then refused.
-- **Time:** 6 min 42 s for 9 questions including the ingestion of the 59 chunks, about **45 seconds per question** (an answer call plus a judge call, on CPU). A first full run while other programs were using the CPU took 11 min 16 s, so measure on a quiet machine.
+- **Time (CPU only):** **6 min 42 s** for the 9 questions including the ingestion of the 59 chunks, and **5 min 31 s** in a second full run from a fresh clone with the models already warm: about **40 seconds per question** on average, from about 10 s for a simple question to about 60 s when the model refuses and the judge writes a long reason. A 3-question run (`data/questions_demo.txt`) took 31 s including ingestion. A first full run while other programs were using the CPU took 11 min 16 s, so measure on a quiet machine.
 - **Quote check:** 6 supported, 3 not supported (the two wrong refusals and the correct one: a refusal has no quote).
 - **Judge:** 8 faithful, 1 unfaithful. It caught the SSH refusal (its reason says the passages state that SSH uses port 22) and missed the DHCP one.
 - **Review list:** the disagreement flag lists Q2 (a real error) and Q9 (a false alarm: a correct refusal). Q6 is not in that list because both checks agree that it is wrong; it shows as `unfaithful` in the file and in the summary counts.
 
-The same questions run through a separate test harness gave the same 6 of 8, so the result is stable to about one question.
+**Reproducibility:** the full run was repeated from a fresh clone of the repository (clone, install, run): the answers, the quote-check results, the judge verdicts and the review list were identical to the first run, because the model runs at temperature 0. A separate test harness also gave 6 of 8.
+
+**Living document, measured:** rewording question 2 and re-running only that question (`--only 2`) changed exactly one line of `answers.md`, section 2's heading; every other line was identical (`diff` shows `17c17` only).
 
 ## What we tested, and what it taught us
 
@@ -60,7 +62,7 @@ The same questions run through a separate test harness gave the same 6 of 8, so 
 - The model sometimes refuses a question whose answer is in the passages. We did not see it invent an answer, but it is not complete.
 - The judge shares the model and its weaknesses; it caught one of two wrong refusals.
 - A correct refusal shows `Quote check: not supported` (there is no quote), and the disagreement flag then raises a false alarm. A dedicated status for refusals would be clearer.
-- About 45 s per question on a CPU-only laptop with 7.6 GiB of RAM.
+- About 40 s per question on average on a CPU-only laptop with 7.6 GiB of RAM (10 to 60 s).
 - Text PDFs only, no OCR.
 
 ## How to reproduce

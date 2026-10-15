@@ -35,7 +35,7 @@ Why these five: a small local model cannot read a whole PDF (context window), so
 
 - Python 3.10 or newer, and `git`.
 - [Ollama](https://ollama.com) with two models: `qwen3:4b` (chat, answers, judge, about 2.5 GB) and `nomic-embed-text` (embeddings, about 0.3 GB).
-- About 4 GB of free RAM. No GPU needed (CPU only works; expect about 45 seconds per question).
+- About 4 GB of free RAM. No GPU needed (CPU only works; expect roughly 40 seconds per question, between 10 and 60).
 - Python packages (see `requirements.txt`): `requests`, `numpy`, `pypdf`, `pytest`.
 
 ## Setup
@@ -79,7 +79,7 @@ The repository ships a demo document: `data/demo.pdf`, 24 pages of course notes 
 python -m src.cli data/demo.pdf data/questions.txt
 ```
 
-It ingests the PDF once (a minute at most), then answers the questions one by one. Expect about **7 minutes** on a CPU laptop (about 45 seconds per question). The result is `data/answers.md`; a real one is kept in [docs/examples/answers_demo.md](docs/examples/answers_demo.md). To score a run against the known answers:
+It ingests the PDF once (a minute at most), then answers the questions one by one. Expect **5 to 7 minutes** on a CPU laptop (about 40 seconds per question on average). The result is `data/answers.md`; a real one is kept in [docs/examples/answers_demo.md](docs/examples/answers_demo.md). To score a run against the known answers:
 
 ```bash
 python scripts/e2e_check.py data/answers.md data/expected_answers.md
@@ -133,11 +133,12 @@ Judge verdicts:
 ⚠ 1 answer(s) where quote check and judge disagree – review manually:
 ```
 
-**Re-run one question** and see that only its section changes:
+**Re-run one question** and see that only its section changes. Reword it first (the model is deterministic, so an unchanged question gives an identical section):
 ```bash
 cp data/answers.md /tmp/before.md
-python -m src.cli data/demo.pdf data/questions.txt --only 4
-diff /tmp/before.md data/answers.md
+sed 's/maximum payload size of an Ethernet frame/largest payload an Ethernet frame can carry/' data/questions.txt > /tmp/q.txt
+python -m src.cli data/demo.pdf /tmp/q.txt --only 5 --output data/answers.md
+diff /tmp/before.md data/answers.md        # only section 5 differs
 ```
 
 **The plain chatbot** (the base loop, no PDF involved):
@@ -208,7 +209,7 @@ Measured on `data/demo.pdf` (24 pages, 9 questions), full details in [docs/RESUL
 | Covered questions answered with the right page and quote | **6 of 8** |
 | Question not in the PDF correctly refused | **1 of 1** |
 | Invented answers | none in this run |
-| Time | about 45 s per question on a CPU-only laptop (6 min 42 s for the 9 questions) |
+| Time | about 40 s per question on a CPU-only laptop (5 min 31 s and 6 min 42 s for the 9 questions in two clean runs; a 3-question run takes about 30 s) |
 | Automated tests | 221, none needs Ollama |
 
 What does not work well, said honestly:
@@ -240,7 +241,8 @@ What does not work well, said honestly:
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), [docs/ARCHITECTURE_EXPLAINED.md](docs/ARCHITECTURE_EXPLAINED.md) | components, interfaces, data shapes |
 | [docs/MODEL_SELECTION.md](docs/MODEL_SELECTION.md) | hardware, models and why |
 | [docs/RESULTS.md](docs/RESULTS.md) | measured results, what worked and what did not |
-| [docs/KEYNOTE.md](docs/KEYNOTE.md) | the keynote: slides outline, live demo script, questions to prepare |
+| [docs/KEYNOTE.md](docs/KEYNOTE.md) | the keynote: slide script, live demo script, fallback, questions to prepare |
+| [docs/slides/keynote.html](docs/slides/keynote.html) | the slide deck (open in a browser; arrows to move, F for fullscreen) |
 
 ## Team
 
