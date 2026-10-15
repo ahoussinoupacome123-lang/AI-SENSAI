@@ -37,15 +37,17 @@ The catalogue says a few well-integrated features beat many shallow ones. We kee
 
 **About EV1.** The catalogue's EV1 describes an LLM acting as judge and producing scores. The quote check alone is a plain string check, so it is not EV1. The judge is: it reads the question, the retrieved passages and the answer, and returns a verdict (`faithful`, `partial` or `unfaithful`) with a one-line reason. We keep the quote check as the cheap, deterministic anchor and present the judge as a second opinion. The two can disagree, and we say so honestly in the keynote. The judge uses the same `qwen3:4b` model (see `MODEL_SELECTION.md`). When unsure whether this counts as EV1, ask during the Follow-up.
 
-**Ratings.** The catalogue rates features on two scales, difficulty (1-3) and pedagogical value (1-3). The icons could not be extracted as text, so only one number per feature is known so far. *Still to confirm in the PDF: which scale these numbers are, and the other scale.*
+**Ratings.** Read from `docs/subject/features_catalog.pdf` (the catalogue shows one star rating per feature, next to its title; the subject text mentions difficulty and pedagogical value, but the catalogue itself gives a single rating):
 
-| Feature | Stars known so far | Scale |
+| Feature | Catalogue rating | Why we chose it |
 |---|---|---|
-| B1 | mandatory | - |
-| R1 | 2 | to confirm |
-| T5 | 1 | to confirm |
-| M4 | 2 | to confirm |
-| EV1 | 3 | to confirm |
+| B1 CLI chatbot | mandatory base (thumbs-up) | required by the subject; its Ollama code is reused |
+| R1 Basic RAG | 2 stars | the heart of the project: a small model can use a long PDF |
+| T5 Structured output | 1 star | cheap, and it is what makes the answers usable by code |
+| M4 Artifact and state document | 2 stars | the deliverable is a living file, not a chat transcript |
+| EV1 Automated eval and hallucination detection | 3 stars | highest value for a document Q&A tool: we measure when the answer is not backed by the document |
+
+The four chosen features add up to 8 stars. The catalogue says a few well-integrated, well-justified features beat many shallow ones, so we stopped there and put the effort into testing and honest limits (see `RESULTS.md`).
 
 ### Out of scope (deliberately)
 Interactive chat over the PDF, R2 reranking, export (X3), multi-agent, web UI, scheduling, code execution, web search, SQLite. They add risk and little to the demo.
@@ -93,13 +95,13 @@ B1  Ollama client + chat          foundation: every other feature calls it
 - **Depth test:** everyone must explain embeddings, cosine similarity, chunking and why retrieval works.
 - **Cut test:** if time runs out, EV1 goes first, then the quote check; R1 + T5 + M4 stay.
 
-## 5. Two-day plan
+## 5. Plan and status
 
-- **Day 1 morning:** `ollama_client.py`, `ingestion.py`; check a known fact retrieves the right page.
-- **Day 1 afternoon:** `pipeline.py` (retrieve, prompt, JSON, retry); test on 5 questions with known answers.
-- **Day 2 morning:** `writer.py` (test: other sections byte-identical) and the quote check.
-- **Day 2 midday:** `judge.py` (EV1): judge prompt, verdict parsing, per-run score.
-- **Day 2 afternoon:** user stories, tests, README, rehearse, record a fallback video.
+- **Day 1 morning** (done): `ollama_client.py`, `ingestion.py`; a known fact retrieves the right page.
+- **Day 1 afternoon** (done): `pipeline.py` (retrieve, prompt, JSON, retry), tested on questions with known answers.
+- **Day 2 morning** (done): `writer.py` (test: other sections byte-identical) and the quote check.
+- **Day 2 midday** (done): `judge.py` (EV1): judge prompt, verdict parsing, per-run score.
+- **Day 2 afternoon** (docs done, rehearsal and video still to do by the group): user stories, tests, README, `KEYNOTE.md`; rehearse and record a fallback video.
 
 Demo material: one 20-60 page text PDF, 6-8 questions, one question not covered.
 

@@ -14,6 +14,7 @@ Users: **Student** (prepares exams from course PDFs), **Researcher** (extracts a
 
 **US-B1.2** As a student, I want clear messages when something is wrong, so that I know how to fix it.
 - Empty input is ignored with a hint.
+- Ctrl+C during a reply cancels that reply and returns to the prompt; Ctrl+C or Ctrl+D at the prompt quits.
 - Ollama not running: message says to run `ollama serve`.
 - Model not pulled: message gives the exact `ollama pull <model>` command.
 - No traceback in any of these cases.
@@ -22,7 +23,8 @@ Users: **Student** (prepares exams from course PDFs), **Researcher** (extracts a
 
 **US-R1.1** As a student, I want to give the tool a PDF, so that its content becomes searchable.
 - Text is extracted per page, chunked with overlap, embedded and stored in a local file.
-- A message shows the number of pages and chunks.
+- Progress is printed while chunks are embedded, then the index location and the number of chunks.
+- A second run on the same PDF reuses the saved index (no new embedding) unless `--force` is given.
 - A scanned/image-only or unreadable PDF gives a clear error, not a crash.
 
 **US-R1.2** As a student, I want each question answered from the most relevant passages, so that answers are about my document and not general knowledge.
@@ -49,7 +51,7 @@ Users: **Student** (prepares exams from course PDFs), **Researcher** (extracts a
 
 **US-M4.2** As a researcher, I want to re-run or add one question without losing the rest, so that I can refine incrementally.
 - Re-running question 3 changes only section 3; other sections are byte-for-byte identical (tested).
-- A new question appends a new section.
+- A new question appends a new section; `--only N` re-runs just question N.
 
 ## Quote check (safeguard)
 
@@ -59,7 +61,7 @@ Users: **Student** (prepares exams from course PDFs), **Researcher** (extracts a
 - At the end of the run the tool prints the share of supported answers.
 
 **US-Q.2** As a researcher, I want that summary score, so that I can compare two models or settings.
-- The same question list run with two models gives two comparable scores.
+- The same question list run with two settings (`--config other.json`) gives two comparable scores.
 
 ## EV1 – Automated evaluation and hallucination detection
 
@@ -74,3 +76,14 @@ Users: **Student** (prepares exams from course PDFs), **Researcher** (extracts a
 
 **US-EV1.3** As a student, I want to see where the quote check and the judge disagree, so that I know which answers to read myself.
 - When the quote check says `supported` but the judge says `unfaithful` (or the reverse), the section is flagged for review.
+
+## Traceability: which tests cover which stories
+
+| Feature | Stories | Automated tests | Manual check |
+|---|---|---|---|
+| B1 | US-B1.1, US-B1.2 | `tests/test_chat.py` (streaming, history, errors, Ctrl+C, model by argument or config) | `python src/chat.py` |
+| R1 | US-R1.1, US-R1.2 | `tests/test_extract_pages.py`, `tests/test_chunk_pages.py`, `tests/test_ingest.py`, `tests/test_m2_store.py`, `tests/test_m3_m4_pipeline.py` | `python -m src.ingestion data/demo.pdf --chunks`; run on `data/demo.pdf` |
+| T5 | US-T5.1, US-T5.2 | `tests/test_m3_m4_pipeline.py`, `tests/test_cli.py` | a run where one question fails (see `tests/test_cli.py`) |
+| M4 | US-M4.1, US-M4.2 | `tests/test_writer.py`, `tests/test_cli.py` | re-run with `--only N` and `diff` the file |
+| Quote check | US-Q.1, US-Q.2 | `tests/test_quote_check.py`, `tests/test_m6_eval_summary.py` | summary printed at the end of a run |
+| EV1 | US-EV1.1, US-EV1.2, US-EV1.3 | `tests/test_m5_judge.py`, `tests/test_m6_eval_summary.py`, `tests/test_cli.py` | `Judge:` and `Review needed` lines in `answers.md` |
