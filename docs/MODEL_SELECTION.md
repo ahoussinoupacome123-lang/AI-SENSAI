@@ -11,7 +11,7 @@ Based on the project subject and this machine (checked 2026-10-11). Speeds are e
 
 | Stage | Model | Size | Why |
 |---|---|---|---|
-| Chatbot, answers and EV1 judge | `qwen3:4b` | ~2.5 GB | Handles JSON schemas and instructions well for its size; this tag is a thinking model: keep thinking on (tested: `think=false` makes it leak its reasoning into the answer); the reasoning arrives in a separate field that we ignore, and costs about 10 s per call |
+| Chatbot, answers and EV1 judge | `qwen3:4b` | ~2.5 GB | Handles JSON schemas and instructions well for its size; this tag is a thinking model. **Plain chat:** keep default thinking (tested: `think=false` makes it leak its reasoning into the text); the reasoning arrives in a separate field that we ignore and costs about 10 s per call. **JSON schema mode (answers and judge):** send `think=false` and temperature 0 (tested: default thinking plus a schema can return empty content or hang for minutes, while `think=false` gives clean JSON in a few seconds) |
 | Embeddings | `nomic-embed-text` | ~0.3 GB | Separate model that turns text into vectors; used through `/api/embed` |
 
 If memory is too tight: fall back to `qwen3:1.7b` for chat (1B-class models are weaker at JSON).
@@ -25,7 +25,7 @@ curl http://localhost:11434        # -> "Ollama is running"
 Check names with `ollama list`; tags and sizes come from general knowledge and may differ slightly.
 
 ## 3. The EV1 judge model
-The judge reuses `qwen3:4b` with its default thinking and a very short output (a verdict and one sentence). Reasons:
+The judge reuses `qwen3:4b` in schema mode (thinking off, temperature 0) with a very short output (a verdict and one sentence). Reasons:
 - Only one chat model is loaded, so no extra RAM and no model-swap delay during the demo.
 - The task is easy for a small model: compare an answer with the passages and pick one of three labels.
 - Known limit: a model judging its own output tends to be lenient. We keep the quote check as an independent anchor and report disagreements honestly.

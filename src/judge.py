@@ -11,5 +11,5 @@ VERDICT_SCHEMA = {
 
 
 def evaluate(question, answer, chunks, config):
-    """Return {verdict, reason}. Short output, same JSON-schema path as the answers. Do not send think=false (it breaks this qwen3:4b tag)."""
+    """Return {verdict, reason}. Short output, same JSON-schema path as the answers (schema mode runs with thinking off)."""
     raise NotImplementedError
