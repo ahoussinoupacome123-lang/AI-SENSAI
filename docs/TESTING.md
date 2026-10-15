@@ -251,21 +251,22 @@ python WEB-UI/server.py            # http://127.0.0.1:8000
 
 | # | Do this | Expected |
 |---|---|---|
-| F1 | open the page | the pill at the top says `Ollama ready - qwen3:4b`; the demo is selected (`24 pages`); 3 quick example questions are pre-filled (*Load all* gives the 9); the status pill and the empty state offer *Try the demo* |
-| F2 | stop Ollama (`pkill ollama`), reload | the pill is red (`Ollama not reachable`) and a banner shows `Start it with: ollama serve`; restart Ollama and reload |
-| F3 | upload a scanned PDF (see B6 to make one) | `Upload failed: ... has no extractable text (probably scanned images)` |
-| F4 | upload a valid text PDF | `<name> is ready (N pages)`; it is selected |
-| F5 | press *Answer all questions* on the demo | an indexing bar (first time) then one card per question fills in; each card has the answer, a page link, the quote, the quote-check and judge badges; the summary and the `answers.md` preview appear; *Download* gives the file |
-| F6 | click a page link such as `page 13` | a side drawer opens with the PDF at that page (Escape closes it and focus returns to the link; *Open in a new tab* is offered) |
-| F7 | edit question 2, press *Re-run this question* | only card 2 changes; in the `answers.md` preview only section 2 changes |
-| F8 | press *Stop* during a run | `Stopped. Answers already written are kept.`; the buttons work again at once |
-| F9 | *Chat* tab: send `Reply with exactly three words.` | a thinking indicator, then the reply streams; the meter shows `Context: N / 4096 tokens (prompt P + reply R)` (the reply count includes the model's hidden thinking tokens) |
-| F10 | send a second message that refers to the first; press *Stop* during another reply | the history is used; Stop shows `(reply cancelled)` and the chat still works; *New chat* clears it |
-| F11 | *Settings*: set `top_k` to 99 | `'top_k' must be between 1 and 20`; set it to 3 and *Apply*, then *Reset* |
-| F13 | toggle the moon/sun button, reload | light and dark themes both stay readable; the choice is remembered |
-| F14 | after a run, click the *Needs review* tile (if any) | only the cards that need review stay visible; click again to show all |
-| F15 | narrow the window to phone width | the tab bar moves to the bottom, nothing scrolls sideways, buttons are at least 40 px tall |
-| F12 | start a run, then press *Answer all questions* in a second browser tab | `Another run or chat is in progress. Wait for it to finish.` |
+| F1 | open the page | a ChatGPT-style screen: sidebar (New chat, history, Settings), the greeting `What can I help with?`, the composer mid-screen, suggestion pills below it; the top shows `Ollama ready qwen3:4b` |
+| F2 | stop Ollama (`pkill ollama`), reload | the dot turns red (`Ollama not reachable`) and a banner shows `Start it with: ollama serve`; restart Ollama and reload |
+| F3 | `+` then *Upload a PDF*: a scanned PDF (see B6 to make one) | `Upload failed: ... has no extractable text (probably scanned images)` |
+| F4 | upload a valid text PDF (or drag one onto the page) | `<name> is ready (N pages)`; a chip with the name and page count appears in the composer; the x removes it |
+| F5 | click *Try the demo PDF* (or attach `demo.pdf` and type questions, one per line) | your message appears on the right; the reply shows a live status and one block per question that fills in: answer, `page N` button, quote, quote-check and judge badges; then a summary with *Download answers.md* and *View answers.md* |
+| F6 | click a `page 13` button | a side panel opens with the PDF at that page (Escape closes it and focus returns to the button; *Open in a new tab* is offered) |
+| F7 | *Edit and re-run* on question 2, change the text, *Re-run this question* | only block 2 changes; in *View answers.md* only section 2 changes |
+| F8 | press the square *Stop* button during a run | `Stopped. Answers already written are kept.`; Send is back at once |
+| F9 | *New chat*, send `Reply with exactly three words.` | `Thinking...`, then the reply streams; under the composer the meter shows `N / 4,096 tokens` (the count includes the model's hidden thinking tokens) |
+| F10 | send a second message that refers to the first; press *Stop* during another reply | the history is used; Stop keeps the partial text; the chat still works |
+| F11 | *Settings* (sidebar or the model button): set `top_k` to 99 | `'top_k' must be between 1 and 20`; set it to 3 and *Apply*, then *Reset*; Escape closes the dialog |
+| F12 | start a run, then send a message from a second browser tab | `Another run or chat is in progress. Wait for it to finish.` |
+| F13 | *Theme* in the sidebar, reload | light and dark both stay readable; the choice is remembered |
+| F14 | after a run, click the *Needs review* tile (if any) | only the blocks that need review stay visible; click again to show all |
+| F15 | narrow the window to phone width | the sidebar hides behind a menu button (it slides over a dimmed page); nothing scrolls sideways |
+| F16 | reload the page; open an older chat in the sidebar; delete one with the bin icon | chats are kept in this browser (not on the server); an old PDF chat shows its answers again |
 
 Security checks (no model needed; the port is 8000 by default):
 ```bash
@@ -278,13 +279,13 @@ curl -s -o /dev/null -w "%{http_code}
 curl -s -o /dev/null -w "%{http_code}
 " -X POST -H "Origin: http://evil.example.com" -H "Content-Type: application/json" -d '{"reset":true}' http://127.0.0.1:8000/api/config   # 403
 ```
-The page is also checked automatically in a real browser (headless Chromium) with `WEB-UI/e2e/ui_check.py`: 50 checks covering F1 to F15, accessibility basics, reduced motion and the phone layout, plus a real demo run and a real chat reply (about 5 minutes with the models; `--quick` skips those). It needs Playwright, which is not in `requirements.txt`:
+The page is also checked automatically in a real browser (headless Chromium) with `WEB-UI/e2e/ui_check.py`: 61 checks covering F1 to F16, accessibility basics, reduced motion and the phone layout, plus a real demo run and a real chat reply (about 5 minutes with the models; `--quick` skips those). It needs Playwright, which is not in `requirements.txt`:
 ```bash
 pip install playwright && playwright install chromium
 python WEB-UI/server.py &
-python WEB-UI/e2e/ui_check.py --shots /tmp/shots       # 50/50 expected
+python WEB-UI/e2e/ui_check.py --shots /tmp/shots       # 61/61 expected
 ```
-F1 to F15 are still worth repeating by eye once.
+F1 to F16 are still worth repeating by eye once.
 
 ---
 

@@ -10,27 +10,24 @@ The catalogue describes X1 as "a decoupled web frontend over the CLI backend: me
 
 | X1 requirement | In this UI |
 |---|---|
-| Message input | a chat box (Ctrl+Enter sends) and a question list for a PDF |
-| Streaming conversation display | chat replies and PDF answers appear as they are produced; a thinking indicator shows while the model reasons |
-| Live token / context usage | a meter under the chat: tokens used out of the context size (prompt + reply), and a live count while a reply streams |
-| Basic agent switching | switch between the two modes ("Ask a PDF" and "Chat") and change the chat and judge model in Settings. There are no personas (that is a different catalogue feature, A5), so we do not claim them |
-| Configuration | a Settings tab: models, top-k, chunk size and overlap, context size, retries, for the current server session |
+| Message input | one composer: a message to the model, or questions about an attached PDF |
+| Streaming conversation display | chat replies and PDF answers appear as they are produced; a "Thinking..." indicator shows while the model reasons |
+| Live token / context usage | a meter under the composer: tokens used out of the context size (prompt + reply), and a live count while a reply streams |
+| Basic agent switching | attaching a PDF switches the conversation from plain chat to document answers; change the chat and judge model in Settings. There are no personas (that is a different catalogue feature, A5), so we do not claim them |
+| Configuration | a Settings dialog: models, top-k, chunk size and overlap, context size, retries, for the current server session |
 | Backend logic unchanged | the UI calls the same modules as the CLI. Two small additive hooks were added (see "Relation to the backend"); no existing behaviour changed and all earlier tests still pass |
 
 ## What you can do
 
-**Ask a PDF**
-1. Choose the demo document or upload a PDF (text PDFs only; a scanned PDF is refused with a clear message).
-2. Write one question per line. Three quick example questions are pre-filled for the demo; *Load all* gives the nine. A one-click *Try the demo* button is in the empty state.
-3. Press **Answer all questions**. The PDF is indexed once (a progress bar shows the chunks), then one card per question fills in as its answer arrives: the answer, the **page** (a link that opens the PDF at that page), the word-for-word **quote**, the quote-check badge, the judge's verdict and reason, and a **review needed** badge when the two checks disagree.
-4. Edit any question and press **Re-run this question**: only that card and only that section of `answers.md` change (the living-document feature, M4). The answers file is shown under the cards with a **Download** button.
-5. **Stop** cancels the run; the answers already written are kept.
+The interface follows the layout people know from ChatGPT: a sidebar (New chat, your chats, Settings), a single conversation column, and a rounded composer at the bottom. Your chats are kept in this browser only; the server stores nothing about them.
 
-**Chat**: type, press Send (or Ctrl+Enter), watch the reply stream. **Stop** cancels the reply cleanly and drops that turn, like the CLI. **New chat** clears the history, which is kept in your browser tab (the server stores nothing).
+**Chat**: type in the composer and press Enter (Shift+Enter for a new line). The reply streams with a "Thinking..." indicator while the model reasons, and Markdown (lists, tables, code) is rendered safely. **Stop** (the square button) ends the reply and keeps the text so far. The context meter under the composer shows tokens used out of the window.
 
-**Look and feel**: light and dark themes (the sun/moon button, remembered), motion that explains state (progress, count-up tiles, a small celebration when a run succeeds) and switches off for `prefers-reduced-motion`. On a phone the tabs become a bottom bar. A correct "not in the document" answer is shown calmly; only answers that really need a second look are marked *Review needed*, and the *Needs review* tile filters the cards.
+**Ask a PDF**: press **+** and upload a PDF (or drop one on the page), or choose the demo document. A chip in the composer shows what is attached. Then write one question per line and send. The reply is one block per question as it arrives: the answer, a **page** button that opens the PDF at that page in a side panel, the word-for-word **quote**, the quote-check badge, the judge's verdict, and a **Review needed** note only when something really needs a second look (a correct "not in the document" answer stays calm). A summary follows, with **Download answers.md** and **View answers.md**; the *Needs review* tile filters the blocks. **Edit and re-run** on a block changes only that question and only that section of `answers.md` (the living-document feature, M4). *Try the demo PDF* on the start screen does all this in one click.
 
-**Settings**: change models or numbers for this server session; **Reset** returns to `config.json`. Changing the chunk settings or the embedding model turns on "Rebuild the index" for the next run (the old index would be stale). The Ollama address cannot be changed from the browser.
+**Settings** (sidebar or the model button at the top): change models or numbers for this server session; **Reset** returns to `config.json`. Changing the chunk settings or the embedding model turns on "Rebuild the PDF index". The Ollama address cannot be changed from the browser.
+
+**Look and feel**: light and dark themes (Theme in the sidebar, remembered), subtle motion that switches off for `prefers-reduced-motion`, and on a phone the sidebar slides over the page.
 
 ## Running it
 
@@ -54,7 +51,7 @@ Visible system status (the Ollama pill, progress with elapsed time, a live token
 ## How it works
 
 ```
- browser (WEB-UI/static: index.html, style.css, app.js)
+ browser (WEB-UI/index.html, WEB-UI/static: style.css, app.js)
       |  JSON requests, and Server-Sent Events for anything that streams
       v
  WEB-UI/server.py  (standard library http.server)
@@ -120,7 +117,7 @@ The JavaScript was run against the live server in a simulated DOM (jsdom) with t
 ## Limits
 
 - One job at a time; no login (do not expose it to a network); one PDF at a time.
-- The chat history lives in the browser tab and is lost on reload.
+- Chats are kept in this browser (localStorage, up to 40) and never sent to a server; clearing site data removes them.
 - A single model call (a question's answer, a judge verdict) shows no sub-progress: expect 10 to 60 seconds per question on a CPU.
 - Text PDFs only. Two people using the same server share its settings and its workspace.
 - No automatic reload of a changed `config.json`: restart the server.
