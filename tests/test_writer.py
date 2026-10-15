@@ -210,3 +210,19 @@ def test_section_numbers_above_ten_do_not_collide(out):
     upsert_section(out, 1, checked(1, answer="Only this."))
     assert list(sections(out.read_text())) == [1, 10, 11]
     assert "Answer 10." in out.read_text() and "Answer 11." in out.read_text()
+
+
+def test_new_file_gets_the_normal_default_permissions_not_private_ones(out):
+    import stat
+    umask = os.umask(0)
+    os.umask(umask)
+    upsert_section(out, 1, checked(1))
+    assert stat.S_IMODE(out.stat().st_mode) == 0o666 & ~umask
+
+
+def test_an_existing_files_permissions_are_kept_on_update(out):
+    import stat
+    upsert_section(out, 1, checked(1))
+    out.chmod(0o640)
+    upsert_section(out, 1, checked(1, answer="Changed."))
+    assert stat.S_IMODE(out.stat().st_mode) == 0o640

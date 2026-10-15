@@ -17,6 +17,7 @@ Sections are found by their markers, never by asking the model to rewrite the fi
 """
 import os
 import re
+import stat
 import tempfile
 from pathlib import Path
 
@@ -85,6 +86,18 @@ def sections(text):
     return {int(m.group(1)): m.group(0) for m in SECTION_RE.finditer(text)}
 
 
+def _target_mode(path):
+    """Keep the mode of an existing file; for a new file use the usual default (0666 minus umask).
+
+    mkstemp creates private (0600) files, which would otherwise leak into answers.md.
+    """
+    if path.exists():
+        return stat.S_IMODE(path.stat().st_mode)
+    umask = os.umask(0)
+    os.umask(umask)
+    return 0o666 & ~umask
+
+
 def _write_atomically(path, text):
     """Write to a temp file in the same folder, then rename: never a half-written file."""
     directory = path.parent if str(path.parent) else Path(".")
@@ -92,6 +105,7 @@ def _write_atomically(path, text):
     try:
         with os.fdopen(fd, "wb") as tmp:
             tmp.write(text.encode("utf-8"))
+        os.chmod(tmp_name, _target_mode(path))
         os.replace(tmp_name, path)
     except BaseException:
         if os.path.exists(tmp_name):
