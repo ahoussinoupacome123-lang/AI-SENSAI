@@ -136,6 +136,7 @@ def main(argv=None):
         print(f"Error: {e}", file=sys.stderr)
         return 1
 
+    print(f"Answers will be written to {output}")
     selected = [(i, q) for i, q in enumerate(questions, start=1) if args.only in (None, i)]
     answered, failed, interrupted = [], [], False
     for position, (index, question) in enumerate(selected, start=1):

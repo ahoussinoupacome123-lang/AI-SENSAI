@@ -4,7 +4,7 @@ Everything you can run to check Sensai, from a one-second automated check to a f
 
 | Level | What | Needs Ollama | Time |
 |---|---|---|---|
-| **A. Automated tests** | 228 pytest tests | no | about 1 s |
+| **A. Automated tests** | 229 pytest tests | no | about 1 s |
 | **B. Manual checks without a model** | inspect a PDF, error messages, demo data, scoring a saved run | no | seconds |
 | **C. Manual checks with Ollama** | chatbot, short demo, full run, re-running one question, settings | yes | 30 s to 7 min |
 | **D. Failure tests** | server down, corrupt index, scanned PDF, wrong inputs | mostly no | seconds |
@@ -29,7 +29,7 @@ The commands below use the committed settings (`chunk_size` 800, `chunk_overlap`
 ## A. Automated tests (no Ollama, about 1 second)
 
 ```bash
-python -m pytest -q                  # expected: 228 passed
+python -m pytest -q                  # expected: 229 passed
 python -m pytest -q tests/test_writer.py        # one file
 python -m pytest -q -k quote                    # tests whose name contains "quote"
 python -m pytest -x -q                          # stop at the first failure
@@ -50,7 +50,7 @@ They never call Ollama: the model client and the store are replaced by fakes, an
 | `test_m5_judge.py` | 12 | verdict parsing, `unknown` after a bad verdict, prompt content | EV1 |
 | `test_m6_eval_summary.py` | 9 | counts, percentages, disagreement list, empty run | EV1 |
 | `test_writer.py` | 32 | one section per question, only that section changes (hashes), order, hand-edited text kept, atomic write, file permissions, failed answers refused | M4 |
-| `test_cli.py` | 31 | wiring, failed question does not stop the run, `--only`, `--force`, input errors, judge optional, disagreement flag, Ctrl+C, exit codes | all |
+| `test_cli.py` | 32 | wiring, failed question does not stop the run, `--only`, `--force`, input errors, judge optional, disagreement flag, Ctrl+C, exit codes | all |
 | `test_integration_fixes.py` | 4 | schema mode turns thinking off, retrieved chunks reach the judge, judge schema order | T5, EV1 |
 | `test_e2e_check.py` | 8 | the scoring script (pass, fail, missing section, thresholds) | quality |
 
@@ -259,6 +259,7 @@ Generated files (`data/answers.md`, `data/*.index.json`) are git-ignored.
 | tests fail with `ModuleNotFoundError` | the environment is not activated, or `pip install -r requirements.txt` was not run |
 | a manual check hangs for a long time | Ollama is overloaded or swapping: close other programs, check `free -h`; the first question also loads the model |
 | `Cannot reach Ollama` | `ollama serve > ~/ollama.log 2>&1 &`, then `curl http://localhost:11434` |
+| `answers.md` was not updated | the answers file is written **next to the PDF** unless you pass `--output`: the first line of a run says `Answers will be written to ...`. Running on `Sensai_project.pdf` in the repo root writes `./answers.md`, not `data/answers.md` |
 | the score differs from the documented one | different `config.json` (check `chunk_size`), a different model, or a stale index: run with `--force` |
 | answers differ between two runs | they should not (temperature 0); a changed prompt, setting or model is the usual reason |
 

@@ -92,7 +92,7 @@ Do not hide the weak points: the evaluation asks for an honest assessment. The d
 - Retrieval is reliable: in every test the right page was ranked first.
 - The file is never corrupted: a failed question is reported and skipped, re-running one question changes only its section (tested byte for byte), and the write is atomic.
 - Two independent checks on every answer, and the disagreement flag points at the answers worth reading.
-- 228 automated tests, none of which needs Ollama; a scoring script compares a run with known answers.
+- 229 automated tests, none of which needs Ollama; a scoring script compares a run with known answers.
 
 **Current limits**
 - 6 of 8 covered questions answered correctly on the demo PDF (75 %), the same in two runs and in a separate harness; a small sample

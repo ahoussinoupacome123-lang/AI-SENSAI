@@ -276,3 +276,10 @@ def test_out_of_range_message_uses_the_singular_for_one_question(env, capsys):
     assert run(env, "--only", "5") == 1
     assert "the file has 1 question" in capsys.readouterr().err
     assert "1 questions" not in capsys.readouterr().err
+
+
+def test_the_answers_file_location_is_announced_before_the_questions(env, capsys):
+    run(env)
+    out = capsys.readouterr().out
+    assert f"Answers will be written to {env['out']}" in out
+    assert out.index("Answers will be written to") < out.index("[1/3]")

@@ -68,7 +68,7 @@ curl http://localhost:11434                          # must print: Ollama is run
 
 Check the installation (no Ollama needed for the tests):
 ```bash
-python -m pytest -q          # 228 tests (all the ways to test the project: docs/TESTING.md)
+python -m pytest -q          # 229 tests (all the ways to test the project: docs/TESTING.md)
 ```
 
 ## Quick start (the demo)
@@ -210,7 +210,7 @@ Measured on `data/demo.pdf` (24 pages, 9 questions), full details in [docs/RESUL
 | Question not in the PDF correctly refused | **1 of 1** |
 | Invented answers | none in this run |
 | Time | about 40 s per question on a CPU-only laptop (5 min 31 s and 6 min 42 s for the 9 questions in two clean runs; a 3-question run takes about 30 s) |
-| Automated tests | 228, none needs Ollama |
+| Automated tests | 229, none needs Ollama |
 
 What does not work well, said honestly:
 - The 4B model sometimes **refuses a question that the PDF does cover** (2 of the 8 here), even though retrieval found the right passage. It did not invent answers, but it is not complete.
@@ -241,7 +241,7 @@ What does not work well, said honestly:
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), [docs/ARCHITECTURE_EXPLAINED.md](docs/ARCHITECTURE_EXPLAINED.md) | components, interfaces, data shapes |
 | [docs/MODEL_SELECTION.md](docs/MODEL_SELECTION.md) | hardware, models and why |
 | [docs/RESULTS.md](docs/RESULTS.md) | measured results, what worked and what did not |
-| [docs/TESTING.md](docs/TESTING.md) | every test you can run: 228 automated tests, manual checks, failure tests, quality scoring |
+| [docs/TESTING.md](docs/TESTING.md) | every test you can run: 229 automated tests, manual checks, failure tests, quality scoring |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | how to work on the project: rules, workflow, commits, tests, measuring prompt changes |8| [docs/KEYNOTE.md](docs/KEYNOTE.md) | the keynote: slide script, live demo script, fallback, questions to prepare |
 | [docs/slides/keynote.html](docs/slides/keynote.html) | the slide deck (open in a browser; arrows to move, F for fullscreen) |
 
