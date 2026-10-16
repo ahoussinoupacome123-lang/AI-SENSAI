@@ -100,6 +100,17 @@ Users: **Student** (prepares exams from course PDFs), **Researcher** (extracts a
 - Settings are validated (types and ranges) and apply to the current server session; "Reset" restores `config.json`; the Ollama address cannot be changed from the browser.
 - The page and the server answer only on the local machine by default, and refuse requests from other sites.
 
+## General Fallback – Basic Calculations and Inquiries (D6)
+
+**US-GEN.1** As a student or researcher, I want to ask basic math calculations (such as `1 + 1 = 2`), so that the assistant computes the answer directly instead of returning an inappropriate "The document does not cover this." refusal.
+- Arithmetic expressions (addition, subtraction, multiplication, division, powers) are detected and evaluated accurately.
+- The reply follows the JSON schema with `page: 0` and `quote: ""` without hallucinating passage quotes.
+- Mathematical errors such as division by zero are caught and returned with a clear explanation without crashing.
+
+**US-GEN.2** As a user, I want basic conversational greetings and identity queries answered courteously, so that interacting feels natural while keeping document-specific Q&A strictly grounded.
+- Common greetings ("hello", "bonjour") and identity inquiries ("who are you?") receive concise, polite responses.
+- Document-specific questions continue to be strictly searched in the PDF and backed by page quotes.
+
 ## Traceability: which tests cover which stories
 
 | Feature | Stories | Automated tests | Manual check |
@@ -111,3 +122,5 @@ Users: **Student** (prepares exams from course PDFs), **Researcher** (extracts a
 | Quote check | US-Q.1, US-Q.2 | `tests/test_quote_check.py`, `tests/test_m6_eval_summary.py` | summary printed at the end of a run |
 | X1 | US-X1.1, US-X1.2, US-X1.3, US-X1.4 | `tests/test_web_ui.py` (85 tests of the server), `tests/test_ollama_events.py`, `tests/test_ingest.py` (progress callback) | `python WEB-UI/server.py` and the checklist in `docs/TESTING.md`, level F |
 | EV1 | US-EV1.1, US-EV1.2, US-EV1.3 | `tests/test_m5_judge.py`, `tests/test_m6_eval_summary.py`, `tests/test_cli.py` | `Judge:` and `Review needed` lines in `answers.md` |
+| Fallback (D6) | US-GEN.1, US-GEN.2 | `tests/test_general_fallback.py` (8 unit tests for math, greetings, judge, and pipeline integration) | ask `1 + 1 = combien` or `hello` |
+

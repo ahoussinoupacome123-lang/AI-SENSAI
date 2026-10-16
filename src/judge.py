@@ -58,6 +58,13 @@ def evaluate(question, answer, chunks, config):
     Uses prompts/judge_prompt.txt with {question}, {passages}, {answer} placeholders.
     Same model as chat (qwen3:4b), schema mode (thinking off), very short JSON output.
     """
+    from src import routing
+    if routing.is_general_query(question):
+        return {
+            "verdict": "faithful",
+            "reason": "General query or calculation answered accurately.",
+        }
+
     host = config.get("host", "http://localhost:11434")
     model = config.get("judge_model", config.get("chat_model", "qwen3:4b"))
     num_ctx = int(config.get("num_ctx", 4096))

@@ -2,7 +2,7 @@
 import json
 from pathlib import Path
 
-from src import ollama_client, store
+from src import ollama_client, routing, store
 from src.quote_check import quote_is_supported  # noqa: F401  (re-exported for callers and tests)
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -79,6 +79,10 @@ def answer(question, chunks, config):
     *config* is the project config dict (host, chat_model, system_prompt_file,
     answer_prompt_file, max_retries, num_ctx).
     """
+    basic = routing.solve_basic_query(question)
+    if basic is not None:
+        return dict(basic)
+
     host = config.get("host", "http://localhost:11434")
     model = config.get("chat_model", "qwen3:4b")
     max_retries = int(config.get("max_retries", 2))
@@ -127,6 +131,12 @@ def retrieve_and_answer(question, index_chunks, config, client_embed=None):
 
     *client_embed* can be a replacement for ollama_client.embed (for testing).
     """
+    basic = routing.solve_basic_query(question)
+    if basic is not None:
+        res = dict(basic)
+        res["chunks"] = []
+        return res
+
     host = config.get("host", "http://localhost:11434")
     embed_model = config.get("embed_model", "nomic-embed-text")
     top_k = int(config.get("top_k", 4))
