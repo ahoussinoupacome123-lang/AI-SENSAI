@@ -67,7 +67,8 @@ def evaluate(question, answer, chunks, config):
 
     host = config.get("host", "http://localhost:11434")
     model = config.get("judge_model", config.get("chat_model", "qwen3:4b"))
-    num_ctx = int(config.get("num_ctx", 4096))
+    raw_ctx = config.get("num_ctx")
+    num_ctx = int(raw_ctx) if raw_ctx is not None else None
     prompt_file = config.get("judge_prompt_file", "prompts/judge_prompt.txt")
 
     template = _load_prompt(prompt_file)

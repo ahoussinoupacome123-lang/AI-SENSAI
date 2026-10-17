@@ -71,6 +71,53 @@ def _validate(raw):
 # Public API
 # ---------------------------------------------------------------------------
 
+DEFAULT_FALLBACK_NUM_CTX = 2048
+
+
+def get_context_limit(config, model="qwen3:4b", host="http://localhost:11434"):
+    """Dynamically determine context window size from config or Ollama."""
+    raw = config.get("num_ctx")
+    if raw is not None:
+        return int(raw)
+    detected = ollama_client.get_model_context_length(model, host=host)
+    if detected:
+        return detected
+    return DEFAULT_FALLBACK_NUM_CTX
+
+
+def budget_chunks_for_context(chunks, question, num_ctx, char_per_token=3.5, safety_margin=0.85):
+    """Budget and trim chunks so total prompt fits within context window limits.
+
+    Returns (selected_chunks, warning_or_none).
+    """
+    if not chunks:
+        return [], None
+    max_total_chars = int(num_ctx * char_per_token * safety_margin)
+    overhead = len(question) + 800  # system prompt + template overhead
+    available_chars = max(400, max_total_chars - overhead)
+
+    selected = []
+    current_chars = 0
+    warning = None
+
+    for chunk in chunks:
+        chunk_chars = len(chunk.get("text", "")) + 50
+        if current_chars + chunk_chars <= available_chars:
+            selected.append(chunk)
+            current_chars += chunk_chars
+        else:
+            warning = (
+                f"Context budget constraint: trimmed to {len(selected)}/{len(chunks)} "
+                f"passages to respect {num_ctx} token context limit."
+            )
+            break
+
+    if not selected and chunks:
+        selected = [chunks[0]]
+
+    return selected, warning
+
+
 def answer(question, chunks, config):
     """Return a Checked answer dict for *question* using the already-retrieved *chunks*.
 
@@ -86,12 +133,13 @@ def answer(question, chunks, config):
     host = config.get("host", "http://localhost:11434")
     model = config.get("chat_model", "qwen3:4b")
     max_retries = int(config.get("max_retries", 2))
-    num_ctx = int(config.get("num_ctx", 4096))
+    num_ctx = get_context_limit(config, model=model, host=host)
 
     system_prompt = _load_prompt(config.get("system_prompt_file", "prompts/system_prompt.txt"))
     answer_template = _load_prompt(config.get("answer_prompt_file", "prompts/answer_prompt.txt"))
 
-    passages_text = _format_passages(chunks)
+    budgeted_chunks, context_warning = budget_chunks_for_context(chunks, question, num_ctx)
+    passages_text = _format_passages(budgeted_chunks)
     user_prompt = answer_template.format(passages=passages_text, question=question)
     messages = _build_messages(system_prompt, user_prompt)
 
