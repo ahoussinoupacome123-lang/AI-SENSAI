@@ -374,9 +374,120 @@
   function renderUser(turn) {
     var node = el("div", { class: "turn user" });
     if (turn.doc) node.appendChild(el("div", { class: "user-doc" }, [icon("file"), turn.doc]));
-    node.appendChild(el("div", { class: "user-bubble", text: turn.text }));
+    var bubble = el("div", { class: "user-bubble", text: turn.text });
+    node.appendChild(bubble);
+
+    // Actions: edit message & branch switcher (feature X2)
+    var actions = el("div", { class: "user-actions" });
+    var conv = state.cur;
+    if (conv && conv.branches && conv.branches.length > 0) {
+      var turnIdx = conv.turns.indexOf(turn);
+      var matchingBranches = conv.branches.filter(function (b) { return b.turnIndex === turnIdx; });
+      if (matchingBranches.length > 0) {
+        var nav = el("div", { class: "user-branch-nav" });
+        var totalBranches = matchingBranches.length + 1;
+        var label = el("span", { class: "branch-count", text: totalBranches + " / " + totalBranches });
+        var prevBtn = el("button", { type: "button", class: "branch-btn", title: "Switch to previous branch", "aria-label": "Previous branch" }, [icon("chevron")]);
+        prevBtn.style.transform = "rotate(90deg)";
+        prevBtn.addEventListener("click", function () {
+          if (guardBusy()) return;
+          switchBranch(conv, matchingBranches[matchingBranches.length - 1], turnIdx);
+        });
+        nav.appendChild(prevBtn);
+        nav.appendChild(label);
+        actions.appendChild(nav);
+      }
+    }
+
+    var editBtn = el("button", { type: "button", class: "icon-btn user-edit-btn", title: "Edit message & branch", "aria-label": "Edit message" }, [icon("edit")]);
+    editBtn.addEventListener("click", function () {
+      if (guardBusy()) return;
+      startEditUserTurn(turn, node, bubble);
+    });
+    actions.appendChild(editBtn);
+    node.appendChild(actions);
+
     $("messages").appendChild(node);
     return node;
+  }
+
+  function switchBranch(conv, targetBranch, turnIdx) {
+    var branchIdx = conv.branches.indexOf(targetBranch);
+    if (branchIdx < 0) return;
+    var currentTurnsCopy = JSON.parse(JSON.stringify(conv.turns));
+    conv.turns = targetBranch.turns;
+    conv.branches[branchIdx] = {
+      timestamp: Date.now(),
+      turnIndex: turnIdx,
+      turns: currentTurnsCopy
+    };
+    touch(conv);
+    renderConv();
+    toast("Switched branch");
+  }
+
+  function startEditUserTurn(turn, node, bubble) {
+    bubble.hidden = true;
+    var editBox = el("div", { class: "user-edit-box" });
+    var area = el("textarea", { class: "user-edit-area" });
+    area.value = turn.text;
+    autosize(area, 220);
+    area.addEventListener("input", function () { autosize(area, 220); });
+
+    var cancelBtn = el("button", { type: "button", class: "ghost-btn btn-sm", text: "Cancel" });
+    var saveBtn = el("button", { type: "button", class: "ghost-btn btn-sm primary", text: "Save & Branch" });
+
+    function cancelEdit() {
+      if (editBox.parentNode) editBox.parentNode.removeChild(editBox);
+      bubble.hidden = false;
+    }
+
+    cancelBtn.addEventListener("click", cancelEdit);
+    saveBtn.addEventListener("click", function () {
+      var newText = area.value.trim();
+      if (!newText) { toast("Message cannot be empty", true); return; }
+      if (newText === turn.text) { cancelEdit(); return; }
+      executeBranchEdit(turn, newText);
+    });
+
+    editBox.appendChild(area);
+    var actDiv = el("div", { class: "user-edit-actions" }, [cancelBtn, saveBtn]);
+    editBox.appendChild(actDiv);
+    node.insertBefore(editBox, bubble);
+    area.focus();
+  }
+
+  function executeBranchEdit(turn, newText) {
+    var conv = state.cur;
+    if (!conv) return;
+    var turnIdx = conv.turns.indexOf(turn);
+    if (turnIdx < 0) return;
+
+    conv.branches = conv.branches || [];
+    conv.branches.push({
+      timestamp: Date.now(),
+      turnIndex: turnIdx,
+      turns: JSON.parse(JSON.stringify(conv.turns))
+    });
+
+    turn.text = newText;
+    conv.turns = conv.turns.slice(0, turnIdx + 1);
+    touch(conv, conv.turns[0].text);
+    renderConv();
+
+    if (turn.doc) {
+      var doc = state.docs.find(function (d) { return d.id === turn.doc || d.name === turn.doc; });
+      if (doc) {
+        state.doc = doc;
+        var bot = { role: "bot", kind: "qa", doc: doc.id, docName: doc.name, questions: [newText], results: {}, failed: {}, summary: "" };
+        conv.turns.push(bot);
+        renderBot(bot);
+        startQa(bot, null);
+      }
+    } else {
+      var messages = chatHistory(conv).concat([{ role: "user", content: newText }]);
+      streamBotTurn(conv, messages);
+    }
   }
   function botShell() {
     var body = el("div", { class: "bot-body" });
@@ -735,12 +846,16 @@
   }
   function sendChat(text) {
     var conv = ensureConv();
-    var messages = chatHistory(conv).concat([{ role: "user", content: text }]);
     var user = { role: "user", text: text, doc: null };
     conv.turns.push(user);
     touch(conv, text);
     setEmpty(false);
     renderUser(user);
+    var messages = chatHistory(conv).concat([{ role: "user", content: text }]);
+    streamBotTurn(conv, messages);
+  }
+
+  function streamBotTurn(conv, messages) {
     var s = botShell();
     var md = el("div", { class: "md caret" });
     var thinking = el("span", { class: "think" }, [el("span", { class: "shimmer", text: "Thinking..." })]);

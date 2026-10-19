@@ -111,6 +111,18 @@ Users: **Student** (prepares exams from course PDFs), **Researcher** (extracts a
 - Common greetings ("hello", "bonjour") and identity inquiries ("who are you?") receive concise, polite responses.
 - Document-specific questions continue to be strictly searched in the PDF and backed by page quotes.
 
+## X2 – Branching: Resume & Interrupt (2 ⭐)
+
+**US-X2.1** As a user, I want to edit a previously submitted message in the CLI or Web UI, so that the assistant forks a new branch and generates a fresh answer from that point without corrupting previous history.
+- Editing turn 1 in a multi-turn chat truncates subsequent messages and re-runs generation from the edited prompt.
+- The previous conversation branch is preserved in an archive without data loss.
+- CLI provides `/edit <turn> <text>`, `/history`, `/branches`, and `/switch <branch_id>` commands.
+
+**US-X2.2** As a Web UI user, I want an edit icon on my messages and branch switcher controls, so that I can explore alternative dialogue branches and seamlessly switch back and forth.
+- Hovering/focusing a user bubble reveals an edit button.
+- Saving updates the conversation state, forks the branch, streams the new response, and displays branch counter navigation (`< N / total >`).
+- Clicking branch navigation toggles between branches without page reload.
+
 ## Traceability: which tests cover which stories
 
 | Feature | Stories | Automated tests | Manual check |
@@ -123,4 +135,6 @@ Users: **Student** (prepares exams from course PDFs), **Researcher** (extracts a
 | X1 | US-X1.1, US-X1.2, US-X1.3, US-X1.4 | `tests/test_web_ui.py` (85 tests of the server), `tests/test_ollama_events.py`, `tests/test_ingest.py` (progress callback) | `python WEB-UI/server.py` and the checklist in `docs/TESTING.md`, level F |
 | EV1 | US-EV1.1, US-EV1.2, US-EV1.3 | `tests/test_m5_judge.py`, `tests/test_m6_eval_summary.py`, `tests/test_cli.py` | `Judge:` and `Review needed` lines in `answers.md` |
 | Fallback (D6) | US-GEN.1, US-GEN.2 | `tests/test_general_fallback.py` (8 unit tests for math, greetings, judge, and pipeline integration) | ask `1 + 1 = combien` or `hello` |
+| Branching (X2) | US-X2.1, US-X2.2 | `tests/test_branching.py` (8 unit tests for history truncation, branching, CLI commands, and state preservation) | `/edit` in CLI or edit icon in Web UI |
+
 
