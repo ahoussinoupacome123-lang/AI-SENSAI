@@ -1,11 +1,14 @@
 #!/usr/bin/env python3
 """Minimal Ollama CLI chatbot: streaming, in-session history, file system prompt."""
 import argparse
+from datetime import datetime
 import json
-import sys
 from pathlib import Path
+import sys
 
 import requests
+
+from src.memory import SessionMemory
 
 ROOT = Path(__file__).resolve().parent.parent
 DEFAULTS = {
@@ -127,9 +130,11 @@ def main():
 
     messages = [{"role": "system", "content": system_prompt}]
     branches = []
+    memory = SessionMemory(embed_model=config.get("embed_model", "nomic-embed-text"), host=host)
+
     print(f"Chatting with {model}. Type 'exit' or Ctrl+D to quit; Ctrl+C cancels a reply.")
     print("Wait for the 'you>' prompt before typing: input typed while the model answers is queued.")
-    print("Branching commands: /edit <text>, /edit <turn> <text>, /history, /branches, /switch <n>.")
+    print("Commands: /edit <text>, /history, /branches, /switch <n>, /memory, /recall <query>.")
 
     while True:
         try:
@@ -142,6 +147,34 @@ def main():
             continue
         if user_input.lower() in ("exit", "quit"):
             break
+
+        # Memory list command
+        if user_input.lower() == "/memory":
+            sessions = memory.list_sessions()
+            if not sessions:
+                print("(no saved memory sessions)")
+            else:
+                print(f"{len(sessions)} stored memory session(s):")
+                for s in sessions:
+                    print(f" - [{s['id']}] {s['title']} ({s['turn_count']} turns)")
+            continue
+
+        # Recall search command
+        if user_input.lower().startswith("/recall"):
+            query_str = user_input[7:].strip()
+            if not query_str:
+                print("(usage: /recall <query>)")
+                continue
+            try:
+                matches = memory.search_memory(query_str, top_k=3)
+                if not matches:
+                    print("(no relevant memories found)")
+                else:
+                    for m in matches:
+                        print(f" - [{m.get('session_title')}] (sim: {m.get('similarity')}) {m.get('role')}: {m.get('text')}")
+            except Exception as e:
+                print(f"Memory recall error: {e}")
+            continue
 
         # History inspect command
         if user_input.lower() == "/history":
@@ -205,9 +238,20 @@ def main():
             branches.append(old_branch)
             messages = new_messages
             print(f"[Branch created: editing turn {turn_num or len(find_user_indices(old_branch))}]")
+
+            messages_to_send = list(messages)
+            if memory.is_recall_query(new_text):
+                try:
+                    recalled = memory.search_memory(new_text, top_k=3)
+                    if recalled:
+                        block = memory.format_memory_context(recalled)
+                        messages_to_send.insert(1, {"role": "system", "content": block})
+                except Exception:
+                    pass
+
             print("bot> ", end="", flush=True)
             try:
-                reply = stream_reply(host, model, messages)
+                reply = stream_reply(host, model, messages_to_send)
             except RuntimeError as e:
                 print(f"\nError: {e}")
                 continue
@@ -218,9 +262,20 @@ def main():
             continue
 
         messages.append({"role": "user", "content": user_input})
+
+        messages_to_send = list(messages)
+        if memory.is_recall_query(user_input):
+            try:
+                recalled = memory.search_memory(user_input, top_k=3)
+                if recalled:
+                    block = memory.format_memory_context(recalled)
+                    messages_to_send.insert(1, {"role": "system", "content": block})
+            except Exception:
+                pass
+
         print("bot> ", end="", flush=True)
         try:
-            reply = stream_reply(host, model, messages)
+            reply = stream_reply(host, model, messages_to_send)
         except RuntimeError as e:
             print(f"\nError: {e}")
             messages.pop()  # failed turn must not pollute the history
@@ -230,6 +285,15 @@ def main():
             messages.pop()
             continue
         messages.append({"role": "assistant", "content": reply})
+
+    # Save session to external memory on exit
+    if find_user_indices(messages):
+        try:
+            first_user = next(m["content"] for m in messages if m.get("role") == "user")
+            sid = f"cli_{int(datetime.now().timestamp())}"
+            memory.save_session(sid, messages[1:], title=first_user[:36])
+        except Exception:
+            pass
 
 
 if __name__ == "__main__":

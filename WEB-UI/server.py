@@ -284,6 +284,17 @@ def prepare_chat(app, messages, model):
         clean.insert(0, {"role": "system", "content": (ROOT / config["chat_prompt_file"]).read_text().strip()})
     except (OSError, KeyError):
         pass  # no chat prompt file: the model's own defaults apply
+    try:
+        from src.memory import SessionMemory
+        mem = SessionMemory(base_dir=app.workspace / ".sensai", host=config["host"], embed_model=config.get("embed_model", "nomic-embed-text"))
+        last_user = clean[-1]["content"]
+        if mem.is_recall_query(last_user):
+            matches = mem.search_memory(last_user, top_k=3)
+            if matches:
+                block = mem.format_memory_context(matches)
+                clean.insert(1, {"role": "system", "content": block})
+    except Exception:
+        pass
     return clean, model
 
 
@@ -443,6 +454,10 @@ class Handler(BaseHTTPRequestHandler):
                 raise RequestError("no answers file yet for this document", 404)
             extra = {"Content-Disposition": f'attachment; filename="{out.name}"'} if query.get("download") else None
             return self.send_bytes(200, out.read_bytes(), "text/markdown; charset=utf-8", extra)
+        if path == "/api/memory/sessions":
+            from src.memory import SessionMemory
+            mem = SessionMemory(base_dir=app.workspace / ".sensai")
+            return self.send_json(200, {"sessions": mem.list_sessions()})
         raise RequestError("not found", 404)
 
     def route_post(self, path, query):
@@ -466,6 +481,13 @@ class Handler(BaseHTTPRequestHandler):
             body = self.read_json()
             prepare_chat(app, body.get("messages"), body.get("model"))   # refuse a bad request before streaming
             return self.stream_job(lambda emit: chat_job(app, body.get("messages"), body.get("model"), emit))
+        if path == "/api/memory/search":
+            body = self.read_json()
+            query_str = (body.get("query") or "").strip()
+            from src.memory import SessionMemory
+            mem = SessionMemory(base_dir=app.workspace / ".sensai", host=app.config()["host"], embed_model=app.config().get("embed_model", "nomic-embed-text"))
+            matches = mem.search_memory(query_str, top_k=int(body.get("top_k", 3)))
+            return self.send_json(200, {"query": query_str, "results": matches})
         raise RequestError("not found", 404)
 
     def serve_static(self, name):
