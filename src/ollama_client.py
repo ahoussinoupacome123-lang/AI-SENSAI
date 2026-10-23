@@ -8,6 +8,10 @@ class OllamaError(RuntimeError):
     """Raised for any Ollama communication problem."""
 
 
+class ModelNotFoundError(OllamaError):
+    """Raised when an Ollama model is missing."""
+
+
 def _post(url, payload, timeout=(5, 300), stream=False):
     """HTTP POST with clear error translation."""
     try:
@@ -51,7 +55,7 @@ def chat(messages, model, schema=None, stream=False, host="http://localhost:1143
     r = _post(f"{host}/api/chat", payload)
 
     if r.status_code == 404:
-        raise OllamaError(
+        raise ModelNotFoundError(
             f"Model '{model}' not found. Pull it with: ollama pull {model}"
         )
     if r.status_code != 200:

@@ -82,7 +82,7 @@ def evaluate(question, answer, chunks, config):
 
     messages = [{"role": "user", "content": user_content}]
 
-    # 1 retry maximum; if still invalid, return 'unknown'
+    last_error = "Judge failed to produce a valid verdict."
     for _ in range(2):
         try:
             raw = ollama_client.chat(
@@ -92,7 +92,12 @@ def evaluate(question, answer, chunks, config):
             result = _parse_verdict(raw)
             if result is not None:
                 return result
-        except Exception:
-            pass
+        except ollama_client.ModelNotFoundError:
+            return {
+                "verdict": "unknown",
+                "reason": f"Judge model '{model}' not found. Pull it with: ollama pull {model}",
+            }
+        except Exception as e:
+            last_error = str(e) or last_error
 
-    return {"verdict": "unknown", "reason": "Judge failed to produce a valid verdict."}
+    return {"verdict": "unknown", "reason": last_error}

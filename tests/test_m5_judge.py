@@ -117,11 +117,42 @@ class TestEvaluate(unittest.TestCase):
             raise OllamaError("Ollama down")
 
         chunks = [_chunk(1, "text", 1)]
+    def test_decoupled_judge_model_uses_configured_evaluator(self):
+        """Chatbot can run on model A while judge evaluates on distinct model B."""
+        captured_model = {}
+
+        def fake_chat(messages, model, schema=None, **kwargs):
+            captured_model["model"] = model
+            return {"verdict": "faithful", "reason": "ok"}
+
+        config = dict(BASE_CONFIG)
+        config["chat_model"] = "qwen3:4b"
+        config["judge_model"] = "qwen2.5:7b"
+
+        chunks = [_chunk(1, "text", 1)]
         with patch("src.judge.ollama_client.chat", side_effect=fake_chat):
-            result = evaluate("q?", "answer", chunks, BASE_CONFIG)
+            evaluate("q?", "answer", chunks, config)
+
+        self.assertEqual(captured_model["model"], "qwen2.5:7b")
+
+    def test_missing_judge_model_gives_explicit_pull_command(self):
+        """If the decoupled judge model is not pulled, return a clear pull instruction without crash."""
+        from src.ollama_client import ModelNotFoundError
+
+        def fake_chat(messages, model, schema=None, **kwargs):
+            raise ModelNotFoundError("qwen2.5:7b")
+
+        config = dict(BASE_CONFIG)
+        config["judge_model"] = "qwen2.5:7b"
+
+        chunks = [_chunk(1, "text", 1)]
+        with patch("src.judge.ollama_client.chat", side_effect=fake_chat):
+            result = evaluate("q?", "answer", chunks, config)
 
         self.assertEqual(result["verdict"], "unknown")
+        self.assertIn("ollama pull qwen2.5:7b", result["reason"])
 
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
+
