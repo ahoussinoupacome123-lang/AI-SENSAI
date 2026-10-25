@@ -11,5 +11,11 @@
   "answer_prompt_file": "prompts/answer_prompt.txt",
   "chat_prompt_file": "prompts/chat_prompt.txt",
   "judge_model": "qwen3:4b",
-  "judge_prompt_file": "prompts/judge_prompt.txt"
+  "judge_prompt_file": "prompts/judge_prompt.txt",
+  "feature_flags": {
+    "rag": true,
+    "judge": true,
+    "quote_check": true,
+    "cache": true
+  }
 }

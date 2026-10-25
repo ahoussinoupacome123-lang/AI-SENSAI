@@ -43,6 +43,7 @@ EDITABLE = {
     "chat_model": ("str",), "judge_model": ("str",), "embed_model": ("str",),
     "top_k": ("int", 1, 20), "chunk_size": ("int", 200, 4000), "chunk_overlap": ("int", 0, 2000),
     "num_ctx": ("int", 512, 32768), "max_retries": ("int", 0, 5),
+    "feature_flags": ("flags",),
 }
 
 
@@ -73,7 +74,10 @@ class App:
 
     # ---- settings -------------------------------------------------------------------------
     def config(self):
-        return {**self.defaults, **self.overrides}
+        cfg = {**self.defaults, **self.overrides}
+        if "feature_flags" in self.overrides and isinstance(self.overrides["feature_flags"], dict):
+            cfg["feature_flags"] = {**self.defaults.get("feature_flags", {}), **self.overrides["feature_flags"]}
+        return cfg
 
     def set_overrides(self, values):
         """Validate and store session overrides; raise RequestError with a clear message."""
@@ -88,6 +92,10 @@ class App:
                 if not isinstance(value, str) or not MODEL_NAME.match(value):
                     raise RequestError(f"'{key}' must be a model name such as qwen3:4b")
                 clean[key] = value
+            elif rule[0] == "flags":
+                if not isinstance(value, dict):
+                    raise RequestError("feature_flags must be an object")
+                clean[key] = {k: bool(v) for k, v in value.items()}
             else:
                 if isinstance(value, bool) or not isinstance(value, int):
                     raise RequestError(f"'{key}' must be a whole number")
