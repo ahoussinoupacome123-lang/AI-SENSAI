@@ -251,7 +251,13 @@ What does not work well, said honestly:
 | [docs/RESULTS.md](docs/RESULTS.md) | measured results, what worked and what did not |
 | [WEB-UI/README.md](WEB-UI/README.md) | the web interface: how to run it, what it does, its API and security |
 | [docs/TESTING.md](docs/TESTING.md) | every test you can run: 329 automated tests, manual checks, failure tests, quality scoring |
-| [CONTRIBUTING.md](CONTRIBUTING.md) | how to work on the project: rules, workflow, commits, tests, measuring prompt changes |8| [docs/KEYNOTE.md](docs/KEYNOTE.md) | the keynote: slide script, live demo script, fallback, questions to prepare |
+| [docs/PRIVACY_POLICY.md](docs/PRIVACY_POLICY.md) | 100% local privacy guarantee, zero-egress charter and GDPR compliance |
+| [docs/ETHICS_AND_LEGAL.md](docs/ETHICS_AND_LEGAL.md) | copyright exceptions (EU TDM, CPI, Fair Use), exam ethics and user disclaimer |
+| [docs/BUSINESS_IMPACT.md](docs/BUSINESS_IMPACT.md) | economic impact, 11 hrs/wk time savings model and institutional ROI analysis |
+| [docs/ABANDONED_FEATURES.md](docs/ABANDONED_FEATURES.md) | discarded catalogue features (Web Search, Sandbox, MCP) and design trade-offs |
+| [docs/EVALUATION.md](docs/EVALUATION.md) | LLM framework exemption for judge and 4B vs 7B evaluator benchmark |
+| [CONTRIBUTING.md](CONTRIBUTING.md) | how to work on the project: rules, workflow, commits, tests, measuring prompt changes |
+| [docs/KEYNOTE.md](docs/KEYNOTE.md) | the keynote: slide script, live demo script, fallback, questions to prepare |
 | [docs/slides/keynote.html](docs/slides/keynote.html) | the slide deck (open in a browser; arrows to move, F for fullscreen) |
 
 ## Team
