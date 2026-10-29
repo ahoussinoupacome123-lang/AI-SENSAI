@@ -283,3 +283,103 @@ def test_the_answers_file_location_is_announced_before_the_questions(env, capsys
     out = capsys.readouterr().out
     assert f"Answers will be written to {env['out']}" in out
     assert out.index("Answers will be written to") < out.index("[1/3]")
+
+
+# ---------- interactive mode (no questions file) ----------
+def reader(*typed):
+    """A stand-in for input(): returns the typed lines, then behaves like Ctrl+D."""
+    lines = iter(typed)
+
+    def read(prompt=""):
+        try:
+            return next(lines)
+        except StopIteration:
+            raise EOFError
+    return read
+
+
+def chat(env, *typed, extra=()):
+    return cli.main([str(env["pdf"]), "--config", str(env["config"]), *extra], read=reader(*typed))
+
+
+def test_interactive_answers_each_typed_question_and_saves_sections(env, capsys):
+    assert chat(env, "What is one?", "What is two?", "exit") == 0
+    assert list(sections(env["out"].read_text())) == [1, 2]
+    out = capsys.readouterr().out
+    assert "Answer: answer to What is one?" in out and "Page:   2" in out and 'Quote:  "a quote"' in out
+    assert "quote check supported; judge faithful - ok" in out
+    assert "Done: 2/2 questions answered, 0 failed" in out
+
+
+def test_interactive_indexes_the_pdf_once(env):
+    chat(env, "What is one?", "What is two?")
+    assert len(env["calls"].ingest) == 1
+
+
+def test_exit_and_quit_end_the_session_without_a_file(env, capsys):
+    assert chat(env, "quit") == 0
+    assert not env["out"].exists()
+    assert "Done:" not in capsys.readouterr().out
+
+
+def test_ctrl_d_ends_the_session_with_a_summary(env, capsys):
+    assert chat(env, "What is one?") == 0
+    assert "Done: 1/1 questions answered" in capsys.readouterr().out
+
+
+def test_empty_input_asks_again_and_writes_nothing(env, capsys):
+    assert chat(env, "", "   ", "exit") == 0
+    assert "empty input" in capsys.readouterr().out
+    assert env["calls"].answer == [] and not env["out"].exists()
+
+
+def test_a_failed_question_does_not_end_the_session_or_use_a_number(env, capsys):
+    assert chat(env, "FAIL this", "What is two?", "exit") == 0
+    assert list(sections(env["out"].read_text())) == [1]
+    assert "## Q1. What is two?" in env["out"].read_text()
+    assert "failed: model returned invalid JSON" in capsys.readouterr().out
+
+
+def test_only_failures_gives_exit_code_1(env):
+    assert chat(env, "FAIL a", "exit") == 1
+    assert not env["out"].exists()
+
+
+def test_numbering_continues_after_an_existing_answers_file(env):
+    run(env)
+    before = digests(env["out"])
+    assert chat(env, "A new question?", "exit") == 0
+    after = digests(env["out"])
+    assert sorted(after) == [1, 2, 3, 4]
+    assert all(after[n] == before[n] for n in (1, 2, 3))
+
+
+def test_ctrl_c_cancels_one_question_and_the_session_continues(env, monkeypatch, capsys):
+    state = {"n": 0}
+
+    def flaky(question, records, cfg):
+        state["n"] += 1
+        if state["n"] == 1:
+            raise KeyboardInterrupt
+        return {"question": question, "answer": "ok", "page": 1, "quote": "q", "status": "supported"}
+    monkeypatch.setattr(pipeline, "retrieve_and_answer", flaky)
+    assert chat(env, "first", "second", "exit") == 0
+    assert "(question cancelled)" in capsys.readouterr().out
+    assert list(sections(env["out"].read_text())) == [1]
+
+
+def test_disagreement_is_called_out_in_the_terminal(env, monkeypatch, capsys):
+    monkeypatch.setattr(judge, "evaluate", lambda q, a, c, cfg: {"verdict": "unfaithful", "reason": "no"})
+    chat(env, "What is one?", "exit")
+    assert "Review: the quote check and the judge disagree" in capsys.readouterr().out
+
+
+def test_only_without_a_questions_file_is_a_clear_error(env, capsys):
+    assert chat(env, extra=("--only", "1")) == 1
+    assert "--only needs a questions file" in capsys.readouterr().err
+    assert env["calls"].ingest == []
+
+
+def test_the_questions_file_mode_is_unchanged(env, capsys):
+    assert run(env) == 0
+    assert "question>" not in capsys.readouterr().out

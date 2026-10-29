@@ -1,6 +1,10 @@
 """Wiring only: read args and config, ingest once, loop over questions, print the summary.
 
     python -m src.cli <pdf> <questions.txt> [--only N] [--force] [--output FILE] [--config FILE]
+    python -m src.cli <pdf>                  [--force] [--output FILE] [--config FILE]   (interactive)
+
+Without a questions file the tool opens a prompt: type a question, read the sourced answer,
+type the next one. Every answer is still written as a section of the answers file.
 """
 import argparse
 import json
@@ -23,7 +27,8 @@ def parse_args(argv=None):
         description="Answer a list of questions about a PDF and write a sourced answers.md.",
     )
     parser.add_argument("pdf", help="the text PDF to read")
-    parser.add_argument("questions", help="text file with one question per line")
+    parser.add_argument("questions", nargs="?",
+                        help="text file with one question per line (omit it to ask questions interactively)")
     parser.add_argument("--only", type=int, metavar="N",
                         help="answer only question number N (1-based); other sections stay untouched")
     parser.add_argument("--force", action="store_true",
@@ -144,7 +149,71 @@ def build_summary(total, answered, failed, output):
     return "\n".join(lines)
 
 
-def main(argv=None):
+def format_answer(checked):
+    """The answer as a few readable lines for the terminal."""
+    page = checked.get("page")
+    quote = " ".join(str(checked.get("quote", "")).split())
+    verdict = checked.get("verdict")
+    judge_text = f"{verdict} - {checked['reason']}" if verdict and checked.get("reason") else (verdict or "not evaluated")
+    lines = ["", f"Answer: {str(checked.get('answer', '')).strip()}",
+             f"Page:   {page if isinstance(page, int) and page > 0 else '-'}",
+             f"Quote:  \"{quote}\"" if quote else "Quote:  (none)",
+             f"Checks: quote check {checked.get('status')}; judge {judge_text}"]
+    if checked.get("disagreement"):
+        lines.append("Review: the quote check and the judge disagree, compare with the page before trusting it.")
+    return "\n".join(lines)
+
+
+def next_section_number(output):
+    """Continue after the sections already in the answers file, so earlier answers are never overwritten."""
+    try:
+        found = writer.sections(Path(output).read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError):
+        return 1
+    return max(found, default=0) + 1
+
+
+def interactive(pdf, records, config, output, read=input):
+    """Ask questions one at a time at a prompt. Enter 'exit' (or Ctrl+D) to finish."""
+    number = next_section_number(output)
+    print(f"Answers are saved to {output} (starting at Q{number}).")
+    print(f"Ask questions about {pdf.name}. Type 'exit' or press Ctrl+D to quit; Ctrl+C cancels a question.")
+    answered, failed = [], []
+    while True:
+        try:
+            question = read("\nquestion> ").strip()
+        except (EOFError, KeyboardInterrupt):
+            print()
+            break
+        if not question:
+            print("(empty input, please type a question)")
+            continue
+        if question.lower() in ("exit", "quit"):
+            break
+        print("  thinking...")
+        try:
+            checked = answer_question(question, records, config)
+            writer.upsert_section(output, number, checked)
+        except KeyboardInterrupt:
+            print("\n(question cancelled)")
+            continue
+        except NotImplementedError as e:
+            print(f"Error: {_not_implemented(e)}", file=sys.stderr)
+            return 1
+        except Exception as e:  # noqa: BLE001 - one failed question must not end the session
+            print(f"  failed: {e}")
+            failed.append((number, str(e)))
+            continue
+        print(format_answer(checked))
+        answered.append((number, checked))
+        number += 1
+    if answered or failed:
+        print()
+        print(build_summary(len(answered) + len(failed), answered, failed, output))
+    return 1 if failed and not answered else 0
+
+
+def main(argv=None, read=input):
     args = parse_args(argv)
     try:
         config = load_config(args.config)
@@ -160,7 +229,9 @@ def main(argv=None):
         pdf = Path(args.pdf)
         if not pdf.is_file():
             raise CliError(f"PDF not found: {pdf}")
-        questions = read_questions(args.questions)
+        if args.questions is None and args.only is not None:
+            raise CliError("--only needs a questions file (it picks one question from the file)")
+        questions = read_questions(args.questions) if args.questions else []
         if args.only is not None and not 1 <= args.only <= len(questions):
             count = len(questions)
             raise CliError(f"--only {args.only} is out of range: the file has "
@@ -177,6 +248,12 @@ def main(argv=None):
         print(f"Error: {e}", file=sys.stderr)
         return 1
 
+    if args.questions is None:
+        try:
+            return interactive(pdf, records, config, output, read=read)
+        except KeyboardInterrupt:
+            print("\nInterrupted.", file=sys.stderr)
+            return 130
     print(f"Answers will be written to {output}")
     selected = [(i, q) for i, q in enumerate(questions, start=1) if args.only in (None, i)]
     answered, failed, interrupted = [], [], False
