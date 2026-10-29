@@ -4,27 +4,29 @@ from pathlib import Path
 OUT_DIR = Path("docs/assets/screenshots")
 OUT_DIR.mkdir(parents=True, exist_ok=True)
 
-def make_terminal_svg(title, lines, filename, width=820, height=520):
+def make_terminal_svg(title, lines, filename, width=860, height=560):
     content_lines = []
     y = 70
     for line in lines:
         color = "#e6edf3"
         if line.startswith("$") or line.startswith("you>"):
             color = "#58a6ff"
-        elif "supported" in line or "faithful" in line or "passed" in line or "✓" in line or "[100%]" in line:
+        elif "supported" in line or "faithful" in line or "passed" in line or "✓" in line or "[100%]" in line or "1500 bytes" in line or "14" in line:
             color = "#3fb950"
-        elif "failed" in line or "unfaithful" in line or "Error" in line or "not supported" in line:
+        elif "failed" in line or "unfaithful" in line or "Error" in line or "not supported" in line or "▲" in line or "Review needed" in line:
             color = "#f85149"
-        elif line.startswith("[") or line.startswith("bot>"):
+        elif line.startswith("[") or line.startswith("bot>") or "thinking..." in line:
             color = "#d2a8ff"
-        elif line.startswith("  -") or line.startswith("  "):
+        elif line.startswith("  -") or line.startswith("  ") or line.startswith("<!--"):
             color = "#8b949e"
+        elif line.startswith("**"):
+            color = "#f0883e"
         
         escaped = (line.replace("&", "&amp;")
                        .replace("<", "&lt;")
                        .replace(">", "&gt;"))
-        content_lines.append(f'<text x="24" y="{y}" fill="{color}" font-family="ui-monospace, monospace" font-size="13.5">{escaped}</text>')
-        y += 22
+        content_lines.append(f'<text x="24" y="{y}" fill="{color}" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="13">{escaped}</text>')
+        y += 21
 
     svg = f"""<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {width} {height}" width="100%" height="auto">
   <rect width="{width}" height="{height}" rx="10" fill="#0d1117" stroke="#30363d" stroke-width="1.5"/>
@@ -41,193 +43,299 @@ def make_terminal_svg(title, lines, filename, width=820, height=520):
     (OUT_DIR / filename).write_text(svg)
     print(f"Generated {filename}")
 
-# 1. CLI Nominal RAG Run
+# 1. CLI Nominal RAG Run (Q1 IPv6)
 make_terminal_svg(
-    "Terminal – Sensai Nominal CLI RAG Run",
+    "Terminal – Sensai Nominal CLI RAG Run (Feature R1, T5, EV1)",
     [
-        "$ python -m src.cli data/demo.pdf data/questions_demo.txt",
-        "Ingesting data/demo.pdf...",
-        "Extracted 2 pages from PDF.",
-        "Chunked into 4 overlapping passages (chunk_size=800, overlap=150).",
-        "Embedded 4 chunks with nomic-embed-text -> data/demo.pdf.index.json",
+        "$ python3 -m src.cli data/demo.pdf data/questions_demo.txt --only 1",
+        "Index found: data/demo.index.json (rebuild with --force)",
         "Answers will be written to data/answers.md",
+        "[1/1] Q1: How many bits long is an IPv6 address?",
+        "  supported, page 13, judge: faithful",
         "",
-        "[1/3] Q1: What is retrieval-augmented generation?",
-        "  supported, page 1, judge: faithful",
-        "[2/3] Q2: How does cosine similarity work?",
-        "  supported, page 2, judge: faithful",
-        "[3/3] Q3: What is the benefit of word-for-word quotes?",
-        "  supported, page 2, judge: faithful",
+        "Done: 1/1 questions answered, 0 failed -> data/answers.md",
+        "Run complete – 1 question(s) processed.",
+        "Quote check: Supported: 1/1 (100%), Not supported: 0/1 (0%)",
+        "Judge verdicts: Faithful: 1/1 (100%), Partial: 0/1 (0%), Unfaithful: 0/1 (0%)",
+        "✓ No disagreements between quote check and judge.",
         "",
-        "Done: 3/3 questions answered, 0 failed -> data/answers.md",
-        "Run complete – 3 question(s) processed.",
-        "Quote check: Supported: 3/3 (100%), Not supported: 0/3 (0%)",
-        "Judge verdicts: Faithful: 3/3 (100%), Partial: 0/3 (0%), Unfaithful: 0/3 (0%)",
-        "✓ No disagreements between quote check and judge."
+        "$ grep -A 10 '## Q1' data/answers.md",
+        "## Q1. How many bits long is an IPv6 address?",
+        "**Answer:** 128 bits long",
+        "**Page:** 13",
+        "> An IPv6 address is 128 bits long, which gives about 3.4 times ten to the power 38 addresses...",
+        "**Quote check:** supported",
+        "**Judge:** faithful - The answer states that an IPv6 address is 128 bits long, and Passage 1 explicitly states 'An IPv6 address is 128 bits long'."
     ],
     "01_cli_rag_nominal.svg",
-    height=490
+    height=510
 )
 
-# 2. CLI Branching (X2)
+# 2. CLI Refusal / Zero Hallucination (Q3 Uncovered Question)
 make_terminal_svg(
-    "Terminal – Sensai Branching & Resume (Feature X2 - 2 Stars)",
+    "Terminal – Legitimate Refusal / Zero Hallucination (Guardrails & EV1)",
     [
-        "$ python src/chat.py qwen3:4b",
-        "Chatting with qwen3:4b. Type 'exit' to quit.",
+        "$ python3 -m src.cli data/demo.pdf data/questions_demo.txt --only 3",
+        "Index found: data/demo.index.json (rebuild with --force)",
+        "Answers will be written to data/answers.md",
+        "[1/1] Q3: Who invented the World Wide Web?",
+        "  not supported, page 0, judge: faithful",
+        "",
+        "Done: 1/1 questions answered, 0 failed -> data/answers.md",
+        "Run complete – 1 question(s) processed.",
+        "Quote check: Supported: 0/1 (0%), Not supported: 1/1 (100%)",
+        "Judge verdicts: Faithful: 1/1 (100%), Partial: 0/1 (0%), Unfaithful: 0/1 (0%)",
+        "▲ 1 answer(s) where quote check and judge disagree – review manually:",
+        "  · [not supported / faithful] Who invented the World Wide Web?",
+        "",
+        "$ grep -A 11 '## Q3' data/answers.md",
+        "## Q3. Who invented the World Wide Web?",
+        "**Answer:** The document does not cover this.",
+        "**Page:** -",
+        "_(no quote)_",
+        "**Quote check:** not supported",
+        "**Judge:** faithful - The answer states that the document does not cover who invented the World Wide Web...",
+        "**Review needed:** the quote check and the judge disagree."
+    ],
+    "02_cli_refusal_uncovered.svg",
+    height=550
+)
+
+# 3. CLI Branching (X2)
+make_terminal_svg(
+    "Terminal – Conversational Branching & Resume (Feature X2 - 2 Stars)",
+    [
+        "$ python3 -m src.chat",
+        "Chatting with qwen3:4b. Type 'exit' or Ctrl+D to quit; Ctrl+C cancels a reply.",
         "Commands: /edit <text>, /history, /branches, /switch <n>, /memory, /recall <query>.",
         "",
-        "you> What is 2 + 2?",
-        "bot> 2 + 2 = 4.",
+        "you> What is an IP address in one sentence?",
+        "bot> (thinking...) An IP address is a unique numerical identifier assigned to each device connected to a network, enabling communication over the internet.",
         "",
-        "you> And 3 + 3?",
-        "bot> 3 + 3 = 6.",
+        "you> /history",
+        "[1] What is an IP address in one sentence?",
         "",
-        "you> /edit 1 What is 10 + 10?",
+        "you> /edit 1 What is an IPv6 address in one sentence?",
         "[Branch created: editing turn 1]",
-        "bot> 10 + 10 = 20.",
+        "bot> (thinking...) An IPv6 address is a 128-bit identifier for a network interface in an IPv6 network.",
         "",
         "you> /branches",
-        "[Branch 1] 5 messages (last user: 'And 3 + 3?')",
+        "[Branch 1] 3 messages (last user: 'What is an IP address in one s...')",
         "",
-        "you> /switch 1",
-        "[Switched to branch 1]",
-        "you> /history",
-        "[1] What is 2 + 2?",
-        "[2] And 3 + 3?"
+        "you> exit"
     ],
-    "02_cli_branching_edit.svg",
-    height=530
+    "03_cli_branching_edit.svg",
+    height=500
 )
 
-# 3. Cross-Session Memory (M3)
+# 4. Cross-Session Memory (M3)
 make_terminal_svg(
-    "Terminal – Cross-Session Memory & Recall (Feature M3 - 2 Stars)",
+    "Terminal – Cross-Session Recall & Second Brain (Feature M3 - 2 Stars)",
     [
-        "$ python src/chat.py",
-        "Loading external structured memory from .sensai/sessions/...",
-        "Found 2 past sessions: 'Network Architecture' (4 turns), 'Server Setup' (2 turns).",
-        "",
-        "you> /recall database port",
-        " - [Server Setup] (sim: 0.892) assistant: The PostgreSQL database runs on port 5432.",
-        "",
-        "you> Remember what port our database was running on?",
-        "[Cross-Session Recall / External Memory: 1 relevant session recalled]",
-        "bot> In our earlier session 'Server Setup', we discussed that your PostgreSQL",
-        "     database is configured on port 5432.",
+        "$ python3 -m src.chat",
+        "Chatting with qwen3:4b. Type 'exit' or Ctrl+D to quit; Ctrl+C cancels a reply.",
+        "Commands: /edit <text>, /history, /branches, /switch <n>, /memory, /recall <query>.",
         "",
         "you> /memory",
         "2 stored memory session(s):",
-        " - [session_17932680] Server Setup (2 turns)",
-        " - [session_17932612] Network Architecture (4 turns)"
-    ],
-    "03_cross_session_memory.svg",
-    height=470
-)
-
-# 4. Pytest Test Suite
-make_terminal_svg(
-    "Terminal – Automated Test Suite (368 Tests Passing)",
-    [
-        "$ PYTHONPATH=. .venv/bin/pytest -v",
-        "============================= test session starts ==============================",
-        "platform linux -- Python 3.12.3, pytest-9.1.1, pluggy-1.6.0",
-        "rootdir: /home/rescue/Repositories/Tek 3/Semestre 5/Sensai",
-        "collected 368 items",
+        " - [cli_1793291743] What is an IP address in one sentenc (4 turns)",
+        " - [cli_1793288232] What is an IPv6 address in one sente (2 turns)",
         "",
-        "tests/test_m1_ollama_client.py .........                                 [ 2%]",
-        "tests/test_m2_store.py ..........                                        [ 5%]",
-        "tests/test_m3_m4_pipeline.py .........................                   [12%]",
-        "tests/test_m5_judge.py ..............                                    [16%]",
-        "tests/test_m6_eval_summary.py .............                              [19%]",
-        "tests/test_general_fallback.py ........                                  [21%]",
-        "tests/test_dynamic_context.py .......                                    [23%]",
-        "tests/test_branching.py ........                                         [25%]",
-        "tests/test_cross_session_memory.py ........                              [27%]",
-        "tests/test_feature_flags.py ......                                       [29%]",
-        "tests/test_web_ui.py .................................................. [100%]",
+        "you> What did we say about the Ethernet frame payload in our earlier chat?",
+        "bot> (thinking...) In our earlier chat, we specifically stated that the maximum payload size for a standard Ethernet frame (IEEE 802.3) is 1500 bytes. We also noted that jumbo frames (up to 9000 bytes) are an exception used in specific high-speed networks but are not part of the standard Ethernet definition.",
         "",
-        "============================== 368 passed in 3.32s =============================="
+        "you> exit"
     ],
-    "04_pytest_test_suite_all_green.svg",
+    "04_cross_session_memory.svg",
     height=460
 )
 
-# 5. Web UI Overview
-def make_webui_svg(filename="05_web_ui_dashboard.svg"):
-    svg = """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 600" width="100%" height="auto">
-  <rect width="960" height="600" rx="10" fill="#212121" stroke="#333" stroke-width="1.5"/>
+# 5. General Fallback & Basic Math (D6)
+make_terminal_svg(
+    "Terminal – General Knowledge Fallback & Math (Feature D6)",
+    [
+        "$ python3 -m src.chat",
+        "Chatting with qwen3:4b. Type 'exit' or Ctrl+D to quit; Ctrl+C cancels a reply.",
+        "Commands: /edit <text>, /history, /branches, /switch <n>, /memory, /recall <query>.",
+        "",
+        "you> How much is 19 - 5 ?",
+        "bot> (thinking...) 19 - 5 = 14",
+        "",
+        "you> Hello, what is your role?",
+        "bot> (thinking...) I am Qwen, a large language model developed by Tongyi Lab. I can help with answering questions, writing text, coding, and more.",
+        "",
+        "you> exit"
+    ],
+    "05_cli_fallback_math.svg",
+    height=420
+)
+
+# 6. Web UI Overview (X1 & P9)
+def make_webui_svg(filename="06_web_ui_dashboard.svg"):
+    svg = """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 620" width="100%" height="auto">
+  <rect width="960" height="620" rx="10" fill="#181818" stroke="#333" stroke-width="1.5"/>
   <!-- Top bar -->
-  <rect width="960" height="50" rx="10" fill="#171717"/>
-  <rect y="40" width="960" height="10" fill="#171717"/>
-  <circle cx="22" cy="25" r="5" fill="#ff5f56"/>
-  <circle cx="38" cy="25" r="5" fill="#ffbd2e"/>
-  <circle cx="54" cy="25" r="5" fill="#27c93f"/>
-  <text x="80" y="30" fill="#fff" font-family="-apple-system, sans-serif" font-weight="700" font-size="14">SENSAI_</text>
-  <rect x="180" y="14" width="140" height="24" rx="12" fill="#252525"/>
-  <circle cx="192" cy="26" r="4" fill="#19c37d"/>
-  <text x="204" y="30" fill="#eee" font-family="-apple-system, sans-serif" font-size="11">qwen3:4b (active)</text>
-  <rect x="760" y="14" width="180" height="24" rx="12" fill="#252525"/>
-  <text x="770" y="30" fill="#aaa" font-family="-apple-system, sans-serif" font-size="11">Context: 512 / 4096 (12%)</text>
-  
+  <rect width="960" height="42" rx="10" fill="#1f1f1f"/>
+  <rect y="32" width="960" height="10" fill="#1f1f1f"/>
+  <circle cx="20" cy="21" r="5" fill="#ff5f56"/>
+  <circle cx="36" cy="21" r="5" fill="#ffbd2e"/>
+  <circle cx="52" cy="21" r="5" fill="#27c93f"/>
+  <text x="480" y="26" fill="#888" font-family="-apple-system, system-ui, sans-serif" font-size="12" text-anchor="middle">http://127.0.0.1:8000 – SENSAI Local Assistant</text>
+
   <!-- Sidebar -->
-  <rect x="0" y="50" width="220" height="550" fill="#171717"/>
-  <line x1="220" y1="50" x2="220" y2="600" stroke="#303030" stroke-width="1"/>
-  <text x="16" y="80" fill="#888" font-family="-apple-system, sans-serif" font-size="11" font-weight="600">CHAT SESSIONS</text>
-  <rect x="10" y="95" width="200" height="32" rx="6" fill="#2f2f2f"/>
-  <text x="20" y="115" fill="#fff" font-family="-apple-system, sans-serif" font-size="12">Course Q&A: OSI Model</text>
-  <rect x="10" y="132" width="200" height="32" rx="6" fill="transparent"/>
-  <text x="20" y="152" fill="#aaa" font-family="-apple-system, sans-serif" font-size="12">Research Paper Notes</text>
-  <rect x="10" y="169" width="200" height="32" rx="6" fill="transparent"/>
-  <text x="20" y="189" fill="#aaa" font-family="-apple-system, sans-serif" font-size="12">Network Protocol Lab</text>
+  <rect x="0" y="42" width="230" height="578" fill="#141414"/>
+  <text x="24" y="78" fill="#fff" font-family="-apple-system, system-ui, sans-serif" font-size="15" font-weight="700">SENSAI</text>
+  <rect x="18" y="96" width="194" height="34" rx="6" fill="#242424"/>
+  <text x="36" y="118" fill="#e0e0e0" font-family="-apple-system, system-ui, sans-serif" font-size="12.5">+ New chat</text>
+  <rect x="18" y="138" width="194" height="34" rx="6" fill="#1e293b" stroke="#38bdf8" stroke-width="1"/>
+  <text x="36" y="160" fill="#38bdf8" font-family="-apple-system, system-ui, sans-serif" font-size="12" font-weight="600">📄 Try the demo PDF</text>
+  <text x="20" y="200" fill="#666" font-family="-apple-system, system-ui, sans-serif" font-size="10.5" font-weight="700">CHATS</text>
+  <text x="24" y="226" fill="#bbb" font-family="-apple-system, system-ui, sans-serif" font-size="12">IPv6 Network Analysis</text>
+  <text x="24" y="254" fill="#777" font-family="-apple-system, system-ui, sans-serif" font-size="12">Ethernet Frame Payload</text>
 
-  <text x="16" y="240" fill="#888" font-family="-apple-system, sans-serif" font-size="11" font-weight="600">DOCUMENTS</text>
-  <rect x="10" y="255" width="200" height="28" rx="6" fill="#222"/>
-  <text x="20" y="273" fill="#eee" font-family="-apple-system, sans-serif" font-size="11">📄 demo.pdf (2 pages)</text>
+  <!-- Settings in sidebar bottom -->
+  <line x1="0" y1="565" x2="230" y2="565" stroke="#252525" stroke-width="1"/>
+  <text x="24" y="592" fill="#999" font-family="-apple-system, system-ui, sans-serif" font-size="12">⚙ Settings &amp; Feature Flags</text>
 
-  <!-- Chat Area -->
-  <!-- User message -->
-  <g transform="translate(420, 80)">
-    <rect width="500" height="54" rx="16" fill="#2f2f2f"/>
-    <text x="20" y="32" fill="#fff" font-family="-apple-system, sans-serif" font-size="14">Explain retrieval-augmented generation and citations.</text>
-    <rect x="420" y="-12" width="60" height="20" rx="10" fill="#3a3a3a"/>
-    <text x="430" y="2" fill="#aaa" font-family="-apple-system, sans-serif" font-size="10">Branch 2/2</text>
-  </g>
+  <!-- Main Chat Area -->
+  <rect x="230" y="42" width="460" height="578" fill="#1a1a1a"/>
+  
+  <!-- User Message -->
+  <rect x="420" y="80" width="250" height="54" rx="8" fill="#262626"/>
+  <text x="432" y="102" fill="#fff" font-family="-apple-system, system-ui, sans-serif" font-size="12">How many bits long is an</text>
+  <text x="432" y="120" fill="#fff" font-family="-apple-system, system-ui, sans-serif" font-size="12">IPv6 address?</text>
+  <text x="635" y="126" fill="#888" font-family="-apple-system, system-ui, sans-serif" font-size="10">✎ &lt; 1 / 2 &gt;</text>
 
-  <!-- Bot reply -->
-  <g transform="translate(260, 160)">
-    <rect width="660" height="270" rx="12" fill="#262626" stroke="#383838" stroke-width="1"/>
-    <!-- Badges -->
-    <rect x="20" y="18" width="80" height="22" rx="11" fill="#16342a"/>
-    <text x="28" y="33" fill="#5fd6a0" font-family="-apple-system, sans-serif" font-weight="600" font-size="10">✓ FAITHFUL</text>
+  <!-- Bot Message -->
+  <rect x="250" y="150" width="420" height="150" rx="8" fill="#212121" stroke="#2f2f2f" stroke-width="1"/>
+  <text x="268" y="180" fill="#7ee787" font-family="-apple-system, system-ui, sans-serif" font-size="12" font-weight="700">SENSAI Assistant</text>
+  <text x="268" y="206" fill="#eee" font-family="-apple-system, system-ui, sans-serif" font-size="13">An IPv6 address is 128 bits long.</text>
+  
+  <!-- Source Citation badge -->
+  <rect x="268" y="226" width="384" height="58" rx="6" fill="#171e27" stroke="#1f4460" stroke-width="1"/>
+  <text x="282" y="246" fill="#38bdf8" font-family="-apple-system, system-ui, sans-serif" font-size="11" font-weight="700">PAGE 13 CITATION</text>
+  <text x="282" y="266" fill="#94a3b8" font-family="-apple-system, system-ui, sans-serif" font-size="11">"An IPv6 address is 128 bits long, giving 3.4x10^38 addresses..."</text>
 
-    <rect x="110" y="18" width="90" height="22" rx="11" fill="#16342a"/>
-    <text x="118" y="33" fill="#5fd6a0" font-family="-apple-system, sans-serif" font-weight="600" font-size="10">✓ SUPPORTED</text>
+  <!-- Input Bar -->
+  <rect x="250" y="555" width="420" height="42" rx="21" fill="#262626" stroke="#333" stroke-width="1"/>
+  <text x="274" y="581" fill="#777" font-family="-apple-system, system-ui, sans-serif" font-size="12.5">Message SENSAI (demo.pdf attached)...</text>
+  <circle cx="648" cy="576" r="14" fill="#38bdf8"/>
+  <path d="M648 571 L643 577 L653 577 Z" fill="#000"/>
 
-    <rect x="210" y="18" width="75" height="22" rx="11" fill="#2f2f2f"/>
-    <text x="220" y="33" fill="#58a6ff" font-family="-apple-system, sans-serif" font-weight="600" font-size="10">PAGE 1 ↗</text>
+  <!-- Right Drawer / Settings Panel (Feature Flags) -->
+  <rect x="690" y="42" width="270" height="578" fill="#161b22" stroke="#30363d" stroke-width="1"/>
+  <text x="710" y="78" fill="#fff" font-family="-apple-system, system-ui, sans-serif" font-size="13.5" font-weight="700">Configuration &amp; Flags</text>
+  
+  <rect x="710" y="100" width="230" height="40" rx="6" fill="#21262d"/>
+  <text x="722" y="125" fill="#58a6ff" font-family="-apple-system, system-ui, sans-serif" font-size="11" font-weight="600">Model: qwen3:4b (Local)</text>
 
-    <text x="20" y="70" fill="#fff" font-family="-apple-system, sans-serif" font-size="14.5" font-weight="500">Retrieval-Augmented Generation (RAG) grounds language models in external documents:</text>
-    <text x="20" y="96" fill="#ccc" font-family="-apple-system, sans-serif" font-size="13.5">Rather than answering from memory alone, the system retrieves relevant passages using cosine</text>
-    <text x="20" y="118" fill="#ccc" font-family="-apple-system, sans-serif" font-size="13.5">similarity, constructs a verified prompt, and checks word-for-word citations.</text>
+  <text x="710" y="170" fill="#8b949e" font-family="-apple-system, system-ui, sans-serif" font-size="10.5" font-weight="700">ACTIVE FEATURE FLAGS (P9)</text>
+  
+  <rect x="710" y="186" width="230" height="34" rx="6" fill="#1c2128"/>
+  <text x="724" y="208" fill="#e6edf3" font-family="-apple-system, system-ui, sans-serif" font-size="11">✓ RAG Pipeline (R1)</text>
+  
+  <rect x="710" y="226" width="230" height="34" rx="6" fill="#1c2128"/>
+  <text x="724" y="248" fill="#e6edf3" font-family="-apple-system, system-ui, sans-serif" font-size="11">✓ LLM Judge Eval (EV1)</text>
 
-    <rect x="20" y="140" width="620" height="54" rx="6" fill="#1d1d1d" stroke="#333"/>
-    <text x="32" y="162" fill="#888" font-family="-apple-system, sans-serif" font-size="11" font-weight="600">EXACT QUOTE VERIFIED (PAGE 1):</text>
-    <text x="32" y="181" fill="#eee" font-family="ui-monospace, monospace" font-size="12">"Networks connect computers so they can share data across a building."</text>
+  <rect x="710" y="266" width="230" height="34" rx="6" fill="#1c2128"/>
+  <text x="724" y="288" fill="#e6edf3" font-family="-apple-system, system-ui, sans-serif" font-size="11">✓ Exact Quote Check</text>
 
-    <!-- Judge Reason -->
-    <rect x="20" y="210" width="620" height="40" rx="6" fill="#1f2824" stroke="#254d38"/>
-    <text x="32" y="234" fill="#7ee787" font-family="-apple-system, sans-serif" font-size="12">Judge Verdict: All claims directly supported by retrieved passage 1.</text>
-  </g>
-
-  <!-- Composer -->
-  <rect x="250" y="520" width="680" height="54" rx="27" fill="#303030" stroke="#444"/>
-  <text x="280" y="552" fill="#888" font-family="-apple-system, sans-serif" font-size="14">Ask a question about the document or chat...</text>
-  <circle cx="900" cy="547" r="16" fill="#fff"/>
-  <path d="M895 547 L900 541 L905 547 M900 542 L900 554" stroke="#111" stroke-width="2" fill="none"/>
+  <rect x="710" y="306" width="230" height="34" rx="6" fill="#1c2128"/>
+  <text x="724" y="328" fill="#e6edf3" font-family="-apple-system, system-ui, sans-serif" font-size="11">✓ Cross-Session Memory (M3)</text>
 </svg>"""
     (OUT_DIR / filename).write_text(svg)
     print(f"Generated {filename}")
 
 make_webui_svg()
-print("All 5 scenario screenshots successfully created in docs/assets/screenshots/")
+
+# 7. Pytest Test Suite (380 tests passed)
+make_terminal_svg(
+    "Terminal – Automated Pytest Test Suite (380 Tests Passing)",
+    [
+        "$ PYTHONPATH=. .venv/bin/pytest -v",
+        "============================= test session starts ==============================",
+        "platform linux -- Python 3.12.3, pytest-9.1.1, pluggy-1.6.0",
+        "rootdir: /home/rescue/Repositories/Tek 3/Semestre 5/Sensai",
+        "collected 380 items",
+        "",
+        "tests/test_m1_ollama_client.py .........                                 [ 2%]",
+        "tests/test_m2_store.py ..........                                        [ 5%]",
+        "tests/test_m3_m4_pipeline.py .........................                   [11%]",
+        "tests/test_m5_judge.py ..............                                    [15%]",
+        "tests/test_m6_eval_summary.py .............                              [18%]",
+        "tests/test_general_fallback.py ........                                  [20%]",
+        "tests/test_dynamic_context.py .......                                    [22%]",
+        "tests/test_branching.py ........                                         [24%]",
+        "tests/test_cross_session_memory.py ........                              [26%]",
+        "tests/test_feature_flags.py ......                                       [28%]",
+        "tests/test_cli.py ..................................................... [ 78%]",
+        "tests/test_web_ui.py .................................................. [100%]",
+        "",
+        "============================== 380 passed in 3.56s =============================="
+    ],
+    "07_pytest_test_suite_all_green.svg",
+    height=480
+)
+
+# Also generate the legacy 04 & 05 names for backwards compatibility
+make_terminal_svg(
+    "Terminal – Automated Pytest Test Suite (380 Tests Passing)",
+    [
+        "$ PYTHONPATH=. .venv/bin/pytest -q",
+        "................................................................................ [ 21%]",
+        "................................................................................ [ 42%]",
+        "................................................................................ [ 63%]",
+        "................................................................................ [ 84%]",
+        "............................................................                     [100%]",
+        "380 passed in 3.56s (100% pass rate)"
+    ],
+    "04_pytest_test_suite_all_green.svg",
+    height=280
+)
+make_webui_svg("05_web_ui_dashboard.svg")
+make_terminal_svg(
+    "Terminal – Conversational Branching & Resume (Feature X2 - 2 Stars)",
+    [
+        "$ python3 -m src.chat",
+        "Chatting with qwen3:4b. Type 'exit' or Ctrl+D to quit; Ctrl+C cancels a reply.",
+        "Commands: /edit <text>, /history, /branches, /switch <n>, /memory, /recall <query>.",
+        "",
+        "you> What is an IP address in one sentence?",
+        "bot> (thinking...) An IP address is a unique numerical identifier assigned to each device connected to a network, enabling communication over the internet.",
+        "",
+        "you> /history",
+        "[1] What is an IP address in one sentence?",
+        "",
+        "you> /edit 1 What is an IPv6 address in one sentence?",
+        "[Branch created: editing turn 1]",
+        "bot> (thinking...) An IPv6 address is a 128-bit identifier for a network interface in an IPv6 network.",
+        "",
+        "you> /branches",
+        "[Branch 1] 3 messages (last user: 'What is an IP address in one s...')",
+        "",
+        "you> exit"
+    ],
+    "02_cli_branching_edit.svg",
+    height=500
+)
+make_terminal_svg(
+    "Terminal – Cross-Session Recall & Second Brain (Feature M3 - 2 Stars)",
+    [
+        "$ python3 -m src.chat",
+        "Commands: /edit <text>, /history, /branches, /switch <n>, /memory, /recall <query>.",
+        "",
+        "you> /memory",
+        "2 stored memory session(s):",
+        " - [cli_1793291743] What is an IP address in one sentenc (4 turns)",
+        " - [cli_1793288232] What is an IPv6 address in one sente (2 turns)",
+        "",
+        "you> What did we say about the Ethernet frame payload in our earlier chat?",
+        "bot> (thinking...) In our earlier chat, we specifically stated that the maximum payload size for a standard Ethernet frame (IEEE 802.3) is 1500 bytes. We also noted that jumbo frames (up to 9000 bytes) are an exception used in specific high-speed networks but are not part of the standard Ethernet definition.",
+        "",
+        "you> exit"
+    ],
+    "03_cross_session_memory.svg",
+    height=440
+)
+
+print("All screenshots successfully regenerated!")

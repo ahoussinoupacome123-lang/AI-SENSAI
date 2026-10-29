@@ -56,7 +56,7 @@ Before starting the evaluation run or live keynote demonstration:
 2. **Execute Full Test Suite**:
    ```bash
    PYTHONPATH=. .venv/bin/pytest -q
-   # Expected: 368 passed
+   # Expected: 380 passed
    ```
 3. **Launch Web Interface**:
    ```bash
