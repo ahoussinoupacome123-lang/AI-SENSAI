@@ -257,6 +257,7 @@ What does not work well, said honestly:
 | [docs/ABANDONED_FEATURES.md](docs/ABANDONED_FEATURES.md) | discarded catalogue features (Web Search, Sandbox, MCP) and design trade-offs |
 | [docs/EVALUATION.md](docs/EVALUATION.md) | LLM framework exemption for judge and 4B vs 7B evaluator benchmark |
 | [docs/RISKS_AND_REQUIREMENTS.md](docs/RISKS_AND_REQUIREMENTS.md) | project risk matrix (mitigations) and verified minimum vs recommended requirements |
+| [docs/SCREENSHOTS.md](docs/SCREENSHOTS.md) | screenshot bank of CLI, branching, memory, green test suites and Web UI dashboard |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | how to work on the project: rules, workflow, commits, tests, measuring prompt changes |
 | [docs/KEYNOTE.md](docs/KEYNOTE.md) | the keynote: slide script, live demo script, fallback, questions to prepare |
 | [docs/slides/keynote.html](docs/slides/keynote.html) | the slide deck (open in a browser; arrows to move, F for fullscreen) |
