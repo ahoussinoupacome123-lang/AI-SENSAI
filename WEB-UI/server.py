@@ -11,14 +11,17 @@ Server-Sent Events. The server listens on the loopback interface only by default
 login, so do not expose it to a network you do not trust.
 """
 import argparse
+import hmac
 import json
 import os
 import re
+import secrets
 import sys
 import tempfile
 import threading
 import time
 import urllib.parse
+from http import cookies
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
@@ -58,7 +61,7 @@ class RequestError(Exception):
 class App:
     """The state shared by all requests: settings, workspace folders, and the one-job-at-a-time lock."""
 
-    def __init__(self, config, workspace=None, data_dir=None, static_dir=None, allowed_hosts=None, index_file=None):
+    def __init__(self, config, workspace=None, data_dir=None, static_dir=None, allowed_hosts=None, index_file=None, access_key=None):
         self.defaults = dict(config)
         self.overrides = {}
         self.workspace = Path(workspace or HERE / "workspace")
@@ -69,6 +72,7 @@ class App:
         self.data_dir = Path(data_dir or ROOT / "data")
         self.static_dir = Path(static_dir or HERE / "static")
         self.index_file = Path(index_file or HERE / "index.html")
+        self.access_key = access_key or None   # set when the page is shared: every request then needs it
         self.allowed_hosts = {"localhost", "127.0.0.1", "::1"} | {h.lower() for h in (allowed_hosts or ())}
         self.busy = threading.Lock()
 
@@ -382,6 +386,33 @@ class Handler(BaseHTTPRequestHandler):
         if origin and (urllib.parse.urlparse(origin).hostname or "").lower() not in self.app.allowed_hosts:
             raise RequestError("cross-site requests are not allowed", 403)
 
+    def check_key(self, method, path, query):
+        """With an access key, only the person holding the link (?key=...) or the cookie it sets gets in.
+
+        Returns True when the request was answered here (the one-time redirect that sets the cookie).
+        """
+        key = self.app.access_key
+        if not key:
+            return False
+        jar = cookies.SimpleCookie()
+        try:
+            jar.load(self.headers.get("Cookie", ""))
+        except cookies.CookieError:
+            pass
+        have = jar["sensai_key"].value if "sensai_key" in jar else ""
+        if have and hmac.compare_digest(have, key):
+            return False
+        given = (query.get("key") or [""])[0]
+        if method == "GET" and given and hmac.compare_digest(given, key):
+            secure = "; Secure" if self.headers.get("X-Forwarded-Proto") == "https" else ""
+            self.send_response(302)
+            self.send_header("Location", path)
+            self.send_header("Set-Cookie", f"sensai_key={key}; Path=/; HttpOnly; SameSite=Strict{secure}")
+            self.send_header("Content-Length", "0")
+            self.end_headers()
+            return True
+        raise RequestError("This server needs its access key. Open the full link you were given.", 401)
+
     def start_sse(self):
         self.send_response(200)
         self.send_header("Content-Type", "text/event-stream; charset=utf-8")
@@ -418,6 +449,8 @@ class Handler(BaseHTTPRequestHandler):
             self.check_origin()
             url = urllib.parse.urlparse(self.path)
             path, query = url.path, urllib.parse.parse_qs(url.query)
+            if self.check_key(method, path, query):
+                return
             if method == "GET":
                 self.route_get(path, query)
             else:
@@ -519,19 +552,30 @@ def main(argv=None):
     parser.add_argument("--host", default="127.0.0.1", help="interface to listen on (default: loopback only)")
     parser.add_argument("--port", type=int, default=8000)
     parser.add_argument("--config", default=str(ROOT / "config.json"), help="settings file")
+    parser.add_argument("--allow-host", action="append", default=[], metavar="NAME",
+                        help="also answer to this hostname, for example the one a tunnel gives you (repeatable)")
+    parser.add_argument("--key", metavar="SECRET",
+                        help="require this secret (open /?key=SECRET once); use 'auto' to generate one. Use it when sharing the page")
     args = parser.parse_args(argv)
     try:
         config = cli.load_config(args.config)
     except cli.CliError as e:
         sys.exit(f"Error: {e}")
     extra = {args.host} if args.host not in ("127.0.0.1", "localhost", "::1") else set()
+    for name in args.allow_host:
+        extra.add((urllib.parse.urlparse(name).hostname if "://" in name else host_of(name)).lower())
+    key = secrets.token_urlsafe(12) if args.key == "auto" else args.key
     try:
-        server = make_server(App(config, allowed_hosts=extra), args.host, args.port)
+        server = make_server(App(config, allowed_hosts=extra, access_key=key), args.host, args.port)
     except OSError as e:
         sys.exit(f"Error: cannot listen on {args.host}:{args.port} ({e}). Try another --port.")
     if extra:
         print("WARNING: listening on a non-loopback address; the web UI has no login.", file=sys.stderr)
     print(f"Sensai web UI: http://{args.host}:{args.port}   (Ctrl+C to stop)")
+    if key:
+        print(f"Access key: {key}\nShare the link as  <your public address>/?key={key}  (it sets a cookie, then the key is no longer needed)")
+    if args.allow_host and not key:
+        print("WARNING: a public address without --key lets anyone with the link use your computer.", file=sys.stderr)
     try:
         server.serve_forever()
     except KeyboardInterrupt:
