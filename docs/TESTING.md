@@ -4,7 +4,7 @@ Everything you can run to check Sensai, from a one-second automated check to a f
 
 | Level | What | Needs Ollama | Time |
 |---|---|---|---|
-| **A. Automated tests** | 329 pytest tests | no | about 1 s |
+| **A. Automated tests** | 380 pytest tests | no | about 1 s |
 | **B. Manual checks without a model** | inspect a PDF, error messages, demo data, scoring a saved run | no | seconds |
 | **C. Manual checks with Ollama** | chatbot, short demo, full run, re-running one question, settings | yes | 30 s to 7 min |
 | **D. Failure tests** | server down, corrupt index, scanned PDF, wrong inputs | mostly no | seconds |
@@ -30,7 +30,7 @@ The commands below use the committed settings (`chunk_size` 800, `chunk_overlap`
 ## A. Automated tests (no Ollama, about 1 second)
 
 ```bash
-python -m pytest -q                  # expected: 329 passed
+python -m pytest -q                  # expected: 380 passed
 python -m pytest -q tests/test_writer.py        # one file
 python -m pytest -q -k quote                    # tests whose name contains "quote"
 python -m pytest -x -q                          # stop at the first failure
@@ -187,6 +187,15 @@ printf 'What is the main topic?\nWho wrote it?\n' > /tmp/my_questions.txt
 python -m src.cli path/to/your.pdf /tmp/my_questions.txt
 ```
 Text PDFs only. Check the words have spaces with `python -m src.ingestion your.pdf`.
+
+**C9b. Talk to the PDF in the terminal (interactive mode)**
+```bash
+python -m src.cli data/demo.pdf --output /tmp/talk.md
+question> How many bits long is an IPv6 address?     # answer, page 13, quote, both checks
+question> Who invented the World Wide Web?           # "The document does not cover this."
+question> exit                                       # prints the run summary
+```
+Check: each answer prints `Answer / Page / Quote / Checks`; `/tmp/talk.md` has one section per answer; run it again and the next answer is numbered Q3, with Q1 and Q2 unchanged. `python -m src.cli data/demo.pdf --only 1` gives `Error: --only needs a questions file`.
 
 **C10. Check the models directly (optional)**
 ```bash

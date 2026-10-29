@@ -69,7 +69,7 @@ curl http://localhost:11434                          # must print: Ollama is run
 
 Check the installation (no Ollama needed for the tests):
 ```bash
-python -m pytest -q          # 329 tests (all the ways to test the project: docs/TESTING.md)
+python -m pytest -q          # 380 tests (all the ways to test the project: docs/TESTING.md)
 ```
 
 ## Quick start (the demo)
@@ -108,7 +108,10 @@ python scripts/e2e_check.py data/answers.md data/expected_answers.md
 
 ```bash
 python -m src.cli <pdf> <questions.txt> [--only N] [--force] [--output FILE] [--config FILE]
+python -m src.cli <pdf>                  [--force] [--output FILE] [--config FILE]     # interactive
 ```
+
+**Interactive mode.** Leave out the questions file and a `question>` prompt opens: type a question, read the answer, the page, the quote and both checks right there, then type the next one. `exit` or Ctrl+D ends the session (and prints the run summary); Ctrl+C cancels one question. Each answer is still saved as a section of the answers file, numbered after the sections already in it, so earlier answers are never overwritten.
 
 | Option | Meaning |
 |---|---|
@@ -194,7 +197,7 @@ prompts/            system, answer, judge and chat prompts
 data/               demo.pdf, questions.txt (9), questions_demo.txt (3, for the live demo), expected_answers.md, demo_course.txt (the source text)
 WEB-UI/             X1: server.py (standard library) and static/ (the page); see WEB-UI/README.md
 scripts/            e2e_check.py (score a run), build_demo_pdf.py (rebuild and verify the demo PDF)
-tests/              329 automated tests (no Ollama needed)
+tests/              380 automated tests (no Ollama needed)
 docs/               explanation, architecture, user stories, testing guide, results, keynote, model choice
 ```
 
@@ -218,7 +221,7 @@ Measured on `data/demo.pdf` (24 pages, 9 questions), full details in [docs/RESUL
 | Question not in the PDF correctly refused | **1 of 1** |
 | Invented answers | none in this run |
 | Time | about 40 s per question on a CPU-only laptop (5 min 31 s and 6 min 42 s for the 9 questions in two clean runs; a 3-question run takes about 30 s) |
-| Automated tests | 329, none needs Ollama |
+| Automated tests | 380, none needs Ollama |
 
 What does not work well, said honestly:
 - The 4B model sometimes **refuses a question that the PDF does cover** (2 of the 8 here), even though retrieval found the right passage. It did not invent answers, but it is not complete.
@@ -250,7 +253,7 @@ What does not work well, said honestly:
 | [docs/MODEL_SELECTION.md](docs/MODEL_SELECTION.md) | hardware, models and why |
 | [docs/RESULTS.md](docs/RESULTS.md) | measured results, what worked and what did not |
 | [WEB-UI/README.md](WEB-UI/README.md) | the web interface: how to run it, what it does, its API and security |
-| [docs/TESTING.md](docs/TESTING.md) | every test you can run: 329 automated tests, manual checks, failure tests, quality scoring |
+| [docs/TESTING.md](docs/TESTING.md) | every test you can run: 380 automated tests, manual checks, failure tests, quality scoring |
 | [docs/PRIVACY_POLICY.md](docs/PRIVACY_POLICY.md) | 100% local privacy guarantee, zero-egress charter and GDPR compliance |
 | [docs/ETHICS_AND_LEGAL.md](docs/ETHICS_AND_LEGAL.md) | copyright exceptions (EU TDM, CPI, Fair Use), exam ethics and user disclaimer |
 | [docs/BUSINESS_IMPACT.md](docs/BUSINESS_IMPACT.md) | economic impact, 11 hrs/wk time savings model and institutional ROI analysis |
