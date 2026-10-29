@@ -176,8 +176,19 @@ class SessionMemory:
 
         Returns top-k matching memory records above min_similarity threshold.
         """
-        if not self.index_path.exists():
-            return []
+        # Auto-index if index doesn't exist or if sessions are newer than index
+        if self.index_path.exists():
+            idx_mtime = self.index_path.stat().st_mtime
+            if any(p.stat().st_mtime > idx_mtime for p in self.sessions_dir.glob("*.json")):
+                try:
+                    self.index_sessions(embed_fn=embed_fn)
+                except Exception:
+                    pass
+        else:
+            try:
+                self.index_sessions(embed_fn=embed_fn)
+            except Exception:
+                return []
 
         try:
             records = store.load(self.index_path)
