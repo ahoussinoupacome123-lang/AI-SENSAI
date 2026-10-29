@@ -30,6 +30,9 @@ def parse_args(argv=None):
                         help="rebuild the index even if one exists (use after changing chunk settings)")
     parser.add_argument("--output", help="answers file (default: answers.md next to the PDF)")
     parser.add_argument("--config", default=str(ROOT / "config.json"), help="settings file")
+    parser.add_argument("--no-judge", action="store_true", help="disable judge evaluation")
+    parser.add_argument("--no-rag", action="store_true", help="disable RAG passage retrieval")
+    parser.add_argument("--no-quote-check", action="store_true", help="disable word-for-word quote verification")
     return parser.parse_args(argv)
 
 
@@ -43,6 +46,12 @@ def load_config(path):
     missing = [key for key in REQUIRED_CONFIG if key not in config]
     if missing:
         raise CliError(f"config file {path} is missing: {', '.join(missing)}")
+    if "feature_flags" in config:
+        flags = config["feature_flags"]
+        flags.setdefault("rag", True)
+        flags.setdefault("judge", True)
+        flags.setdefault("quote_check", True)
+        flags.setdefault("cache", True)
     return config
 
 
@@ -83,18 +92,41 @@ def answer_question(question, records, config):
 
     A missing or failing judge never loses the answer: it is just left unevaluated
     (judge not implemented) or marked 'unknown' (judge error).
+    Honors feature_flags in config (rag, judge, quote_check).
     """
-    checked = dict(pipeline.retrieve_and_answer(question, records, config))
+    flags = config.get("feature_flags", {})
+    use_rag = flags.get("rag", True)
+    use_judge = flags.get("judge", True)
+    use_quote = flags.get("quote_check", True)
+
+    if use_rag:
+        checked = dict(pipeline.retrieve_and_answer(question, records, config))
+    else:
+        checked = dict(pipeline.answer(question, [], config))
+        checked.setdefault("status", "no-rag")
+        checked.setdefault("page", 0)
+        checked.setdefault("quote", "")
+        checked.setdefault("chunks", [])
+
     checked.setdefault("question", question)
-    if "verdict" not in checked:
-        try:
-            checked.update(judge.evaluate(question, checked.get("answer", ""),
-                                          checked.get("chunks", []), config))
-        except NotImplementedError:
-            pass
-        except Exception as e:  # noqa: BLE001 - one judge failure must not stop the run
-            checked.update(verdict="unknown", reason=f"judge failed: {e}")
-    checked.setdefault("disagreement", _disagree(checked))
+
+    if not use_quote:
+        checked["status"] = "skipped"
+
+    if use_judge:
+        if "verdict" not in checked:
+            try:
+                checked.update(judge.evaluate(question, checked.get("answer", ""),
+                                              checked.get("chunks", []), config))
+            except NotImplementedError:
+                pass
+            except Exception as e:  # noqa: BLE001 - one judge failure must not stop the run
+                checked.update(verdict="unknown", reason=f"judge failed: {e}")
+    else:
+        checked["verdict"] = "disabled"
+        checked["reason"] = "Judge evaluation disabled by feature flag."
+
+    checked.setdefault("disagreement", _disagree(checked) if use_judge and use_quote else False)
     return checked
 
 
@@ -116,6 +148,15 @@ def main(argv=None):
     args = parse_args(argv)
     try:
         config = load_config(args.config)
+        if args.no_judge or args.no_rag or args.no_quote_check:
+            flags = config.setdefault("feature_flags", {})
+            if args.no_judge:
+                flags["judge"] = False
+            if args.no_rag:
+                flags["rag"] = False
+            if args.no_quote_check:
+                flags["quote_check"] = False
+
         pdf = Path(args.pdf)
         if not pdf.is_file():
             raise CliError(f"PDF not found: {pdf}")

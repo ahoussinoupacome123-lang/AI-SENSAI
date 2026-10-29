@@ -33,6 +33,7 @@ The catalogue says a few well-integrated features beat many shallow ones. We kee
 | **T5** Structured output | Model answers in JSON `{answer, page, quote}` | Makes the answer usable by code |
 | **M4** Artifact document | `answers.md` updated section by section | The deliverable |
 | Quote check (safeguard) | Verify the quote exists in the retrieved text | Cheap, deterministic hallucination flag |
+| **X1** Web UI (added last) | `WEB-UI/`: a browser front end over the same backend: upload a PDF, write questions, watch answers stream in with page links, re-run one question, chat with a token meter, change settings | the same work without a terminal; the backend stays unchanged (catalogue: 1 star) |
 | **EV1** Automated eval & hallucination detection | A second model call (the judge) scores each answer against the retrieved passages | Catches wrong readings of a real quote, which the string check cannot; gives a per-run score to compare settings |
 
 **About EV1.** The catalogue's EV1 describes an LLM acting as judge and producing scores. The quote check alone is a plain string check, so it is not EV1. The judge is: it reads the question, the retrieved passages and the answer, and returns a verdict (`faithful`, `partial` or `unfaithful`) with a one-line reason. We keep the quote check as the cheap, deterministic anchor and present the judge as a second opinion. The two can disagree, and we say so honestly in the keynote. The judge uses the same `qwen3:4b` model (see `MODEL_SELECTION.md`). When unsure whether this counts as EV1, ask during the Follow-up.
@@ -46,11 +47,12 @@ The catalogue says a few well-integrated features beat many shallow ones. We kee
 | T5 Structured output | 1 star | cheap, and it is what makes the answers usable by code |
 | M4 Artifact and state document | 2 stars | the deliverable is a living file, not a chat transcript |
 | EV1 Automated eval and hallucination detection | 3 stars | highest value for a document Q&A tool: we measure when the answer is not backed by the document |
+| X1 Web UI (added after the first delivery plan) | 1 star | an interface for people who prefer a page to a terminal; reuses the backend, so it adds little risk |
 
-The four chosen features add up to 8 stars. The catalogue says a few well-integrated, well-justified features beat many shallow ones, so we stopped there and put the effort into testing and honest limits (see `RESULTS.md`).
+The four first features add up to 8 stars; X1 adds 1 more. The catalogue says a few well-integrated, well-justified features beat many shallow ones, so we stopped there and put the effort into testing and honest limits (see `RESULTS.md`).
 
 ### Out of scope (deliberately)
-Interactive chat over the PDF, R2 reranking, export (X3), multi-agent, web UI, scheduling, code execution, web search, SQLite. They add risk and little to the demo.
+Interactive chat over the PDF, R2 reranking, export (X3), multi-agent, scheduling, code execution, web search, SQLite. They add risk and little to the demo.
 
 ---
 

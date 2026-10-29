@@ -33,12 +33,15 @@ How the code is split into files, what each file does, and what goes in and out.
 | `ingestion.py` | Extract text per page from the PDF (`extract_pages`), cut into overlapping chunks keeping the page number (`chunk_pages`), get embeddings in batches, save the index next to the PDF (`ingest`). Detect PDFs with no text. | PDF path → chunk records |
 | `store.py` | Save and load chunks + vectors in `index.json`; `search(vector, k)` with cosine similarity (numpy). | chunks ↔ top-k results |
 | `pipeline.py` | For one question: embed, search the top-k chunks (`retrieve_and_answer`), build the prompt, ask for JSON (`answer`), validate, retry, run the quote check. | question → `Checked` answer (with the retrieved `chunks`) |
-| `judge.py` | EV1: second model call that compares an answer with the retrieved passages and returns a verdict (`faithful` / `partial` / `unfaithful`) plus a one-line reason, using `prompts/judge_prompt.txt`. | question + answer + chunks → verdict |
+| `judge.py` | EV1: second model call that compares an answer with the retrieved passages and returns a verdict (`faithful` / `partial` / `unfaithful`) plus a one-line reason, using `prompts/judge_prompt.txt`. Supports a decoupled, higher-capacity evaluator model. Full analysis in `docs/EVALUATION.md`. | question + answer + chunks → verdict |
+| `memory.py` | M3: cross-session persistent conversation memory and vector indexer in `.sensai/sessions/`. Recalls past dialogue facts into active context. | session turns / query → memory context |
 | `eval_summary.py` | Run summary: quote-check and judge counts, and the answers where the two disagree. | list of `Checked` → text, disagreements |
 | `writer.py` | Own `answers.md`. Update exactly one section per question (found by invisible markers), leave the rest untouched, insert in numeric order if missing, write atomically. | checked answer → file |
 | `cli.py` | Read args and config, ingest once, loop over questions (`pipeline` → `judge` → `writer`), print the summary. Only wires; no logic. A failed question never stops the run. | args → calls the others |
-| `scripts/` | `e2e_check.py` scores a run against an expected-answers file; `make_demo_data.py` builds stand-in demo data. Not part of the product. | – |
+| `WEB-UI/` | X1: a browser front end. `server.py` (standard library) calls the same modules as the CLI and streams progress as Server-Sent Events; `static/` holds the page. See `WEB-UI/README.md`. | HTTP requests → JSON / event streams |
+| `scripts/` | `e2e_check.py` scores a run against an expected-answers file; `build_demo_pdf.py` builds and verifies the demo PDF. Not part of the product. | – |
 | `config.json`, `prompts/` | Settings (models, host, chunk size, overlap, top-k) and prompt text, kept out of the code. | – |
+| `docs/EVALUATION.md` | Strategic analysis on the LLM framework exemption for the judge and 4B vs 7B evaluator benchmarks. | – |
 
 ## 3. Data shapes (agree on these before coding)
 
@@ -49,9 +52,11 @@ Checked  = Answer + { status: "supported" | "not supported", chunks, verdict, re
 
 client.chat(messages, model, schema=None, stream=False, host=..., num_ctx=...) -> str | dict
 client.embed(texts, model, host=...)                    -> list[list[float]]
+client.chat_events(messages, model, host=..., num_ctx=...) -> generator of {thinking | token | done(usage)}   # for the web UI
+client.list_models(host=...)                            -> list[str]                                       # for the web UI
 ingestion.extract_pages(pdf_path)                       -> [(page, text)]
 ingestion.chunk_pages(pages, size, overlap)             -> [{text, page}]
-ingestion.ingest(pdf_path, config, force=False)         -> list[Chunk]   # also saves <pdf>.index.json
+ingestion.ingest(pdf_path, config, force=False, progress=None) -> list[Chunk]   # also saves <pdf>.index.json; progress(dict) replaces print
 store.save(chunks, path) ; store.load(path)             -> None ; list[Chunk]
 store.search(chunks, vector, k)                         -> list[Chunk]
 pipeline.retrieve_and_answer(question, index_chunks, config) -> Checked   # embeds, searches, answers
@@ -70,7 +75,8 @@ sensai/
 ├── config.json
 ├── prompts/                # system prompt, answer prompt
 ├── src/ chat.py  ollama_client.py  ingestion.py  store.py  pipeline.py  judge.py  eval_summary.py  writer.py  cli.py
-├── scripts/                # e2e_check.py, make_demo_data.py
+├── WEB-UI/                 # X1: server.py + static/ (the web interface)
+├── scripts/                # e2e_check.py, build_demo_pdf.py
 ├── tests/
 ├── docs/                   # these documents
 └── data/                   # sample PDF, questions.txt, answers.md

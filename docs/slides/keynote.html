@@ -181,7 +181,7 @@ $ diff before.md answers.md               <span class="k"># only section 2 diffe
 <section class="slide">
   <h2>Honest assessment</h2>
   <div class="cols">
-    <div class="card"><h3>Works well</h3><ul><li>Whole chain runs locally and automatically</li><li>Right page ranked first every time</li><li>File never corrupted, tested byte for byte</li><li>Two independent checks per answer</li><li>229 tests, none needs Ollama</li></ul></div>
+    <div class="card"><h3>Works well</h3><ul><li>Whole chain runs locally and automatically</li><li>Right page ranked first every time</li><li>File never corrupted, tested byte for byte</li><li>Two independent checks per answer</li><li>329 tests, none needs Ollama</li></ul></div>
     <div class="card"><h3>Limits</h3><ul><li>The 4B model sometimes <b>refuses a question the PDF covers</b> (2 of 8)</li><li>The judge shares the model's weaknesses</li><li>About 40 s per question on CPU</li><li>Text PDFs only; one small sample</li></ul></div>
     <div class="card"><h3>Next time</h3><ul><li>Fix a model test set <b>before</b> building</li><li>A separate status for refusals</li><li>Retry with more chunks when it refuses (reranking)</li><li>A bigger model if a GPU is available</li></ul></div>
   </div>

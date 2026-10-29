@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<meta name="description" content="Chat with a local model, or attach a PDF and get sourced answers. Everything runs on your computer.">
+<title>SENSAI</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='32' fill='%23171717'/%3E%3Cpath d='M20 24h24M20 32h24M20 40h14' stroke='white' stroke-width='5' stroke-linecap='round'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="static/style.css">
+<script>try{var t=localStorage.getItem("sensai-theme");if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t);if(localStorage.getItem("sensai-sidebar")==="closed")document.documentElement.setAttribute("data-sidebar","closed");}catch(e){}</script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to the conversation</a>
+
+<div class="app" id="app">
+  <aside class="sidebar" id="sidebar" aria-label="Sidebar">
+    <div class="side-top">
+      <span class="brand" aria-label="SENSAI"><span class="brand-dot" data-icon="logo"></span><span class="brand-name">SENSAI</span></span>
+      <button type="button" class="icon-btn" id="side-close" aria-label="Close sidebar" title="Close sidebar"><span data-icon="sidebar"></span></button>
+    </div>
+    <button type="button" class="side-item strong" id="new-chat"><span data-icon="compose"></span><span>New chat</span></button>
+    <button type="button" class="side-item" id="try-demo-side"><span data-icon="file"></span><span>Try the demo PDF</span></button>
+    <div class="side-label">Chats</div>
+    <nav class="history" id="history" aria-label="Chat history"></nav>
+    <div class="side-bottom">
+      <button type="button" class="side-item" id="open-settings"><span data-icon="gear"></span><span>Settings</span></button>
+      <button type="button" class="side-item" id="theme" aria-label="Switch between light and dark theme"><span data-icon="moon"></span><span>Theme</span></button>
+    </div>
+  </aside>
+  <div class="scrim" id="scrim"></div>
+
+  <div class="stage">
+    <header class="topbar" id="top">
+      <button type="button" class="icon-btn" id="side-open" aria-label="Open sidebar" title="Open sidebar"><span data-icon="sidebar"></span></button>
+      <button type="button" class="model-btn" id="status-pill" aria-label="Status and settings">
+        <span class="dot" aria-hidden="true"></span><span id="status-text">Connecting</span><span id="status-detail" class="muted"></span><span data-icon="chevron"></span>
+      </button>
+      <span class="grow"></span>
+    </header>
+
+    <div class="banner" id="banner" role="alert" hidden></div>
+
+    <section id="needs-server" class="needs-server" hidden>
+      <div class="needs-card">
+        <h1>This page needs its server</h1>
+        <p>You opened the HTML file directly, so nothing can talk to the model. Start the server and open the address it prints:</p>
+        <pre>python WEB-UI/server.py</pre>
+        <p class="muted">Then visit <b>http://127.0.0.1:8000</b> in your browser.</p>
+      </div>
+    </section>
+
+    <main class="main" id="main" tabindex="-1">
+      <div class="scroller" id="chat-body">
+        <div class="empty" id="chat-empty">
+          <h1>What can I help with?</h1>
+        </div>
+        <div class="thread" id="messages" aria-live="polite"></div>
+      </div>
+
+      <div class="composer-wrap">
+        <div class="jump" id="jump" hidden><button type="button" class="icon-btn round" id="jump-btn" aria-label="Scroll to the latest message"><span data-icon="down"></span></button></div>
+        <div class="notice" id="notice" role="alert" hidden></div>
+        <form class="composer" id="composer" autocomplete="off">
+          <div class="attached" id="attached" hidden>
+            <span class="file-chip"><span data-icon="file"></span><span class="fname" id="attached-name"></span><span class="fmeta muted" id="attached-meta"></span>
+              <button type="button" class="chip-x" id="detach" aria-label="Remove the attached PDF"><span data-icon="x"></span></button></span>
+          </div>
+          <div class="row">
+            <div class="plus-wrap">
+              <button type="button" class="icon-btn round soft" id="plus" aria-label="Attach a PDF" aria-haspopup="true" aria-expanded="false"><span data-icon="plus"></span></button>
+              <div class="menu" id="plus-menu" role="menu" hidden>
+                <button type="button" role="menuitem" id="menu-upload"><span data-icon="upload"></span>Upload a PDF</button>
+                <div class="menu-label" id="menu-docs-label">Documents on this computer</div>
+                <div id="menu-docs"></div>
+              </div>
+            </div>
+            <textarea id="chat-input" rows="1" placeholder="Message SENSAI" aria-label="Message" spellcheck="true"></textarea>
+            <button type="button" class="send stop" id="chat-stop" aria-label="Stop generating" title="Stop" hidden><span data-icon="stop"></span></button>
+            <button type="submit" class="send" id="send" aria-label="Send message" title="Send" disabled><span data-icon="arrowup"></span></button>
+          </div>
+          <input type="file" id="upload" accept="application/pdf,.pdf" hidden>
+        </form>
+        <div class="suggest" id="chips"></div>
+        <div class="foot muted" id="foot">
+          <span id="hint">SENSAI runs on your computer and can make mistakes. Check the quoted pages.</span>
+          <span class="meter" id="meter" title="How much of the model's context window this conversation uses">
+            <span class="bar" role="progressbar" aria-label="Context window used" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i id="meter-fill"></i></span>
+            <span id="meter-text">nothing sent yet</span>
+          </span>
+        </div>
+      </div>
+      <div class="drop-veil" id="drop-veil" hidden><div><span data-icon="upload"></span><b>Drop a PDF to attach it</b><span class="muted">Text PDFs only, up to 50 MB</span></div></div>
+    </main>
+  </div>
+</div>
+
+<!-- Settings dialog -->
+<div class="modal" id="settings-modal" role="dialog" aria-modal="true" aria-labelledby="settings-title" hidden>
+  <div class="modal-card">
+    <div class="modal-head"><h2 id="settings-title">Settings</h2>
+      <button type="button" class="icon-btn" id="settings-close" aria-label="Close settings"><span data-icon="x"></span></button></div>
+    <p class="muted small">These apply to this server session. <b>Reset</b> goes back to config.json. The Ollama address cannot be changed here.</p>
+    <div id="settings-form" class="settings-form"></div>
+    <datalist id="model-list"></datalist>
+    <label class="check"><input type="checkbox" id="force"><span>Rebuild the PDF index on the next question (use after changing chunk settings)</span></label>
+    <div class="notice info" id="settings-msg" role="status" hidden></div>
+    <div class="modal-actions"><button type="button" class="btn" id="settings-reset">Reset</button><button type="button" class="btn dark" id="settings-apply">Apply</button></div>
+  </div>
+</div>
+
+<!-- Side panel: PDF page or answers file -->
+<div class="drawer-backdrop" id="drawer-backdrop" hidden></div>
+<aside class="drawer" id="drawer" role="dialog" aria-modal="true" aria-labelledby="drawer-title" hidden>
+  <div class="drawer-head">
+    <h2 id="drawer-title">Source</h2>
+    <a class="ghost-btn" id="drawer-open" href="about:blank" target="_blank" rel="noopener"><span data-icon="external"></span>Open in a new tab</a>
+    <button type="button" class="icon-btn" id="drawer-close" aria-label="Close the side panel"><span data-icon="x"></span></button>
+  </div>
+  <iframe id="drawer-frame" title="PDF viewer" src="about:blank"></iframe>
+  <pre id="drawer-text" hidden></pre>
+</div>
+
+<div class="toasts" id="toasts" aria-live="polite"></div>
+<script src="static/app.js"></script>
+</body>
+</html>

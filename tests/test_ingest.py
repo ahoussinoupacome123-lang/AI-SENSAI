@@ -156,3 +156,20 @@ def test_force_replaces_a_corrupt_index(pdf, fakes):
     index_path(pdf).write_text("{ not json")
     records = ingest(pdf, CONFIG, force=True)
     assert records and json.loads(index_path(pdf).read_text())
+
+
+def test_progress_callback_receives_events_instead_of_printing(pdf, fakes, capsys):
+    events = []
+    ingest(pdf, CONFIG, progress=events.append)
+    assert capsys.readouterr().out == ""
+    stages = [e["stage"] for e in events]
+    assert stages[-1] == "saved" and set(stages[:-1]) == {"embedding"}
+    assert events[-1]["chunks"] == events[-2]["total"]
+    assert [e["done"] for e in events[:-1]] == sorted(e["done"] for e in events[:-1])
+
+
+def test_progress_callback_reports_reuse_of_an_existing_index(pdf, fakes):
+    ingest(pdf, CONFIG)
+    events = []
+    ingest(pdf, CONFIG, progress=events.append)
+    assert [e["stage"] for e in events] == ["reuse"]

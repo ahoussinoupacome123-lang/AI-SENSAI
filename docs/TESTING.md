@@ -4,11 +4,12 @@ Everything you can run to check Sensai, from a one-second automated check to a f
 
 | Level | What | Needs Ollama | Time |
 |---|---|---|---|
-| **A. Automated tests** | 229 pytest tests | no | about 1 s |
+| **A. Automated tests** | 329 pytest tests | no | about 1 s |
 | **B. Manual checks without a model** | inspect a PDF, error messages, demo data, scoring a saved run | no | seconds |
 | **C. Manual checks with Ollama** | chatbot, short demo, full run, re-running one question, settings | yes | 30 s to 7 min |
 | **D. Failure tests** | server down, corrupt index, scanned PDF, wrong inputs | mostly no | seconds |
 | **E. Quality evaluation** | score a run against known answers, compare settings | yes | 5 to 7 min |
+| **F. Web UI** | the browser interface (feature X1) | yes, except the security checks | 5 to 10 min |
 
 ## 0. Before you start
 
@@ -29,7 +30,7 @@ The commands below use the committed settings (`chunk_size` 800, `chunk_overlap`
 ## A. Automated tests (no Ollama, about 1 second)
 
 ```bash
-python -m pytest -q                  # expected: 229 passed
+python -m pytest -q                  # expected: 329 passed
 python -m pytest -q tests/test_writer.py        # one file
 python -m pytest -q -k quote                    # tests whose name contains "quote"
 python -m pytest -x -q                          # stop at the first failure
@@ -42,7 +43,7 @@ They never call Ollama: the model client and the store are replaced by fakes, an
 | `test_chat.py` | 23 | streaming, history sent every turn, empty input, errors (server down, missing model, timeout), Ctrl+C, model from argument or config | B1 |
 | `test_extract_pages.py` | 10 | text per page, page numbers, blank pages, scanned PDF, missing file, not a PDF, truncated PDF | R1 |
 | `test_chunk_pages.py` | 22 | chunk size, exact overlap, page numbers, nothing lost, invalid settings | R1 |
-| `test_ingest.py` | 19 | embedding in batches, index next to the PDF, reuse, `--force`, stale index, corrupt or invalid index, no partial index on failure | R1 |
+| `test_ingest.py` | 21 | embedding in batches, index next to the PDF, reuse, `--force`, stale index, corrupt or invalid index, no partial index on failure, progress callback | R1 |
 | `test_m1_ollama_client.py` | 9 | chat, JSON schema, embeddings, clear errors | B1, T5 |
 | `test_m2_store.py` | 9 | save/load, cosine ranking, empty index, zero vectors | R1 |
 | `test_m3_m4_pipeline.py` | 18 | prompt building, top-k, JSON validation, retries, `AnswerError` | R1, T5 |
@@ -52,6 +53,8 @@ They never call Ollama: the model client and the store are replaced by fakes, an
 | `test_writer.py` | 32 | one section per question, only that section changes (hashes), order, hand-edited text kept, atomic write, file permissions, failed answers refused | M4 |
 | `test_cli.py` | 32 | wiring, failed question does not stop the run, `--only`, `--force`, input errors, judge optional, disagreement flag, Ctrl+C, exit codes | all |
 | `test_integration_fixes.py` | 4 | schema mode turns thinking off, retrieved chunks reach the judge, judge schema order | T5, EV1 |
+| `test_ollama_events.py` | 10 | the streaming chat events with token usage, early close, model list, errors (used by the web UI) | X1 |
+| `test_web_ui.py` | 85 | the web server over real HTTP with a faked model: routes, traversal, Host/Origin checks, uploads, serving PDFs, settings validation, a streamed run, `only`, errors, the one-job lock, disconnects, chat | X1 |
 | `test_e2e_check.py` | 8 | the scoring script (pass, fail, missing section, thresholds) | quality |
 
 The traceability from user stories to tests is at the end of [USER_STORIES.md](USER_STORIES.md).
@@ -236,6 +239,53 @@ Compare the score and the summary with the baseline. Use `--force` whenever the 
 Write a questions file (one per line) and an expected file in the format `number | page P | key phrase` (or `number | none |` for a question the document does not cover), then run E1. Keep at least one uncovered question: it tests that the system does not invent.
 
 **What "good" looks like:** valid output for every question, the right page in the retrieved chunks, no invented answer, and a score at or above the baseline in `RESULTS.md`. A change to a prompt or to a schema must be measured this way before it is merged.
+
+---
+
+## F. Web UI (feature X1)
+
+Start it and open the page. The server tests (`tests/test_web_ui.py`) cover the server; these checks cover what you see.
+```bash
+python WEB-UI/server.py            # http://127.0.0.1:8000
+```
+
+| # | Do this | Expected |
+|---|---|---|
+| F1 | open the page | a ChatGPT-style screen: sidebar (New chat, history, Settings), the greeting `What can I help with?`, the composer mid-screen, suggestion pills below it; the top shows `Ollama ready qwen3:4b` |
+| F2 | stop Ollama (`pkill ollama`), reload | the dot turns red (`Ollama not reachable`) and a banner shows `Start it with: ollama serve`; restart Ollama and reload |
+| F3 | `+` then *Upload a PDF*: a scanned PDF (see B6 to make one) | `Upload failed: ... has no extractable text (probably scanned images)` |
+| F4 | upload a valid text PDF (or drag one onto the page) | `<name> is ready (N pages)`; a chip with the name and page count appears in the composer; the x removes it |
+| F5 | click *Try the demo PDF* (or attach `demo.pdf` and type questions, one per line) | your message appears on the right; the reply shows a live status and one block per question that fills in: answer, `page N` button, quote, quote-check and judge badges; then a summary with *Download answers.md* and *View answers.md* |
+| F6 | click a `page 13` button | a side panel opens with the PDF at that page (Escape closes it and focus returns to the button; *Open in a new tab* is offered) |
+| F7 | *Edit and re-run* on question 2, change the text, *Re-run this question* | only block 2 changes; in *View answers.md* only section 2 changes |
+| F8 | press the square *Stop* button during a run | `Stopped. Answers already written are kept.`; Send is back at once |
+| F9 | *New chat*, send `Reply with exactly three words.` | `Thinking...`, then the reply streams; under the composer the meter shows `N / 4,096 tokens` (the count includes the model's hidden thinking tokens) |
+| F10 | send a second message that refers to the first; press *Stop* during another reply | the history is used; Stop keeps the partial text; the chat still works |
+| F11 | *Settings* (sidebar or the model button): set `top_k` to 99 | `'top_k' must be between 1 and 20`; set it to 3 and *Apply*, then *Reset*; Escape closes the dialog |
+| F12 | start a run, then send a message from a second browser tab | `Another run or chat is in progress. Wait for it to finish.` |
+| F13 | *Theme* in the sidebar, reload | light and dark both stay readable; the choice is remembered |
+| F14 | after a run, click the *Needs review* tile (if any) | only the blocks that need review stay visible; click again to show all |
+| F15 | narrow the window to phone width | the sidebar hides behind a menu button (it slides over a dimmed page); nothing scrolls sideways |
+| F16 | reload the page; open an older chat in the sidebar; delete one with the bin icon | chats are kept in this browser (not on the server); an old PDF chat shows its answers again |
+
+Security checks (no model needed; the port is 8000 by default):
+```bash
+curl -s -o /dev/null -w "%{http_code}
+" -H "Host: evil.example.com" http://127.0.0.1:8000/api/status   # 403
+curl -s -o /dev/null -w "%{http_code}
+" "http://127.0.0.1:8000/static/..%2Fserver.py"                     # 404
+curl -s -o /dev/null -w "%{http_code}
+" "http://127.0.0.1:8000/files/upload/..%2Fserver.py"               # 404
+curl -s -o /dev/null -w "%{http_code}
+" -X POST -H "Origin: http://evil.example.com" -H "Content-Type: application/json" -d '{"reset":true}' http://127.0.0.1:8000/api/config   # 403
+```
+The page is also checked automatically in a real browser (headless Chromium) with `WEB-UI/e2e/ui_check.py`: 61 checks covering F1 to F16, accessibility basics, reduced motion and the phone layout, plus a real demo run and a real chat reply (about 5 minutes with the models; `--quick` skips those). It needs Playwright, which is not in `requirements.txt`:
+```bash
+pip install playwright && playwright install chromium
+python WEB-UI/server.py &
+python WEB-UI/e2e/ui_check.py --shots /tmp/shots       # 61/61 expected
+```
+F1 to F16 are still worth repeating by eye once.
 
 ---
 

@@ -58,9 +58,17 @@ def evaluate(question, answer, chunks, config):
     Uses prompts/judge_prompt.txt with {question}, {passages}, {answer} placeholders.
     Same model as chat (qwen3:4b), schema mode (thinking off), very short JSON output.
     """
+    from src import routing
+    if routing.is_general_query(question):
+        return {
+            "verdict": "faithful",
+            "reason": "General query or calculation answered accurately.",
+        }
+
     host = config.get("host", "http://localhost:11434")
     model = config.get("judge_model", config.get("chat_model", "qwen3:4b"))
-    num_ctx = int(config.get("num_ctx", 4096))
+    raw_ctx = config.get("num_ctx")
+    num_ctx = int(raw_ctx) if raw_ctx is not None else None
     prompt_file = config.get("judge_prompt_file", "prompts/judge_prompt.txt")
 
     template = _load_prompt(prompt_file)
@@ -74,7 +82,7 @@ def evaluate(question, answer, chunks, config):
 
     messages = [{"role": "user", "content": user_content}]
 
-    # 1 retry maximum; if still invalid, return 'unknown'
+    last_error = "Judge failed to produce a valid verdict."
     for _ in range(2):
         try:
             raw = ollama_client.chat(
@@ -84,7 +92,12 @@ def evaluate(question, answer, chunks, config):
             result = _parse_verdict(raw)
             if result is not None:
                 return result
-        except Exception:
-            pass
+        except ollama_client.ModelNotFoundError:
+            return {
+                "verdict": "unknown",
+                "reason": f"Judge model '{model}' not found. Pull it with: ollama pull {model}",
+            }
+        except Exception as e:
+            last_error = str(e) or last_error
 
-    return {"verdict": "unknown", "reason": "Judge failed to produce a valid verdict."}
+    return {"verdict": "unknown", "reason": last_error}

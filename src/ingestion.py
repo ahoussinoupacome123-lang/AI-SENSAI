@@ -108,7 +108,7 @@ def _load_index(path):
     return records
 
 
-def ingest(pdf_path, config, force=False):
+def ingest(pdf_path, config, force=False, progress=None):
     """Extract, chunk and embed a PDF; save and return its chunk records.
 
     Each record is {id, text, page, vector}. If an index newer than the PDF already
@@ -116,10 +116,17 @@ def ingest(pdf_path, config, force=False):
     only after every chunk is embedded, so a failure never leaves a partial index.
     Settings used: chunk_size, chunk_overlap, embed_model, host, embed_batch_size.
     After changing chunk settings, rebuild with force=True.
+
+    `progress`, if given, is called with a dict instead of printing (used by user interfaces):
+    {"stage": "reuse", "path": ...}, {"stage": "embedding", "done": n, "total": N} and
+    {"stage": "saved", "path": ..., "chunks": N}.
     """
     path = index_path(pdf_path)
     if not force and path.exists() and path.stat().st_mtime >= Path(pdf_path).stat().st_mtime:
-        print(f"Index found: {path} (rebuild with --force)")
+        if progress:
+            progress({"stage": "reuse", "path": str(path)})
+        else:
+            print(f"Index found: {path} (rebuild with --force)")
         return _load_index(path)
 
     pages = extract_pages(pdf_path)
@@ -137,14 +144,20 @@ def ingest(pdf_path, config, force=False):
                 f"The embedding model returned {len(batch)} vectors for {len(texts)} texts."
             )
         vectors.extend(batch)
-        print(f"Embedded {len(vectors)}/{len(chunks)} chunks")
+        if progress:
+            progress({"stage": "embedding", "done": len(vectors), "total": len(chunks)})
+        else:
+            print(f"Embedded {len(vectors)}/{len(chunks)} chunks")
 
     records = [
         {"id": number, "text": chunk["text"], "page": chunk["page"], "vector": vector}
         for number, (chunk, vector) in enumerate(zip(chunks, vectors))
     ]
     store.save(records, path)
-    print(f"Index saved: {path} ({len(records)} chunks)")
+    if progress:
+        progress({"stage": "saved", "path": str(path), "chunks": len(records)})
+    else:
+        print(f"Index saved: {path} ({len(records)} chunks)")
     return records
 
 

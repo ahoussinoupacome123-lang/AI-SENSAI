@@ -27,9 +27,10 @@ report.pdf ──► ingestion ──► index ──► retrieval ──► JSO
 | **R1** Basic RAG | PDF text per page, overlapping chunks, embeddings, local JSON index, cosine top-k retrieval | 2 stars |
 | **T5** Structured output | the model must answer in a JSON schema `{answer, page, quote}`; invalid output is retried, never written | 1 star |
 | **M4** Artifact and state document | `answers.md` is a living file: re-running one question rewrites only its section, every other byte stays identical | 2 stars |
+| **X1** Web UI | `WEB-UI/`: the same work in a browser: upload a PDF, write questions, watch answers stream in with clickable page links, re-run one question, chat with a live token meter, change settings; the backend is unchanged | 1 star |
 | **EV1** Automated eval and hallucination detection | a deterministic quote check plus an LLM judge score each answer; disagreements are flagged for review | 3 stars |
 
-Why these five: a small local model cannot read a whole PDF (context window), so we retrieve (R1); our code must use the answer, so it comes as JSON (T5); the deliverable is a file that is refined question by question (M4); and a Q&A tool is only useful if you know when not to trust it (EV1). User stories: [docs/USER_STORIES.md](docs/USER_STORIES.md).
+Why these five (and X1 on top, for people who prefer a page to a terminal): a small local model cannot read a whole PDF (context window), so we retrieve (R1); our code must use the answer, so it comes as JSON (T5); the deliverable is a file that is refined question by question (M4); and a Q&A tool is only useful if you know when not to trust it (EV1). User stories: [docs/USER_STORIES.md](docs/USER_STORIES.md).
 
 ## Requirements
 
@@ -68,7 +69,7 @@ curl http://localhost:11434                          # must print: Ollama is run
 
 Check the installation (no Ollama needed for the tests):
 ```bash
-python -m pytest -q          # 229 tests (all the ways to test the project: docs/TESTING.md)
+python -m pytest -q          # 329 tests (all the ways to test the project: docs/TESTING.md)
 ```
 
 ## Quick start (the demo)
@@ -141,6 +142,12 @@ python -m src.cli data/demo.pdf /tmp/q.txt --only 5 --output data/answers.md
 diff /tmp/before.md data/answers.md        # only section 5 differs
 ```
 
+**The web interface** (feature X1, same backend, in your browser):
+```bash
+python WEB-UI/server.py            # then open http://127.0.0.1:8000
+```
+Upload a PDF or use the demo, write one question per line and press *Answer all questions*: a card per question fills in as its answer arrives (answer, page link, quote, quote check, judge verdict). Edit a question and press *Re-run this question* to change only that section. The *Chat* tab streams replies with a live token/context meter, and *Settings* changes models and numbers for the session. See [WEB-UI/README.md](WEB-UI/README.md).
+
 **The plain chatbot** (the base loop, no PDF involved):
 ```bash
 python src/chat.py                 # model from config.json
@@ -185,8 +192,9 @@ src/
   cli.py            wires everything: python -m src.cli
 prompts/            system, answer, judge and chat prompts
 data/               demo.pdf, questions.txt (9), questions_demo.txt (3, for the live demo), expected_answers.md, demo_course.txt (the source text)
+WEB-UI/             X1: server.py (standard library) and static/ (the page); see WEB-UI/README.md
 scripts/            e2e_check.py (score a run), build_demo_pdf.py (rebuild and verify the demo PDF)
-tests/              218 automated tests (no Ollama needed)
+tests/              329 automated tests (no Ollama needed)
 docs/               explanation, architecture, user stories, testing guide, results, keynote, model choice
 ```
 
@@ -210,7 +218,7 @@ Measured on `data/demo.pdf` (24 pages, 9 questions), full details in [docs/RESUL
 | Question not in the PDF correctly refused | **1 of 1** |
 | Invented answers | none in this run |
 | Time | about 40 s per question on a CPU-only laptop (5 min 31 s and 6 min 42 s for the 9 questions in two clean runs; a 3-question run takes about 30 s) |
-| Automated tests | 229, none needs Ollama |
+| Automated tests | 329, none needs Ollama |
 
 What does not work well, said honestly:
 - The 4B model sometimes **refuses a question that the PDF does cover** (2 of the 8 here), even though retrieval found the right passage. It did not invent answers, but it is not complete.
@@ -241,8 +249,17 @@ What does not work well, said honestly:
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), [docs/ARCHITECTURE_EXPLAINED.md](docs/ARCHITECTURE_EXPLAINED.md) | components, interfaces, data shapes |
 | [docs/MODEL_SELECTION.md](docs/MODEL_SELECTION.md) | hardware, models and why |
 | [docs/RESULTS.md](docs/RESULTS.md) | measured results, what worked and what did not |
-| [docs/TESTING.md](docs/TESTING.md) | every test you can run: 229 automated tests, manual checks, failure tests, quality scoring |
-| [CONTRIBUTING.md](CONTRIBUTING.md) | how to work on the project: rules, workflow, commits, tests, measuring prompt changes |8| [docs/KEYNOTE.md](docs/KEYNOTE.md) | the keynote: slide script, live demo script, fallback, questions to prepare |
+| [WEB-UI/README.md](WEB-UI/README.md) | the web interface: how to run it, what it does, its API and security |
+| [docs/TESTING.md](docs/TESTING.md) | every test you can run: 329 automated tests, manual checks, failure tests, quality scoring |
+| [docs/PRIVACY_POLICY.md](docs/PRIVACY_POLICY.md) | 100% local privacy guarantee, zero-egress charter and GDPR compliance |
+| [docs/ETHICS_AND_LEGAL.md](docs/ETHICS_AND_LEGAL.md) | copyright exceptions (EU TDM, CPI, Fair Use), exam ethics and user disclaimer |
+| [docs/BUSINESS_IMPACT.md](docs/BUSINESS_IMPACT.md) | economic impact, 11 hrs/wk time savings model and institutional ROI analysis |
+| [docs/ABANDONED_FEATURES.md](docs/ABANDONED_FEATURES.md) | discarded catalogue features (Web Search, Sandbox, MCP) and design trade-offs |
+| [docs/EVALUATION.md](docs/EVALUATION.md) | LLM framework exemption for judge and 4B vs 7B evaluator benchmark |
+| [docs/RISKS_AND_REQUIREMENTS.md](docs/RISKS_AND_REQUIREMENTS.md) | project risk matrix (mitigations) and verified minimum vs recommended requirements |
+| [docs/SCREENSHOTS.md](docs/SCREENSHOTS.md) | screenshot bank of CLI, branching, memory, green test suites and Web UI dashboard |
+| [CONTRIBUTING.md](CONTRIBUTING.md) | how to work on the project: rules, workflow, commits, tests, measuring prompt changes |
+| [docs/KEYNOTE.md](docs/KEYNOTE.md) | the keynote: slide script, live demo script, fallback, questions to prepare |
 | [docs/slides/keynote.html](docs/slides/keynote.html) | the slide deck (open in a browser; arrows to move, F for fullscreen) |
 
 ## Team

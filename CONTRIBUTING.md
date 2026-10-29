@@ -8,7 +8,7 @@ These come from the project subject and from what we learned building it:
 
 1. **Python 3.10 or newer.** Standard library plus small utility packages (`requests`, `numpy`, `pypdf`, `pytest`).
 2. **No LLM framework** (no LangChain, LlamaIndex, Haystack or equivalent). Every model call goes through the Ollama HTTP API directly.
-3. **Everything that talks to Ollama goes through `src/ollama_client.py`.** No other module sends HTTP requests to the model.
+3. **Everything that talks to Ollama goes through `src/ollama_client.py`.** No other module sends HTTP requests to the model (the web server included).
 4. **Prompts live in `prompts/`, settings live in `config.json`.** Do not hard-code prompt text, model names, paths or sizes in the code.
 5. **Keep it local.** Documents and questions must never be sent to an outside service.
 6. **No secrets, tokens, personal paths or personal data** in the repository (nor in its history).
@@ -41,6 +41,7 @@ One file, one job. Put new code where its job belongs, and keep `cli.py` free of
 | `src/writer.py` | `answers.md`: update exactly one section, atomically |
 | `src/cli.py` | `python -m src.cli`: wiring only |
 | `src/chat.py` | the plain CLI chatbot (base loop) |
+| `WEB-UI/server.py`, `WEB-UI/static/` | the web interface (X1): it only calls the modules above; the front end inserts text with `textContent`, never as HTML |
 
 The interfaces between them are listed in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). Change an interface only together with its callers, its tests and that document.
 
