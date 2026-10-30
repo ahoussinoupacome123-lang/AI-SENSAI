@@ -196,7 +196,7 @@ src/
 prompts/            system, answer, judge and chat prompts
 data/               demo.pdf, questions.txt (9), questions_demo.txt (3, for the live demo), expected_answers.md, demo_course.txt (the source text)
 WEB-UI/             X1: server.py (standard library) and static/ (the page); see WEB-UI/README.md
-scripts/            e2e_check.py (score a run), build_demo_pdf.py (rebuild and verify the demo PDF)
+scripts/            e2e_check.py (score a run), build_demo_pdf.py (rebuild and verify the demo PDF), demo_video/ (builds the demo video)
 tests/              386 automated tests (no Ollama needed)
 docs/               explanation, architecture, user stories, testing guide, results, keynote, model choice
 ```
@@ -263,6 +263,7 @@ What does not work well, said honestly:
 | [docs/SCREENSHOTS.md](docs/SCREENSHOTS.md) | screenshot bank of CLI, branching, memory, green test suites and Web UI dashboard |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | how to work on the project: rules, workflow, commits, tests, measuring prompt changes |
 | [docs/KEYNOTE.md](docs/KEYNOTE.md) | the keynote: slide script, live demo script, fallback, questions to prepare |
+| [docs/assets/demo/sensai_demo.mp4](docs/assets/demo/sensai_demo.mp4) | 86-second product demo of the web UI, with feature callouts and music (real interface, scripted model output; how it is made: [scripts/demo_video/README.md](scripts/demo_video/README.md)) |
 | [docs/slides/keynote.html](docs/slides/keynote.html) | the slide deck (open in a browser; arrows to move, O for an overview, F for fullscreen) |
 
 ## Team
