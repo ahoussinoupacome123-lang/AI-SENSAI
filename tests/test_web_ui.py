@@ -489,3 +489,69 @@ def test_main_reports_a_port_that_is_in_use(app):
             web.main(["--port", str(server.server_address[1])])
     finally:
         server.server_close()
+
+
+# ---------- sharing the page (--allow-host and --key) ----------
+def serve(app):
+    server = web.make_server(app, "127.0.0.1", 0)
+    threading.Thread(target=lambda: server.serve_forever(poll_interval=0.01), daemon=True).start()
+    return server, f"http://127.0.0.1:{server.server_address[1]}"
+
+
+def shared_app(tmp_path, **kw):
+    data = tmp_path / "data"
+    data.mkdir()
+    make_text_pdf(data / "demo.pdf", PAGES)
+    return web.App(CONFIG, workspace=tmp_path / "ws", data_dir=data, **kw)
+
+
+def test_an_allowed_hostname_is_accepted_and_others_are_still_refused(tmp_path, fakes):
+    server, base = serve(shared_app(tmp_path, allowed_hosts=["demo.trycloudflare.com"]))
+    try:
+        ok = requests.get(base + "/api/status", headers={"Host": "demo.trycloudflare.com"})
+        post = requests.post(base + "/api/config", json={"reset": True},
+                             headers={"Host": "demo.trycloudflare.com", "Origin": "https://demo.trycloudflare.com"})
+        other = requests.get(base + "/api/status", headers={"Host": "evil.example.com"})
+        assert (ok.status_code, post.status_code, other.status_code) == (200, 200, 403)
+    finally:
+        server.shutdown()
+
+
+def test_without_the_key_nothing_is_served(tmp_path, fakes):
+    server, base = serve(shared_app(tmp_path, access_key="s3cret"))
+    try:
+        for path in ("/", "/api/status", "/static/app.js", "/?key=wrong"):
+            assert requests.get(base + path).status_code == 401
+        assert requests.post(base + "/api/config?key=s3cret", json={"reset": True}).status_code == 401
+        assert requests.get(base + "/api/status", headers={"Cookie": "sensai_key=wrong"}).status_code == 401
+    finally:
+        server.shutdown()
+
+
+def test_the_link_with_the_key_sets_a_cookie_and_then_everything_works(tmp_path, fakes):
+    server, base = serve(shared_app(tmp_path, access_key="s3cret"))
+    try:
+        first = requests.get(base + "/?key=s3cret", allow_redirects=False)
+        assert first.status_code == 302 and first.headers["Location"] == "/"
+        cookie = first.headers["Set-Cookie"]
+        assert "sensai_key=s3cret" in cookie and "HttpOnly" in cookie and "SameSite=Strict" in cookie
+        session = requests.Session()
+        page = session.get(base + "/?key=s3cret")
+        assert page.status_code == 200 and "SENSAI" in page.text
+        assert session.get(base + "/api/status").status_code == 200
+        assert session.post(base + "/api/config", json={"reset": True}).status_code == 200
+    finally:
+        server.shutdown()
+
+
+def test_the_cookie_is_marked_secure_behind_an_https_tunnel(tmp_path, fakes):
+    server, base = serve(shared_app(tmp_path, access_key="s3cret"))
+    try:
+        r = requests.get(base + "/?key=s3cret", allow_redirects=False, headers={"X-Forwarded-Proto": "https"})
+        assert "Secure" in r.headers["Set-Cookie"]
+    finally:
+        server.shutdown()
+
+
+def test_no_key_means_the_page_stays_open_as_before(base):
+    assert requests.get(base + "/api/status").status_code == 200

@@ -42,6 +42,24 @@ python WEB-UI/server.py --config /tmp/my.json # another settings file
 ```
 The coloured pill at the top shows whether Ollama is reachable; a banner tells you the exact `ollama pull ...` command if a model is missing. Only one job (a run or a chat) can be active at a time, because Ollama processes one request at a time on a laptop; a second request gets a clear "in progress" message.
 
+## Sharing your running page with a partner
+
+By default the server answers only to `localhost`. To let someone else use **your** running instance (they use your computer's Ollama), start it with a key and give the tunnel's hostname:
+
+```bash
+python WEB-UI/server.py --key auto --allow-host <hostname-the-tunnel-gives-you>
+```
+`--key auto` prints a random access key. Send your partner `https://<tunnel-hostname>/?key=<key>`: opening it once sets a cookie, then the page works as normal. Without the key every request gets `401`.
+
+A tunnel needs no router changes. Two options without any account:
+```bash
+ssh -R 80:localhost:8000 nokey@localhost.run          # prints an https://....lhr.life address
+cloudflared tunnel --url http://localhost:8000        # prints an https://....trycloudflare.com address (needs cloudflared installed)
+```
+Restart the server with the printed hostname in `--allow-host` (the address only exists once the tunnel is up).
+
+What to expect: one job at a time (if you ask a question while your partner's run is going, you get "Another run or chat is in progress"); chats are kept in each person's own browser; settings changes are shared; uploaded PDFs are stored on your computer. Stop the tunnel and the server when you are done. Never share the link without `--key`: the page has no login of its own.
+
 ## UX principles applied
 Visible system status (the Ollama pill, progress with elapsed time, a live token meter); user control (Stop, edit and re-run one question); error prevention and recovery (validation before a run starts, clear messages, retry); recognition over recall (examples, suggestion chips, labelled settings with units); accessibility (labels, roles, keyboard focus, `aria-live`, contrast, 44 px touch targets on phones, reduced motion); and an explicit message when the HTML file is opened directly instead of through the server.
 

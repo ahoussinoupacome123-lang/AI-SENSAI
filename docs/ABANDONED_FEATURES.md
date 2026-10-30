@@ -81,7 +81,7 @@ Allowing users to upload MP3/WAV lecture recordings alongside PDFs and transcrib
 
 #### Reasons for Abandonment
 1. **Hardware & VRAM Exhaustion**:
-   Running Whisper alongside an Ollama LLM (`qwen3:4b` or `qwen2.5:7b`) simultaneously exceeds the 8 GB / 16 GB unified memory limit of standard student laptops, triggering swap thrashing and process crashes.
+   Running Whisper alongside an Ollama LLM (`qwen3:4b`, or a larger 7B model) simultaneously exceeds the 8 GB / 16 GB unified memory limit of standard student laptops, triggering swap thrashing and process crashes.
 2. **Scope Alignment**:
    The project mandate focuses on document question-answering with exact page and quote verification. Audio files lack verifiable page boundaries.
 

@@ -53,7 +53,7 @@ When students utilize generative AI tools for exam preparation:
 In medical, legal, or engineering studies, factual hallucinations pose genuine risks.
 Sensai addresses this through a **dual-safeguard verification system**:
 1. **Mechanical Quote Check**: Fast string verification ensuring cited quotes exist verbatim in the source text.
-2. **Automated LLM Judge**: A second, independent LLM evaluates semantic faithfulness.
+2. **Automated LLM Judge**: A second model call (the same local `qwen3:4b`) evaluates semantic faithfulness. Because it is the same model, it can be lenient, so it is never the only check.
 3. **Review Flags**: Whenever the quote check and judge disagree, Sensai highlights the answer with a prominent warning badge: `"Check this answer against the PDF before trusting it."`
 
 ---
