@@ -103,6 +103,37 @@ class TestSummarize(unittest.TestCase):
         text, _ = summarize(records)
         self.assertIn("Unknown", text)
 
+    def test_correct_refusal_is_not_a_disagreement(self):
+        """'Not in the document' has no quote to check: with a faithful judge it is not flagged."""
+        refusal = dict(_rec("not supported", "faithful", "uncovered?"), answer="The document does not cover this.")
+        text, disagreements = summarize([_rec("supported", "faithful"), refusal])
+        self.assertEqual(disagreements, [])
+        self.assertIn("No disagreements", text)
+
+    def test_disputed_refusal_is_a_disagreement(self):
+        """A refusal the judge calls unfaithful (the passages do answer it) is flagged."""
+        refusal = dict(_rec("not supported", "unfaithful", "covered?"), answer="The document does not cover this.")
+        _, disagreements = summarize([refusal])
+        self.assertEqual([d["question"] for d in disagreements], ["covered?"])
+
+    def test_quote_check_counts_leave_refusals_apart(self):
+        """The quote check is counted over answers that have a quote; refusals get their own line."""
+        refusal = dict(_rec("not supported", "faithful"), answer="The document does not cover this.")
+        text, _ = summarize([_rec("supported", "faithful"), _rec("supported", "faithful"),
+                             _rec("not supported", "partial"), refusal])
+        self.assertIn("Supported    : 2/3", text)
+        self.assertIn("Not supported: 1/3", text)
+        self.assertIn("Refused (not in the document, no quote to check): 1/4", text)
+        self.assertIn("Faithful  : 3/4", text)
+
+    def test_only_refusals_no_crash(self):
+        """A run where every answer is a refusal has no quote-check percentages to divide by zero."""
+        refusal = dict(_rec("not supported", "faithful"), answer="The document does not cover this.")
+        text, disagreements = summarize([refusal, refusal])
+        self.assertIn("Refused (not in the document, no quote to check): 2/2", text)
+        self.assertNotIn("Supported    :", text)
+        self.assertEqual(disagreements, [])
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

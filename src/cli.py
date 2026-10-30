@@ -86,10 +86,8 @@ def _not_implemented(error):
 
 
 def _disagree(checked):
-    """The cheap quote check and the judge contradict each other."""
-    verdict = checked.get("verdict")
-    return ((checked.get("status") == "supported" and verdict == "unfaithful")
-            or (checked.get("status") == "not supported" and verdict == "faithful"))
+    """The cheap quote check and the judge contradict each other (a correct refusal does not)."""
+    return eval_summary.disagrees(checked)
 
 
 def answer_question(question, records, config):
@@ -160,7 +158,10 @@ def format_answer(checked):
              f"Quote:  \"{quote}\"" if quote else "Quote:  (none)",
              f"Checks: quote check {checked.get('status')}; judge {judge_text}"]
     if checked.get("disagreement"):
-        lines.append("Review: the quote check and the judge disagree, compare with the page before trusting it.")
+        if eval_summary.is_refusal(checked):
+            lines.append("Review: the model says the document does not cover this, but the judge says the passages answer it.")
+        else:
+            lines.append("Review: the quote check and the judge disagree, compare with the page before trusting it.")
     return "\n".join(lines)
 
 
