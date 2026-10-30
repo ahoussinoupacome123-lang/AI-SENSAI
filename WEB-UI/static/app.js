@@ -1097,9 +1097,11 @@
   }
   function resetSettings() {
     apiPost("/api/config", { reset: true }).then(function () {
-      showNotice($("settings-msg"), "Back to the values of config.json.", true);
       toast("Settings reset");
       return refreshStatus().then(buildSettings);
+    }).then(function () {
+      // Only say so once the fields show the default values again.
+      showNotice($("settings-msg"), "Back to the values of config.json.", true);
     }).catch(function (e) { showNotice($("settings-msg"), e.message, false); });
   }
 
