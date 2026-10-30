@@ -8,9 +8,11 @@ import sys
 
 import requests
 
-from src.memory import SessionMemory
-
 ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT))  # so `python src/chat.py` finds the src package
+
+from src.memory import SessionMemory  # noqa: E402
+
 DEFAULTS = {
     "chat_model": "qwen3:4b",
     "host": "http://localhost:11434",
