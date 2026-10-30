@@ -4,7 +4,7 @@ Everything you can run to check Sensai, from a one-second automated check to a f
 
 | Level | What | Needs Ollama | Time |
 |---|---|---|---|
-| **A. Automated tests** | 385 pytest tests | no | about 1 s |
+| **A. Automated tests** | 386 pytest tests | no | about 1 s |
 | **B. Manual checks without a model** | inspect a PDF, error messages, demo data, scoring a saved run | no | seconds |
 | **C. Manual checks with Ollama** | chatbot, short demo, full run, re-running one question, settings | yes | 30 s to 7 min |
 | **D. Failure tests** | server down, corrupt index, scanned PDF, wrong inputs | mostly no | seconds |
@@ -30,7 +30,7 @@ The commands below use the committed settings (`chunk_size` 800, `chunk_overlap`
 ## A. Automated tests (no Ollama, about 1 second)
 
 ```bash
-python -m pytest -q                  # expected: 385 passed
+python -m pytest -q                  # expected: 386 passed
 python -m pytest -q tests/test_writer.py        # one file
 python -m pytest -q -k quote                    # tests whose name contains "quote"
 python -m pytest -x -q                          # stop at the first failure
@@ -40,7 +40,7 @@ They never call Ollama: the model client and the store are replaced by fakes, an
 
 | Test file | Tests | What it covers | Feature / stories |
 |---|---|---|---|
-| `test_chat.py` | 23 | streaming, history sent every turn, empty input, errors (server down, missing model, timeout), Ctrl+C, model from argument or config | B1 |
+| `test_chat.py` | 24 | streaming, history sent every turn, empty input, errors (server down, missing model, timeout), Ctrl+C, model from argument or config | B1 |
 | `test_extract_pages.py` | 10 | text per page, page numbers, blank pages, scanned PDF, missing file, not a PDF, truncated PDF | R1 |
 | `test_chunk_pages.py` | 22 | chunk size, exact overlap, page numbers, nothing lost, invalid settings | R1 |
 | `test_ingest.py` | 21 | embedding in batches, index next to the PDF, reuse, `--force`, stale index, corrupt or invalid index, no partial index on failure, progress callback | R1 |

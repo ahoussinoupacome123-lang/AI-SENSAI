@@ -1,4 +1,5 @@
 import json
+import subprocess
 import sys
 from pathlib import Path
 from unittest import mock
@@ -179,3 +180,12 @@ def test_model_argument_overrides_the_config(monkeypatch):
 def test_model_defaults_to_the_config_file(monkeypatch):
     sent = run_main(monkeypatch, ["hi", "exit"], iter(["x"]))
     assert sent[0][0] == chat.load_config(chat.ROOT / "config.json")["chat_model"]
+
+
+def test_runs_as_a_plain_script_from_any_folder(tmp_path):
+    """`python src/chat.py` is the documented command: it must find the src package by itself."""
+    script = Path(__file__).resolve().parent.parent / "src" / "chat.py"
+    result = subprocess.run([sys.executable, str(script)], input="exit\n", text=True,
+                            capture_output=True, cwd=tmp_path, timeout=60)
+    assert "ModuleNotFoundError" not in result.stderr
+    assert result.returncode == 0
