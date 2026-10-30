@@ -26,7 +26,7 @@ report.pdf ──► ingestion ──► index ──► retrieval ──► JSO
     <img src="docs/assets/demo/sensai_demo_preview.gif" alt="Sensai web UI answering questions about a PDF, with sourced quotes, page links and checks" width="800">
   </a>
   <br>
-  <b><a href="docs/assets/demo/sensai_demo.mp4">▶ Watch the full demo (86 s, 1080p, with sound)</a></b>
+  <b><a href="docs/assets/demo/sensai_demo.mp4">▶ Watch the full demo (86 s, 1080p, narrated, with subtitles)</a></b>
 </p>
 
 The video shows the real web UI. The model's answers are scripted so it could be filmed without Ollama; with `qwen3:4b` each answer takes about 40 seconds instead of 2. How it is made: [scripts/demo_video/README.md](scripts/demo_video/README.md).
@@ -279,7 +279,7 @@ What does not work well, said honestly:
 | [docs/SCREENSHOTS.md](docs/SCREENSHOTS.md) | screenshot bank of CLI, branching, memory, green test suites and Web UI dashboard |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | how to work on the project: rules, workflow, commits, tests, measuring prompt changes |
 | [docs/KEYNOTE.md](docs/KEYNOTE.md) | the keynote: slide script, live demo script, fallback, questions to prepare |
-| [docs/assets/demo/sensai_demo.mp4](docs/assets/demo/sensai_demo.mp4) | 86-second product demo of the web UI, with feature callouts and music (real interface, scripted model output; how it is made: [scripts/demo_video/README.md](scripts/demo_video/README.md)) |
+| [docs/assets/demo/sensai_demo.mp4](docs/assets/demo/sensai_demo.mp4) | 86-second narrated product demo of the web UI, with feature callouts, music and subtitles (real interface, scripted model output; how it is made: [scripts/demo_video/README.md](scripts/demo_video/README.md)) |
 | [docs/slides/keynote.html](docs/slides/keynote.html) | the slide deck (open in a browser; arrows to move, O for an overview, F for fullscreen) |
 
 ## Team

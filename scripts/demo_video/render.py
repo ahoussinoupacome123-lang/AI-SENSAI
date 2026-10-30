@@ -3,6 +3,8 @@
 
     python scripts/demo_video/render.py BUILD_DIR OUT.mp4            # capture + render
     python scripts/demo_video/render.py BUILD_DIR OUT.mp4 --no-capture
+    python scripts/demo_video/render.py BUILD_DIR OUT.mp4 --voice MODELS_DIR   # with narration
+    python scripts/demo_video/render.py BUILD_DIR OUT.mp4 --audio-only --voice MODELS_DIR
     python scripts/demo_video/render.py BUILD_DIR --stills 12,30,47  # a few PNG frames to check
 
 Needs Playwright with Chromium, ffmpeg (libx264, aac) and pdftoppm. No Ollama: the answers come
@@ -151,14 +153,50 @@ def render_frame(page, t):
     page.evaluate("t => window.renderAt(t)", t)
 
 
+def soundtrack(build, voice_models):
+    """Music (and, with voice_models, the narration and its subtitles). Returns (wav, srt or None)."""
+    music = build / "music.wav"
+    subprocess.run([sys.executable, str(HERE / "music.py"), str(music), str(TIMELINE["end"])], check=True)
+    if not voice_models:
+        return music, None
+    voice, srt, mixed = build / "voice.wav", build / "voice.srt", build / "soundtrack.wav"
+    subprocess.run([sys.executable, str(HERE / "voiceover.py"), str(voice_models), str(voice), str(srt)], check=True)
+    # the music is lowered under the narration (sidechain ducking), then both are mixed
+    subprocess.run(
+        ["ffmpeg", "-y", "-loglevel", "error", "-i", str(music), "-i", str(voice), "-filter_complex",
+         "[1:a]aresample=44100,pan=stereo|c0=c0|c1=c0,asplit=2[key][vo];"
+         "[0:a][key]sidechaincompress=threshold=0.015:ratio=8:attack=20:release=450[duck];"
+         "[duck]volume=0.6[m];[m][vo]amix=inputs=2:normalize=0:duration=first,alimiter=limit=0.95",
+         str(mixed)], check=True)
+    return mixed, srt
+
+
+def mux(video, audio, srt, out):
+    """Put the silent video, the soundtrack and the optional subtitles (off by default) in one MP4."""
+    cmd = ["ffmpeg", "-y", "-loglevel", "error", "-i", str(video), "-i", str(audio)]
+    if srt:
+        cmd += ["-i", str(srt)]
+    cmd += ["-map", "0:v", "-map", "1:a"] + (["-map", "2:s", "-c:s", "mov_text", "-metadata:s:s:0", "language=eng"] if srt else [])
+    cmd += ["-c:v", "copy", "-c:a", "aac", "-b:a", "192k", "-movflags", "+faststart", str(out)]
+    subprocess.run(cmd, check=True)
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("build")
     ap.add_argument("out", nargs="?")
     ap.add_argument("--no-capture", action="store_true")
+    ap.add_argument("--voice", metavar="MODELS_DIR", help="add the narration (Kokoro model files in this folder)")
+    ap.add_argument("--audio-only", action="store_true", help="reuse BUILD/video.mp4 and only redo the sound")
     ap.add_argument("--stills", help="comma-separated times; writes BUILD/still_T.png and stops")
     args = ap.parse_args()
     build = Path(args.build).resolve()
+    video = build / "video.mp4"
+
+    if args.audio_only:
+        mux(video, *soundtrack(build, args.voice), Path(args.out).resolve())
+        print("wrote", args.out)
+        return
 
     if not args.no_capture and not args.stills:
         subprocess.run([sys.executable, str(HERE / "capture.py"), str(build)], check=True)
@@ -173,12 +211,9 @@ def main():
             print("errors:", errors or "none")
             return
 
-        music = build / "music.wav"
-        subprocess.run([sys.executable, str(HERE / "music.py"), str(music), str(TIMELINE["end"])], check=True)
         ffmpeg = subprocess.Popen(
             ["ffmpeg", "-y", "-loglevel", "error", "-f", "image2pipe", "-c:v", "mjpeg", "-framerate", str(FPS), "-i", "-",
-             "-i", str(music), "-c:v", "libx264", "-preset", "slow", "-crf", "20", "-pix_fmt", "yuv420p",
-             "-c:a", "aac", "-b:a", "192k", "-shortest", "-movflags", "+faststart", str(Path(args.out).resolve())],
+             "-c:v", "libx264", "-preset", "slow", "-crf", "20", "-pix_fmt", "yuv420p", str(video)],
             stdin=subprocess.PIPE)
         frames = int(TIMELINE["end"] * FPS)
         for i in range(frames):
@@ -192,8 +227,8 @@ def main():
             sys.exit("ffmpeg failed")
         if errors:
             sys.exit(f"compositor errors: {errors}")
-        print("wrote", args.out)
-
+    mux(video, *soundtrack(build, args.voice), Path(args.out).resolve())
+    print("wrote", args.out)
 
 if __name__ == "__main__":
     main()
