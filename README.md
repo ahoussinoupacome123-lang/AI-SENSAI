@@ -258,7 +258,7 @@ What does not work well, said honestly:
 | [docs/ETHICS_AND_LEGAL.md](docs/ETHICS_AND_LEGAL.md) | copyright exceptions (EU TDM, CPI, Fair Use), exam ethics and user disclaimer |
 | [docs/BUSINESS_IMPACT.md](docs/BUSINESS_IMPACT.md) | economic impact, 11 hrs/wk time savings model and institutional ROI analysis |
 | [docs/ABANDONED_FEATURES.md](docs/ABANDONED_FEATURES.md) | discarded catalogue features (Web Search, Sandbox, MCP) and design trade-offs |
-| [docs/EVALUATION.md](docs/EVALUATION.md) | LLM framework exemption for judge and 4B vs 7B evaluator benchmark |
+| [docs/EVALUATION.md](docs/EVALUATION.md) | why the judge uses plain HTTP calls (LLM framework exemption) and which model the judge is |
 | [docs/RISKS_AND_REQUIREMENTS.md](docs/RISKS_AND_REQUIREMENTS.md) | project risk matrix (mitigations) and verified minimum vs recommended requirements |
 | [docs/SCREENSHOTS.md](docs/SCREENSHOTS.md) | screenshot bank of CLI, branching, memory, green test suites and Web UI dashboard |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | how to work on the project: rules, workflow, commits, tests, measuring prompt changes |

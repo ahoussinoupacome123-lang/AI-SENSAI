@@ -10,7 +10,7 @@ Building a local RAG assistant on consumer hardware introduces physical and algo
 
 | Risk ID | Risk Description | Probability | Severity | Architectural Mitigation Strategy | Status |
 |---|---|---|---|---|---|
-| **RSK-01** | **Residual Model Hallucination**<br>The LLM asserts ungrounded claims or mixes outside knowledge into academic citations. | Medium | **High** | **Dual verification**: Mechanical substring quote check (`src/pipeline.py`) + decoupled Judge evaluation (`src/judge.py`). In cases of conflict, the answer is flagged with a visual review alert. | **Mitigated** |
+| **RSK-01** | **Residual Model Hallucination**<br>The LLM asserts ungrounded claims or mixes outside knowledge into academic citations. | Medium | **High** | **Dual verification**: Mechanical substring quote check (`src/pipeline.py`) + LLM judge evaluation (`src/judge.py`, the same `qwen3:4b`, so it can be lenient: that is why the quote check stays as an anchor). In cases of conflict, the answer is flagged with a visual review alert. | **Mitigated** |
 | **RSK-02** | **RAM / Swap Thrashing (OOM)**<br>Ingesting large PDFs or running heavy context exceeds unified memory on 8 GB systems. | Medium | **High** | **Dynamic context budgeting**: Removed hardcoded context sizes (`M8`). Prompt passages are dynamically bounded to $\le 85\%$ of `num_ctx`. Generator default is lightweight 4B model (`qwen3:4b`). | **Mitigated** |
 | **RSK-03** | **Ollama Process Crash / Hang**<br>Ollama daemon becomes unresponsive or models fail to return valid JSON within timeout. | Low | Medium | **Defensive HTTP client**: Timeout configurations (`(5, 300)`), schema enforcement with `think=false`, and graceful 2-attempt retry loops before returning a non-crashing `unknown` verdict. | **Mitigated** |
 | **RSK-04** | **Scanned / Image-Only PDFs**<br>User uploads a PDF containing scanned images without embedded text layers. | High | Low | **Fail-fast ingestion check**: `src/ingestion.py` extracts text per page and immediately raises a clean `IngestionError("...has no extractable text")` before initiating vector embedding calls. | **Mitigated** |
@@ -28,9 +28,9 @@ Sensai is designed to run locally on Linux, macOS, and Windows (via WSL2).
 | Component | Minimum Specification (Verified) | Recommended Specification (Optimal) |
 |---|---|---|
 | **CPU Architecture** | x86_64 (Intel Core i5 8th Gen+ / AMD Ryzen 3000+) or Apple Silicon (M1+) | 8-core CPU or Apple Silicon (M2/M3/M4) |
-| **System Memory (RAM)** | **8 GB RAM** (Runs `qwen3:4b` + `nomic-embed-text`) | **16 GB RAM** (Enables running 7B judge model and larger context windows) |
+| **System Memory (RAM)** | **8 GB RAM** (Runs `qwen3:4b` + `nomic-embed-text`) | **16 GB RAM** (Room for larger context windows, or an optional larger `judge_model`) |
 | **GPU / Acceleration** | Optional. CPU-only execution fully supported out of the box. | Metal (Apple Silicon), NVIDIA CUDA (Compute 7.0+), or AMD ROCm |
-| **Disk Space** | **6 GB free space** (Ollama engine + base models) | **15 GB free space** (Allows multi-model setups: 4B generator + 7B judge) |
+| **Disk Space** | **6 GB free space** (Ollama engine + base models) | **15 GB free space** (Room for an optional larger judge model next to `qwen3:4b`) |
 | **Network Interface** | Local loopback (`127.0.0.1`). **No internet connection required.** | Local loopback. |
 
 ### 2.2 Software & Environment Requirements

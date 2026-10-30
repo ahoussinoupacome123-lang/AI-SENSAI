@@ -11,7 +11,7 @@ All visual captures are rendered in crisp, resolution-independent vector SVG for
 **File**: [`docs/assets/screenshots/01_cli_rag_nominal.svg`](assets/screenshots/01_cli_rag_nominal.svg)  
 **Task / Feature**: `R1` (Basic RAG), `T5` (Structured Output), `EV1` (Quote Verification & Judge)
 
-Demonstrates the primary Sensai batch processing pipeline reading a target PDF (`data/demo.pdf`), retrieving top cosine-similarity context chunks, generating JSON-structured answers with page citations and exact quotes, and passing deterministic quote verification and decoupled LLM judge checks.
+Demonstrates the primary Sensai batch processing pipeline reading a target PDF (`data/demo.pdf`), retrieving top cosine-similarity context chunks, generating JSON-structured answers with page citations and exact quotes, and passing deterministic quote verification and LLM judge checks (the same `qwen3:4b`).
 
 <p align="center">
   <img src="assets/screenshots/01_cli_rag_nominal.svg" alt="Sensai CLI RAG Nominal Execution" width="850">
