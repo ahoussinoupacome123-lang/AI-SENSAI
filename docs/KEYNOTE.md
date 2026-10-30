@@ -28,7 +28,7 @@ That is exactly what Sensai produces, and it runs on her laptop with no cloud an
 | 12 | Honest assessment | what works, what does not, what we would do differently | three columns |
 | 13 | Questions | | the 7 prepared questions |
 
-The deck is [slides/keynote.html](slides/keynote.html): open it in any browser (no internet needed), move with the arrow keys or clicks, `F` for fullscreen, and print to PDF for a handout. This table is the script for it.
+The deck is [slides/keynote.html](slides/keynote.html): open it in any browser (no internet needed), move with the arrow keys or clicks (the camera flies across one big canvas, Prezi style), `O` for an overview of all slides (click one to jump to it), `F` for fullscreen, and print to PDF for a handout (printing switches the animation off). The photo backgrounds are public domain or CC0 images from Wikimedia Commons, credited in [slides/img/CREDITS.md](slides/img/CREDITS.md); the deck stays offline. This table is the script for it.
 
 ## 3. The live demo (4 minutes)
 
@@ -92,7 +92,7 @@ Do not hide the weak points: the evaluation asks for an honest assessment. The d
 - Retrieval is reliable: in every test the right page was ranked first.
 - The file is never corrupted: a failed question is reported and skipped, re-running one question changes only its section (tested byte for byte), and the write is atomic.
 - Two independent checks on every answer, and the disagreement flag points at the answers worth reading.
-- 385 automated tests, none of which needs Ollama; a scoring script compares a run with known answers.
+- 386 automated tests, none of which needs Ollama; a scoring script compares a run with known answers.
 
 **Current limits**
 - 6 of 8 covered questions answered correctly on the demo PDF (75 %), the same in two runs and in a separate harness; a small sample
