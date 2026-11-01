@@ -76,15 +76,15 @@ def main():
         shot(page, "01_home")
         check("boot: no console or script errors", not errors, "; ".join(errors[:2]))
         check("boot: the model button shows Ollama ready and the model", "Ollama ready" in page.inner_text("#status-pill") and "qwen3" in page.inner_text("#status-pill"))
-        check("layout: a 220px sidebar with New chat, history and Settings",
-              abs(page.locator("#sidebar").bounding_box()["width"] - 220) < 2 and page.is_visible("#new-chat") and page.is_visible("#history") and page.is_visible("#open-settings"))
+        check("layout: a 260px sidebar with New chat, history and Settings",
+              abs(page.locator("#sidebar").bounding_box()["width"] - 260) < 2 and page.is_visible("#new-chat") and page.is_visible("#history") and page.is_visible("#open-settings"))
         check("layout: the empty screen is a centred greeting", "What can I help with?" in page.inner_text("#chat-empty"))
         box = page.locator("#composer").bounding_box()
         check("layout: the composer sits mid-screen on an empty chat", 250 < box["y"] < 520, f"y={box['y']:.0f}")
         check("layout: the conversation column is at most 768px wide", box["width"] <= 770 and box["width"] > 600, f"{box['width']:.0f}px")
         radius = page.evaluate("parseFloat(getComputedStyle(document.getElementById('composer')).borderTopLeftRadius)")
         check("style: the composer is a rounded pill", radius >= 24, f"{radius}px")
-        check("style: text is 15px, not oversized", page.evaluate("getComputedStyle(document.body).fontSize") == "15px")
+        check("style: text is 16px, not oversized", page.evaluate("getComputedStyle(document.body).fontSize") == "16px")
         check("composer: Send is disabled while the box is empty", page.is_disabled("#send"))
         page.fill("#chat-input", "hello")
         check("composer: Send enables when there is text", page.is_enabled("#send"))

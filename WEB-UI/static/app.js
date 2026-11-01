@@ -20,6 +20,7 @@
     download: ["M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4", "M7 10l5 5 5-5", "M12 15V3"],
     sparkles: ["M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z", "M19 15l.9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.9z"],
     stop: ["M7 7h10v10H7z"],
+    chat: ["M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"],
     copy: ["M9 9h11v11H9z", "M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1"],
     refresh: ["M23 4v6h-6", "M1 20v-6h6", "M3.5 9a9 9 0 0 1 14.9-3.4L23 10", "M1 14l4.6 4.4A9 9 0 0 0 20.5 15"],
     check: ["M20 6L9 17l-5-5"],
@@ -1006,7 +1007,7 @@
       box.appendChild(a); box.appendChild(b);
     }
     CHAT_CHIPS.forEach(function (text) {
-      var chip = el("button", { type: "button", text: text });
+      var chip = el("button", { type: "button" }, [icon("chat"), text]);
       chip.addEventListener("click", function () { if (!state.busy) { state.doc = null; renderAttached(); sendChat(text); } });
       box.appendChild(chip);
     });
