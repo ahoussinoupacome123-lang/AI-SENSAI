@@ -14,7 +14,7 @@ The catalogue describes X1 as "a decoupled web frontend over the CLI backend: me
 | Streaming conversation display | chat replies and PDF answers appear as they are produced; a "Thinking..." indicator shows while the model reasons |
 | Live token / context usage | a meter under the composer: tokens used out of the context size (prompt + reply), and a live count while a reply streams |
 | Basic agent switching | attaching a PDF switches the conversation from plain chat to document answers; change the chat and judge model in Settings. There are no personas (that is a different catalogue feature, A5), so we do not claim them |
-| Configuration | a Settings dialog: models, top-k, chunk size and overlap, context size, retries, for the current server session |
+| Configuration | a Settings dialog: models, top-k, chunk size and overlap, context size, retries, and three **feature switches** (Retrieval, Judge, Quote check) to turn a part of the pipeline off, for the current server session |
 | Backend logic unchanged | the UI calls the same modules as the CLI. Two small additive hooks were added (see "Relation to the backend"); no existing behaviour changed and all earlier tests still pass |
 
 ## What you can do
@@ -136,7 +136,7 @@ The JavaScript was run against the live server in a simulated DOM (jsdom) with t
 
 - One job at a time; no login (do not expose it to a network); one PDF at a time.
 - Chats are kept in this browser (localStorage, up to 40) and never sent to a server; clearing site data removes them.
-- A single model call (a question's answer, a judge verdict) shows no sub-progress: expect 10 to 60 seconds per question on a CPU.
+- A single model call (a question's answer, a judge verdict) shows no sub-progress: expect 25 to 90 seconds per question on a CPU.
 - Text PDFs only. Two people using the same server share its settings and its workspace.
 - No automatic reload of a changed `config.json`: restart the server.
 

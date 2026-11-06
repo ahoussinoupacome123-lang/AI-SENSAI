@@ -126,7 +126,9 @@ def main():
         page.wait_for_selector("#settings-modal:not([hidden])")
         page.wait_for_timeout(300)
         shot(page, "03_settings")
-        check("settings: 8 labelled fields in 3 groups, none for the host", page.locator("#settings-form input").count() == 8 and page.locator("#settings-form .group").count() == 3)
+        check("settings: 8 value fields and 3 feature switches in 4 groups, none for the host",
+              page.locator("#settings-form input:not([type=checkbox])").count() == 8 and page.locator("#settings-form input[type=checkbox]").count() == 3
+              and page.locator("#settings-form .group").count() == 4)
         check("settings: human-readable labels", "Passages per question" in page.inner_text("#settings-form"))
         page.fill("#set-top_k", "99")
         page.click("#settings-apply")
@@ -138,6 +140,14 @@ def main():
         page.click("#settings-reset")
         page.wait_for_function("document.querySelector('#settings-msg').textContent.includes('Back to')")
         check("settings: apply then reset round-trips", page.input_value("#set-top_k") == "4")
+        page.uncheck("#flag-judge")
+        page.click("#settings-apply")
+        page.wait_for_function("document.querySelector('#settings-msg').textContent.includes('Applied')")
+        flags_off = page.evaluate("fetch('/api/status').then(r => r.json()).then(s => s.config.feature_flags)")
+        check("settings: the judge switch turns the judge off on the server", flags_off.get("judge") is False and flags_off.get("rag") is True)
+        page.click("#settings-reset")
+        page.wait_for_function("document.querySelector('#settings-msg').textContent.includes('Back to')")
+        check("settings: reset switches the judge back on", page.is_checked("#flag-judge"))
         page.keyboard.press("Escape")
         check("settings: Escape closes the dialog and focus returns", not page.is_visible("#settings-modal") and page.evaluate("document.activeElement.id") == "open-settings")
 

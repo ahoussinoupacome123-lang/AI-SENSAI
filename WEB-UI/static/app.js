@@ -46,6 +46,12 @@
     { title: "Limits", keys: ["num_ctx", "max_retries"], help: {
       num_ctx: "The model's context window in tokens. More uses more memory.", max_retries: "Retries when the model returns invalid JSON." } }
   ];
+  // Feature flags (config.json "feature_flags"): switch a part of the pipeline off for this server session.
+  var FEATURE_FLAGS = [
+    ["rag", "Retrieval (RAG)", "Search the PDF and send the best passages. Off: the model answers without reading the document."],
+    ["judge", "Judge", "A second model call checks each answer against the passages."],
+    ["quote_check", "Quote check", "Check the quote word for word against the passages (plain code, no model)."]
+  ];
   var CONV_KEY = "sensai-convs";
 
   var $ = function (id) { return document.getElementById(id); };
@@ -1077,9 +1083,28 @@
       });
       form.appendChild(box);
     });
+    if (s.editable.feature_flags) {
+      var flags = s.config.feature_flags || {};
+      var fbox = el("div", { class: "group" }, [el("h3", { text: "Features" })]);
+      FEATURE_FLAGS.forEach(function (f) {
+        var input = el("input", { type: "checkbox", id: "flag-" + f[0] });
+        input.checked = flags[f[0]] !== false;
+        fbox.appendChild(el("div", { class: "field" }, [
+          el("div", {}, [el("label", { for: "flag-" + f[0], text: f[1] }), el("div", { class: "help", text: f[2] })]), input]));
+      });
+      form.appendChild(fbox);
+    }
   }
   function applySettings() {
     var s = state.status, overrides = {};
+    if (s.editable.feature_flags && $("flag-" + FEATURE_FLAGS[0][0])) {
+      var current = s.config.feature_flags || {}, next = {}, changedFlag = false;
+      FEATURE_FLAGS.forEach(function (f) {
+        next[f[0]] = $("flag-" + f[0]).checked;
+        if (next[f[0]] !== (current[f[0]] !== false)) changedFlag = true;
+      });
+      if (changedFlag) overrides.feature_flags = next;
+    }
     Object.keys(s.editable).forEach(function (key) {
       var node = $("set-" + key);
       if (!node) return;
