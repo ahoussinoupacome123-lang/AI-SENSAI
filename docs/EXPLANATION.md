@@ -89,7 +89,7 @@ Ollama has a `format` parameter that accepts a JSON schema and constrains the ou
 
 **LLM judge (feature EV1)**: a second model call that reads the question, the retrieved passages and the answer, and returns a verdict: `faithful` (everything is supported by the passages), `partial` (some claims are) or `unfaithful` (contradicted or unsupported), with a one-line reason. It reads the whole answer, so it can catch a real quote that is misread, which the quote check cannot. It is the same small model that wrote the answer, so it can be lenient: that is why we keep the quote check as an independent anchor.
 
-**Disagreement flag**: when the quote check and the judge contradict each other (quote `supported` but judge `unfaithful`, or quote `not supported` but judge `faithful`), the section is marked "Review needed". It is how a wrong refusal is caught.
+**Disagreement flag**: when the quote check and the judge contradict each other (quote `supported` but judge `unfaithful`, or quote `not supported` but judge `faithful`), the section is marked "Review needed". A correct refusal has no quote, so it is not flagged; a refusal is flagged only when the judge says the passages do answer the question. It is how a wrong refusal is caught.
 
 **Thinking mode**: `qwen3:4b` reasons silently before it answers (about 10 seconds). In plain chat we leave that on. When we force a JSON schema we turn it off (`think=false`) and use temperature 0: tested, thinking plus a schema can return an empty answer or hang for minutes.
 

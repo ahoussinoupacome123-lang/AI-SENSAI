@@ -72,4 +72,4 @@ When a user configures a different judge model that has not yet been downloaded 
 
 ### 2.3 What was measured
 
-Only the same-model judge was measured, on the demo document (see [RESULTS.md](RESULTS.md)): it caught one of the two wrong refusals and raised one false alarm on a correct refusal. A comparison with a larger judge is an optional future experiment.
+Only the same-model judge was measured, on the demo document (see [RESULTS.md](RESULTS.md)): it caught one of the two wrong refusals and raised one false alarm on a correct refusal (before the fix that stopped flagging correct refusals). A comparison with a larger judge is an optional future experiment.

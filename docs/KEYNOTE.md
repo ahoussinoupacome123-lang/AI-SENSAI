@@ -100,11 +100,11 @@ Do not hide the weak points: the evaluation asks for an honest assessment. The d
 - The judge is the same small model as the answerer: lenient on some cases. It helps, it is not proof.
 - Speed: about 40 seconds per question on average on a CPU-only laptop (10 to 60 s).
 - Only text PDFs (no OCR), one PDF at a time, and quotes are checked per chunk.
-- A correct refusal shows "Quote check: not supported" because it has no quote, which looks like a failure.
+- A correct refusal still shows "Quote check: not supported" because it has no quote, but it is no longer flagged for review (only a refusal the judge disputes is), and the summary counts refusals apart.
 
 **What we would do differently**
 - Measure the model choice earlier with a fixed question set instead of discovering the thinking-mode problem in the first full run.
-- Give a refusal its own status instead of reusing "not supported".
+- Show "refused" instead of "not supported" on a refusal's quote-check line.
 - Add a second retrieval pass (reranking, feature R2) or a retry with more chunks when the model refuses.
 - Use a larger or non-thinking-tuned model if a GPU is available.
 

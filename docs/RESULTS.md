@@ -33,7 +33,7 @@ Measured on 2026-10-15 with the real chain and the real models: `python -m src.c
 - **Time (CPU only):** **6 min 42 s** for the 9 questions including the ingestion of the 59 chunks, and **5 min 31 s** in a second full run from a fresh clone with the models already warm: about **40 seconds per question** on average, from about 10 s for a simple question to about 60 s when the model refuses and the judge writes a long reason. A 3-question run (`data/questions_demo.txt`) took 31 s including ingestion. A first full run while other programs were using the CPU took 11 min 16 s, so measure on a quiet machine.
 - **Quote check:** 6 supported, 3 not supported (the two wrong refusals and the correct one: a refusal has no quote).
 - **Judge:** 8 faithful, 1 unfaithful. It caught the SSH refusal (its reason says the passages state that SSH uses port 22) and missed the DHCP one.
-- **Review list:** the disagreement flag lists Q2 (a real error) and Q9 (a false alarm: a correct refusal). Q6 is not in that list because both checks agree that it is wrong; it shows as `unfaithful` in the file and in the summary counts.
+- **Review list:** the disagreement flag lists Q2 (a real error) and Q9 (in this recorded run a correct refusal was flagged as a false alarm; since this run, a correct refusal is no longer flagged). Q6 is not in that list because both checks agree that it is wrong; it shows as `unfaithful` in the file and in the summary counts.
 
 **Reproducibility:** the full run was repeated from a fresh clone of the repository (clone, install, run): the answers, the quote-check results, the judge verdicts and the review list were identical to the first run, because the model runs at temperature 0. A separate test harness also gave 6 of 8.
 
@@ -61,7 +61,7 @@ Measured on 2026-10-15 with the real chain and the real models: `python -m src.c
 - 6 of 8 covered questions on one 24-page document is a small sample; the true rate could be anywhere around 60 to 90 %.
 - The model sometimes refuses a question whose answer is in the passages. We did not see it invent an answer, but it is not complete.
 - The judge shares the model and its weaknesses; it caught one of two wrong refusals.
-- A correct refusal shows `Quote check: not supported` (there is no quote), and the disagreement flag then raises a false alarm. A dedicated status for refusals would be clearer.
+- A correct refusal shows `Quote check: not supported` (there is no quote), (this was recorded before the fix: the flag then raised a false alarm). Now a refusal is flagged only when the judge says the passages do answer the question, and the run summary counts refusals apart. Showing "refused" instead of "not supported" in the file would be clearer still.
 - About 40 s per question on average on a CPU-only laptop with 7.6 GiB of RAM (10 to 60 s).
 - Text PDFs only, no OCR.
 
