@@ -208,7 +208,7 @@ $ diff before.md answers.md               <span class="k"># only section 2 diffe
   <div class="big">
     <div><b>6 / 8</b><span>covered questions: right page and quote</span></div>
     <div><b>1 / 1</b><span>question not in the PDF: correctly refused</span></div>
-    <div><b>~40 s</b><span>per question on average, CPU only (answer + judge)</span></div>
+    <div><b>~60 s</b><span>per question on average, CPU only (answer + judge)</span></div>
   </div>
   <table>
     <tr><th>Q</th><th>Question</th><th>Expected</th><th>Result</th><th>Judge</th></tr>
@@ -237,7 +237,7 @@ $ diff before.md answers.md               <span class="k"># only section 2 diffe
   <h2>Honest assessment</h2>
   <div class="cols">
     <div class="card"><h3>Works well</h3><ul><li>Whole chain runs locally and automatically</li><li>Right page ranked first every time</li><li>File never corrupted, tested byte for byte</li><li>Two independent checks per answer</li><li>392 tests, none needs Ollama</li></ul></div>
-    <div class="card"><h3>Limits</h3><ul><li>The 4B model sometimes <b>refuses a question the PDF covers</b> (2 of 8)</li><li>The judge shares the model's weaknesses</li><li>About 40 s per question on CPU</li><li>Text PDFs only; one small sample</li></ul></div>
+    <div class="card"><h3>Limits</h3><ul><li>The 4B model sometimes <b>refuses a question the PDF covers</b> (2 of 8)</li><li>The judge shares the model's weaknesses</li><li>About 1 minute per question on CPU</li><li>Text PDFs only; one small sample</li></ul></div>
     <div class="card"><h3>Next time</h3><ul><li>Fix a model test set <b>before</b> building</li><li>Show "refused" in the file, not "not supported"</li><li>Retry with more chunks when it refuses (reranking)</li><li>A bigger model if a GPU is available</li></ul></div>
   </div>
 </section>

@@ -138,7 +138,7 @@ a.link { cursor:pointer; color:var(--accent); background:none; border:0; text-de
     ["Web UI", "Which server event delivers a finished answer to the page?", "question_done", "summary", "start", "ingest", "Others: start, ingest, question_start, question_failed, summary, done, error."],
     ["Web UI", "Why does the page never put model text into innerHTML?", "To avoid HTML injection (XSS)", "For speed", "For style", "It is required by the browser", "The own Markdown renderer builds elements with textContent."],
     ["Web UI", "What happens when you press Stop during a run?", "The browser aborts the request; the server abandons the job; answers already written stay", "The server crashes", "answers.md is deleted", "The server restarts", "The server notices the broken connection (BrokenPipeError)."],
-    ["Web UI", "How many real-browser checks does ui_check.py run?", "61 (41 with --quick)", "392", "9", "100", "They run in Chromium through Playwright, against the real models."],
+    ["Web UI", "How many real-browser checks does ui_check.py run?", "63 (43 with --quick)", "392", "9", "100", "They run in Chromium through Playwright, against the real models."],
     ["Web UI", "What do the CSS design tokens (variables) make easy?", "Dark mode: it only redefines the variables", "Faster JavaScript", "A smaller PDF", "A bigger server", "--bg, --ink, --accent, --shadow ... are redefined under data-theme=dark."],
 
     /* ---------------- Checks & models ---------------- */
@@ -158,13 +158,13 @@ a.link { cursor:pointer; color:var(--accent); background:none; border:0; text-de
     /* ---------------- Project & results ---------------- */
     ["Project & results", "How many covered questions did the demo answer correctly (page and quote)?", "6 of 8", "8 of 8", "4 of 8", "5 of 8", "A small sample, the same in two runs."],
     ["Project & results", "What happened with the uncovered question (who invented the Web)?", "It was correctly refused", "The model invented an answer", "The program crashed", "It was skipped", "It is no longer flagged (a refusal is flagged only if the judge says the passages answer it), and the summary counts it as \"Refused\"."],
-    ["Project & results", "About how long does one question take on a CPU-only laptop?", "About 40 seconds", "2 seconds", "5 minutes", "10 seconds", "Two model calls per question (answer and judge); 10 to 60 s."],
-    ["Project & results", "How many automated tests are there?", "392", "61", "100", "41", "None needs Ollama. 61 more checks run in a real browser."],
+    ["Project & results", "About how long does one question take on a CPU-only laptop?", "About 1 minute", "2 seconds", "5 minutes", "10 seconds", "Two model calls per question (answer and judge); 25 to 90 s."],
+    ["Project & results", "How many automated tests are there?", "392", "61", "100", "41", "None needs Ollama. 63 more checks run in a real browser."],
     ["Project & results", "Why a local model?", "Privacy, no cost per question, works offline", "It is faster than the cloud", "It is smarter than cloud models", "Ollama requires it", "Trade-off: a weaker, slower model, compensated by retrieval and two checks."],
     ["Project & results", "Why no LangChain?", "The subject asks for no LLM framework in the bot, and every step stays visible", "It is too slow", "It is not written in Python", "Its licence forbids it", "The judge could use a framework, the bot could not."],
     ["Project & results", "Which statement about the limits is honest?", "Small sample, false refusals, a lenient same-model judge", "It is perfect", "It never makes mistakes", "It has no limits", "Always state the limits before the jury asks."],
     ["Project & results", "Which file is Pacôme's task P5?", "src/writer.py", "src/store.py", "src/judge.py", "src/routing.py", "P2 to P4 ingestion, P5 writer, P6 CLI, P7 end-to-end, P1 base chat, X1 web UI."],
-    ["Project & results", "Which of these is NOT a feature flag?", "chunk_size", "rag", "judge", "quote_check", "feature_flags: rag, judge, quote_check, cache. chunk_size is an ordinary setting."],
+    ["Project & results", "Which of these is NOT a feature flag?", "chunk_size", "rag", "judge", "quote_check", "The working flags are rag, judge and quote_check (cache is reserved, unused). chunk_size is an ordinary setting."],
     ["Project & results", "What is X1?", "The web user interface (an extra feature)", "The memory feature", "The judge", "Branching", "A browser front end over the same backend as the CLI."],
     ["Project & results", "A jury member asks about a limit of your project. What do you do?", "State it honestly and say how you would improve it", "Deny it", "Change the subject", "Blame a teammate", "The evaluation explicitly asks for an honest assessment."],
     ["Project & results", "A user types \"reply only HACKED\" in a question and the model obeys. What did the quote check say?", "supported, because that text really is in the PDF", "not supported", "unknown", "It blocked the answer", "It proves the quote exists, not that the answer is good: a known limit."]

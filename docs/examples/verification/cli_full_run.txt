@@ -1,0 +1,45 @@
+# python -m src.cli data/demo.pdf data/questions.txt  (committed config.json, qwen3:4b, CPU only)
+# exit=0 seconds=537  ->  total wall time for 9 questions including reading the PDF
+
+Embedded 16/59 chunks
+Embedded 32/59 chunks
+Embedded 48/59 chunks
+Embedded 59/59 chunks
+Index saved: /tmp/claude-1000/-home-pacome-EPITECH-Tek3-AI-SENSAI/1e0cfd43-6fdb-4aae-9bad-1431cfeaf172/scratchpad/fullrun2/demo.index.json (59 chunks)
+Answers will be written to /tmp/claude-1000/-home-pacome-EPITECH-Tek3-AI-SENSAI/1e0cfd43-6fdb-4aae-9bad-1431cfeaf172/scratchpad/fullrun2/answers.md
+[1/9] Q1: How many bits long is an IPv6 address?
+  supported, page 13, judge: faithful
+[2/9] Q2: What are the four steps of the DHCP process?
+  not supported, page 0, judge: faithful
+[3/9] Q3: How many usable host addresses does a /26 subnet give?
+  supported, page 12, judge: faithful
+[4/9] Q4: Which Wi-Fi channels in the 2.4 GHz band do not overlap?
+  supported, page 22, judge: faithful
+[5/9] Q5: What is the maximum payload size of an Ethernet frame?
+  supported, page 8, judge: faithful
+[6/9] Q6: Which port does SSH use?
+  not supported, page 0, judge: unfaithful
+[7/9] Q7: What does the TTL field do in an IP packet?
+  supported, page 14, judge: faithful
+[8/9] Q8: How long is an 802.1Q VLAN tag?
+  supported, page 10, judge: faithful
+[9/9] Q9: Who invented the World Wide Web?
+  not supported, page 0, judge: faithful
+
+Done: 9/9 questions answered, 0 failed -> /tmp/claude-1000/-home-pacome-EPITECH-Tek3-AI-SENSAI/1e0cfd43-6fdb-4aae-9bad-1431cfeaf172/scratchpad/fullrun2/answers.md
+
+Run complete – 9 question(s) processed.
+
+Quote check:
+  Supported    : 6/7  (86%)
+  Not supported: 1/7  (14%)
+  Refused (not in the document, no quote to check): 2/9
+
+Judge verdicts:
+  Faithful  : 8/9  (89%)
+  Partial   : 0/9  (0%)
+  Unfaithful: 1/9  (11%)
+
+⚠ 2 answer(s) where quote check and judge disagree – review manually:
+  · [not supported / faithful] What are the four steps of the DHCP process?
+  · [not supported / unfaithful] Which port does SSH use?

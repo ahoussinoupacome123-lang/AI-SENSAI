@@ -24,6 +24,16 @@ curl http://localhost:11434        # -> "Ollama is running"
 
 Check names with `ollama list`; tags and sizes come from general knowledge and may differ slightly.
 
+## 2b. Quantization: what "4B" and "2.5 GB" really mean
+- **Parameters.** A model is a very large table of numbers called weights. `qwen3:4b` has **4.0 billion** of them (`ollama show qwen3:4b`: `parameters 4.0B`). `nomic-embed-text` has 137 million.
+- **Precision.** Stored in 16 bits (2 bytes) each, 4 billion weights would take about **8 GB**, which does not fit next to everything else in 7.6 GiB of RAM. **Quantization** stores each weight with fewer bits, trading a little precision for a lot of memory.
+- **What we run.** `ollama show qwen3:4b` reports `quantization Q4_K_M` (checked 2026-11-06 on this machine): roughly 4 to 5 bits per weight, which gives the **~2.5 GB** file. About 3 times less memory than 16-bit, and faster on a CPU because generating text is limited by how fast memory can be read.
+- **What it costs.** A small loss of precision: a quantized model can be slightly worse on hard reasoning and exact wording. For short, grounded answers from given passages the loss is small, and we did not see it as the main source of errors (the main ones are false refusals).
+- **Embedding model.** `nomic-embed-text` is `F16` (no quantization). It is only 137M parameters (about 0.3 GB), so there is nothing to save and we keep full precision for the vectors.
+- **Why 8B was rejected.** Even quantized to 4 bits, an 8B model needs about 5 GB for its weights plus working memory, more than the roughly 4 to 5 GiB free after Windows and WSL.
+- **Context length is a separate knob.** The model supports up to 262,144 tokens, but memory use grows with the context, so we set `num_ctx` to 4096 (see the README, "Context window").
+- **Not measured.** We did not compare Q4_K_M with Q8 or 16-bit versions of the same model: that is a limit of our benchmark, not a claim.
+
 ## 3. The EV1 judge model
 The judge reuses `qwen3:4b` in schema mode (thinking off, temperature 0) with a very short output (a verdict and one sentence). Reasons:
 - Only one chat model is loaded, so no extra RAM and no model-swap delay during the demo.

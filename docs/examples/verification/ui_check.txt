@@ -1,0 +1,67 @@
+# python WEB-UI/e2e/ui_check.py  (real Chromium, real models, 2026-11-06T18:50:02+01:00)
+PASS  boot: no console or script errors
+PASS  boot: the model button shows Ollama ready and the model
+PASS  layout: a 260px sidebar with New chat, history and Settings
+PASS  layout: the empty screen is a centred greeting
+PASS  layout: the composer sits mid-screen on an empty chat  [y=333]
+PASS  layout: the conversation column is at most 768px wide  [736px]
+PASS  style: the composer is a rounded pill  [28px]
+PASS  style: text is 16px, not oversized
+PASS  composer: Send is disabled while the box is empty
+PASS  composer: Send enables when there is text
+PASS  empty screen: suggestion pills are under the composer
+PASS  attach: the + menu offers upload and the demo document
+PASS  attach: choosing a document shows a chip with its page count
+PASS  attach: the placeholder asks about the document
+PASS  attach: the chip can be removed
+PASS  attach: Escape closes the menu
+PASS  upload: the menu opens the file chooser
+PASS  upload: a scanned PDF is refused with the clear message
+PASS  upload: a file that is not a PDF is refused
+PASS  upload: a valid PDF is accepted and attached
+PASS  settings: 8 value fields and 3 feature switches in 4 groups, none for the host
+PASS  settings: human-readable labels
+PASS  settings: an out-of-range value shows the server's message
+PASS  settings: apply then reset round-trips
+PASS  settings: the judge switch turns the judge off on the server
+PASS  settings: reset switches the judge back on
+PASS  settings: Escape closes the dialog and focus returns
+PASS  theme: the toggle switches to a dark palette  [rgb(255, 255, 255) -> rgb(33, 33, 33)]
+PASS  theme: the choice survives a reload
+PASS  sidebar: it can be collapsed and reopened
+PASS  sidebar: reopening brings it back
+PASS  a11y: every button and link has an accessible name
+PASS  a11y: every form field is labelled
+PASS  a11y: page language, a main landmark, a skip link
+PASS  a11y: keyboard focus is visible  [solid]
+PASS  motion: animations are switched off for prefers-reduced-motion  [1e-06s]
+PASS  phone: the sidebar is hidden until opened
+PASS  phone: the composer fits the screen
+PASS  phone: nothing overflows horizontally
+PASS  phone: the hamburger opens the sidebar over a dimmed page
+PASS  phone: tapping the dimmed page closes it
+PASS  phone: touch targets are at least 36px tall
+PASS  file://: the page is styled and explains that it needs its server
+PASS  run: the user message, a live status, the Stop button and one block per question appear at once
+PASS  run: the conversation is saved in the sidebar
+PASS  run: 'Done in' is shown once and Send is back
+PASS  run: block 1 shows the answer, the quote and both checks  [Q1 How many bits long is an IPv6 address? Edit and]
+PASS  run: the summary tiles and file buttons are shown
+PASS  run: a correct refusal is shown calmly, without a review alarm
+PASS  panel: the page link opens the PDF at that page in a side panel  [/files/builtin/demo.pdf#page=13]
+PASS  panel: focus moves into it and Escape closes it, returning focus
+PASS  panel: closed again with focus back on the link
+PASS  file: the answers file opens in the panel
+PASS  re-run: only block 2 changed
+PASS  re-run: only section 2 of the answers file changed
+PASS  stop: the UI says so and Send is back at once
+PASS  chat: the reply is rendered as formatted text, not raw Markdown  [TCP (Transmission Control Protocol) is connection-]
+PASS  chat: the context meter shows the tokens used
+PASS  chat: the page itself does not scroll
+PASS  chat: there is no avatar clutter beside the reply
+PASS  history: chats survive a reload  [3 chats]
+PASS  history: opening an old PDF chat restores its answers
+PASS  history: a chat can be deleted
+
+UI CHECK: 63/63 checks passed
+# exit: 0

@@ -20,6 +20,8 @@ New to the vocabulary? Read `EXPLANATION.md` first.
 
 **Keynote scenario.** A student opens a 20-60 page course PDF and supplies 6-8 exam questions. The answers file fills in one section at a time with pages and quotes. One question is **not covered** by the PDF: the tool says so instead of inventing. One answer is flagged "not supported" by the quote check; the student rewords the question and re-runs only that one, and only that section changes.
 
+**How long does it take, and is that realistic?** On a CPU-only laptop with 7.6 GiB of RAM we measured **5.5 to 9 minutes for the 9 questions** (about 1 minute each, longer when memory is tight; raw results in `docs/examples/verification/`). That is why the scenario is *not* "wait at the screen": Lea starts the run for her 9 questions before dinner and reads `answers.md` afterwards, then re-runs the one question she rewords (about a minute). A cloud model would answer faster, but her notes would leave her computer; for a batch of 9 questions the wait costs her nothing.
+
 ---
 
 ## 2. Feature scope (kept small on purpose)
@@ -48,8 +50,11 @@ The catalogue says a few well-integrated features beat many shallow ones. We kee
 | M4 Artifact and state document | 2 stars | the deliverable is a living file, not a chat transcript |
 | EV1 Automated eval and hallucination detection | 3 stars | highest value for a document Q&A tool: we measure when the answer is not backed by the document |
 | X1 Web UI (added after the first delivery plan) | 1 star | an interface for people who prefer a page to a terminal; reuses the backend, so it adds little risk |
+| M3 External structured memory (added later) | 2 stars | Lea studies over several evenings: she can ask "what did we discuss about subnets?" and get it back. Implemented as JSON sessions plus an embedding index, not a database |
+| X2 Branching, resume (added later) | 2 stars | she can edit a question and explore a variant without losing the first conversation |
+| Feature flags, basic-question shortcut, context budget (extras) | not rated | control and safety for a small local model: switch parts off, answer sums without the model, never overflow the context |
 
-The four first features add up to 8 stars; X1 adds 1 more. The catalogue says a few well-integrated, well-justified features beat many shallow ones, so we stopped there and put the effort into testing and honest limits (see `RESULTS.md`).
+The four first features add up to 8 stars; X1, M3 and X2 added later bring the total to 13. The catalogue says a few well-integrated, well-justified features beat many shallow ones, so the later additions all reuse the same backend and each has user stories and tests (`USER_STORIES.md`); the effort went into testing and honest limits (see `RESULTS.md`).
 
 ### Out of scope (deliberately)
 Interactive chat over the PDF, R2 reranking, export (X3), multi-agent, scheduling, code execution, web search, SQLite. They add risk and little to the demo.

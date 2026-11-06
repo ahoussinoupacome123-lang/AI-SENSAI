@@ -29,7 +29,7 @@ report.pdf ──► ingestion ──► index ──► retrieval ──► JSO
   <b><a href="docs/assets/demo/sensai_demo.mp4">▶ Watch the full demo (86 s, 1080p, narrated, with subtitles)</a></b>
 </p>
 
-The video shows the real web UI. The model's answers are scripted so it could be filmed without Ollama; with `qwen3:4b` each answer takes about 40 seconds instead of 2. How it is made: [scripts/demo_video/README.md](scripts/demo_video/README.md).
+The video shows the real web UI. The model's answers are scripted so it could be filmed without Ollama; with `qwen3:4b` each answer takes about a minute instead of 2 seconds. How it is made: [scripts/demo_video/README.md](scripts/demo_video/README.md).
 
 ## Features
 
@@ -41,14 +41,19 @@ The video shows the real web UI. The model's answers are scripted so it could be
 | **M4** Artifact and state document | `answers.md` is a living file: re-running one question rewrites only its section, every other byte stays identical | 2 stars |
 | **X1** Web UI | `WEB-UI/`: the same work in a browser: upload a PDF, write questions, watch answers stream in with clickable page links, re-run one question, chat with a live token meter, change settings; the backend is unchanged | 1 star |
 | **EV1** Automated eval and hallucination detection | a deterministic quote check plus an LLM judge score each answer; disagreements are flagged for review | 3 stars |
+| **M3** External structured memory | past chat sessions are saved as JSON files in `.sensai/` and indexed with embeddings; asking "what did we discuss earlier?" recalls them (`/memory`, `/recall <query>`). A lighter version than a database | 2 stars |
+| **X2** Branching (resume) | edit a past message in the terminal chat (`/edit`, `/branches`, `/switch`) or in the web UI and fork a new branch; the original history is kept | 2 stars |
+| **Feature flags** | switch retrieval, the judge or the quote check on or off from `config.json`, the command line or the web settings | extra |
+| **Basic questions** | arithmetic and greetings are answered directly (safe evaluator, no model call) instead of "the document does not cover this" | extra |
+| **Context budget** | the prompt is trimmed to the context window (`num_ctx`, never hard-coded) and the web UI shows how much of it a chat uses | extra |
 
-Why these five (and X1 on top, for people who prefer a page to a terminal): a small local model cannot read a whole PDF (context window), so we retrieve (R1); our code must use the answer, so it comes as JSON (T5); the deliverable is a file that is refined question by question (M4); and a Q&A tool is only useful if you know when not to trust it (EV1). User stories: [docs/USER_STORIES.md](docs/USER_STORIES.md).
+Why these five (and X1 on top, for people who prefer a page to a terminal): a small local model cannot read a whole PDF (context window), so we retrieve (R1); our code must use the answer, so it comes as JSON (T5); the deliverable is a file that is refined question by question (M4); and a Q&A tool is only useful if you know when not to trust it (EV1). Memory (M3) and branching (X2) were added for people who come back to the same material over several sessions, and the flags, the basic-question shortcut and the context budget make the pipeline controllable and safe on a small model. Every feature has user stories and tests: [docs/USER_STORIES.md](docs/USER_STORIES.md).
 
 ## Requirements
 
 - Python 3.10 or newer, and `git`.
 - [Ollama](https://ollama.com) with two models: `qwen3:4b` (chat, answers, judge, about 2.5 GB) and `nomic-embed-text` (embeddings, about 0.3 GB).
-- About 4 GB of free RAM. No GPU needed (CPU only works; expect roughly 40 seconds per question, between 10 and 60).
+- About 4 GB of free RAM. No GPU needed (CPU only works; expect roughly 1 minute per question, 25 to 90 seconds depending on free RAM; the first question also loads the model).
 - Python packages (see `requirements.txt`): `requests`, `numpy`, `pypdf`, `pytest`.
 
 ## Setup
@@ -92,7 +97,7 @@ The repository ships a demo document: `data/demo.pdf`, 24 pages of course notes 
 python -m src.cli data/demo.pdf data/questions.txt
 ```
 
-It ingests the PDF once (a minute at most), then answers the questions one by one. Expect **5 to 7 minutes** on a CPU laptop (about 40 seconds per question on average). The result is `data/answers.md`; a real one is kept in [docs/examples/answers_demo.md](docs/examples/answers_demo.md). To score a run against the known answers:
+It ingests the PDF once (a minute at most), then answers the questions one by one. Expect **6 to 10 minutes** on a CPU laptop (measured 8 min 57 s, about 1 minute per question; see [docs/examples/verification/](docs/examples/verification/)). The result is `data/answers.md`; a real one is kept in [docs/examples/answers_demo.md](docs/examples/answers_demo.md). To score a run against the known answers:
 
 ```bash
 python scripts/e2e_check.py data/answers.md data/expected_answers.md
@@ -187,13 +192,30 @@ python -m src.ingestion data/demo.pdf --chunks   # how it is cut into chunks
 | `chat_model` | `qwen3:4b` | model for the chatbot and the answers |
 | `judge_model` | `qwen3:4b` | model for the EV1 judge |
 | `embed_model` | `nomic-embed-text` | model that turns text into vectors |
-| `num_ctx` | `4096` | context window, kept small to save RAM |
+| `num_ctx` | `4096` | context window in tokens, kept small to save RAM (see below) |
 | `chunk_size`, `chunk_overlap` | `800`, `150` | characters per chunk and overlap between chunks |
 | `top_k` | `4` | chunks given to the model for each question |
 | `max_retries` | `2` | retries when the model returns invalid JSON |
+| `feature_flags` | `rag`, `judge`, `quote_check` all `true` | switch a part of the pipeline off (see below). `cache` is reserved and has no effect yet |
 | `*_prompt_file` | `prompts/...` | prompts live in files, not in the code |
 
 Changing the chunk settings changes the index: rerun with `--force`.
+
+### Turning a feature on or off
+
+Three parts of the pipeline can be switched off, to see what each one adds or to go faster. Use whichever you prefer:
+
+| Where | How |
+|---|---|
+| Config file | `"feature_flags": {"rag": true, "judge": false, "quote_check": true}` in `config.json` |
+| Command line | `python -m src.cli data/demo.pdf data/questions.txt --no-judge` (also `--no-rag`, `--no-quote-check`) |
+| Web interface | Settings, group **Features**: three switches (Retrieval, Judge, Quote check), for the current server session; **Reset** goes back to `config.json` |
+
+`rag` off sends no passages to the model (it answers from its own knowledge, with no sourcing). `judge` off skips the second model call (about half the time per question) and writes `Judge: disabled`. `quote_check` off marks the status `skipped`. Tests: `tests/test_feature_flags.py`.
+
+### Context window
+
+A model can only read `num_ctx` tokens at once (4096 here, about 3,000 words), and a bigger window costs memory. The size is never hard-coded: it comes from `config.json`, or, if you remove it, it is asked from Ollama (`/api/show`), with 2048 as the last fallback (`pipeline.get_context_limit`). Before each question `budget_chunks_for_context` adds up the passages and **drops the lowest-ranked ones that would not fit** (3.5 characters per token, 15 % safety margin), so critical text is never silently cut in the middle. In the web chat a meter under the composer shows the tokens used out of `num_ctx`, using the counts Ollama reports. Tests: `tests/test_dynamic_context.py`.
 
 ## Project layout
 
@@ -236,7 +258,7 @@ Measured on `data/demo.pdf` (24 pages, 9 questions), full details in [docs/RESUL
 | Covered questions answered with the right page and quote | **6 of 8** |
 | Question not in the PDF correctly refused | **1 of 1** |
 | Invented answers | none in this run |
-| Time | about 40 s per question on a CPU-only laptop (5 min 31 s and 6 min 42 s for the 9 questions in two clean runs; a 3-question run takes about 30 s) |
+| Time | about 1 minute per question on a CPU-only laptop with 7.6 GiB of RAM (5 min 31 s, 6 min 42 s and 8 min 57 s for the 9 questions in three full runs; it slows down when RAM is nearly full) |
 | Automated tests | 392, none needs Ollama |
 
 What does not work well, said honestly:
@@ -277,6 +299,7 @@ What does not work well, said honestly:
 | [docs/EVALUATION.md](docs/EVALUATION.md) | why the judge uses plain HTTP calls (LLM framework exemption) and which model the judge is |
 | [docs/RISKS_AND_REQUIREMENTS.md](docs/RISKS_AND_REQUIREMENTS.md) | project risk matrix (mitigations) and verified minimum vs recommended requirements |
 | [docs/SCREENSHOTS.md](docs/SCREENSHOTS.md) | screenshot bank of CLI, branching, memory, green test suites and Web UI dashboard |
+| [docs/examples/verification/](docs/examples/verification/) | saved results of the checks: the full 9-question run with its time, the score, pytest by test name, the browser checks, and the negative cases |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | how to work on the project: rules, workflow, commits, tests, measuring prompt changes |
 | [docs/KEYNOTE.md](docs/KEYNOTE.md) | the keynote: slide script, live demo script, fallback, questions to prepare |
 | [docs/assets/demo/sensai_demo.mp4](docs/assets/demo/sensai_demo.mp4) | 86-second narrated product demo of the web UI, with feature callouts, music and subtitles (real interface, scripted model output; how it is made: [scripts/demo_video/README.md](scripts/demo_video/README.md)) |

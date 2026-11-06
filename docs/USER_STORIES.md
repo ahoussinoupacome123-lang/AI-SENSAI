@@ -134,6 +134,24 @@ Users: **Student** (prepares exams from course PDFs), **Researcher** (extracts a
 - CLI commands `/memory` lists archived sessions and `/recall <query>` performs semantic search with similarity scores.
 - Server exposes `GET /api/memory/sessions` and `POST /api/memory/search` for web integration.
 
+## Feature flags – turn a part of the pipeline on or off
+
+**US-FLAG.1** As a developer evaluating the tool, I want to switch retrieval, the judge or the quote check on or off without editing code, so that I can measure what each part adds.
+- `config.json` `feature_flags`, the options `--no-rag`, `--no-judge`, `--no-quote-check`, and three switches in the web Settings all change the same behaviour.
+- With the judge off the section says `Judge: disabled`; with the quote check off the status is `skipped`.
+
+**US-FLAG.2** As a student short of time, I want to turn the judge off, so that a run takes about half the time when I only need a first pass.
+- Nothing else changes: the answer, page and quote are still written.
+
+## Context window – never overflow the model
+
+**US-CTX.1** As a student with a long PDF, I want the tool to keep the prompt inside the model's context window, so that critical passages are not silently lost or the request does not fail.
+- The window size comes from `config.json` (`num_ctx`) or from Ollama, never from a constant in the code.
+- Passages that would not fit are dropped from the lowest-ranked end, and a warning is produced.
+
+**US-CTX.2** As a web user chatting with the model, I want to see how much of the context window the conversation uses, so that I know when the model starts forgetting the beginning.
+- A meter under the composer shows tokens used out of `num_ctx`.
+
 ## Traceability: which tests cover which stories
 
 | Feature | Stories | Automated tests | Manual check |
@@ -147,6 +165,8 @@ Users: **Student** (prepares exams from course PDFs), **Researcher** (extracts a
 | EV1 | US-EV1.1, US-EV1.2, US-EV1.3 | `tests/test_m5_judge.py`, `tests/test_m6_eval_summary.py`, `tests/test_cli.py` | `Judge:` and `Review needed` lines in `answers.md` |
 | Fallback (D6) | US-GEN.1, US-GEN.2 | `tests/test_general_fallback.py` (8 unit tests for math, greetings, judge, and pipeline integration) | ask `1 + 1 = combien` or `hello` |
 | Branching (X2) | US-X2.1, US-X2.2 | `tests/test_branching.py` (8 unit tests for history truncation, branching, CLI commands, and state preservation) | `/edit` in CLI or edit icon in Web UI |
+| Feature flags | US-FLAG.1, US-FLAG.2 | `tests/test_feature_flags.py` (6 tests: config file, command line, web overrides) | `--no-judge` on the CLI; Settings, Features in the web UI |
+| Context window | US-CTX.1, US-CTX.2 | `tests/test_dynamic_context.py` (7 tests: limit from config or Ollama, trimming), `tests/test_ollama_events.py` (token counts) | the meter under the web composer |
 | Memory (M3) | US-M3.1, US-M3.2 | `tests/test_cross_session_memory.py` (8 unit tests for persistence, indexing, cosine recall, CLI injection, and API endpoints) | `/memory` and `/recall` in CLI or query cross-session facts |
 
 

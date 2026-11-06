@@ -306,7 +306,7 @@ refusal       + unfaithful  -> disagreement   (the judge says the passages do an
 <tr><td><code>WEB-UI/index.html</code></td><td>The page skeleton: sidebar, top bar, conversation, composer, settings dialog, side panel</td></tr>
 <tr><td><code>WEB-UI/static/app.js</code></td><td>All the behavior in the browser (about 1,190 lines of plain JavaScript)</td></tr>
 <tr><td><code>WEB-UI/static/style.css</code></td><td>The look: colors, spacing, animations, dark mode, phone layout</td></tr>
-<tr><td><code>WEB-UI/e2e/ui_check.py</code></td><td>61 real-browser checks (Chromium through Playwright)</td></tr>
+<tr><td><code>WEB-UI/e2e/ui_check.py</code></td><td>63 real-browser checks (Chromium through Playwright)</td></tr>
 </table>
 <h3>10.2 The routes (the "menu" of the server)</h3>
 <table>
@@ -432,9 +432,9 @@ refusal       + unfaithful  -> disagreement   (the judge says the passages do an
 <div><b>50</b><span>characters minimum, else "scanned PDF"</span></div>
 <div><b>6 / 8</b><span>covered questions answered right (page + quote)</span></div>
 <div><b>1 / 1</b><span>uncovered question correctly refused</span></div>
-<div><b>~40 s</b><span>per question on a CPU laptop</span></div>
+<div><b>~60 s</b><span>per question on a CPU laptop</span></div>
 <div><b>392</b><span>automated tests (no Ollama needed)</span></div>
-<div><b>61</b><span>real-browser checks of the web UI</span></div>
+<div><b>63</b><span>real-browser checks of the web UI</span></div>
 <div><b>50 MB</b><span>upload limit in the web UI</span></div>
 <div><b>11434</b><span>Ollama's port; the web UI uses 8000</span></div>
 <div><b>0 / 1 / 130</b><span>CLI exit codes</span></div>
@@ -444,8 +444,8 @@ refusal       + unfaithful  -> disagreement   (the judge says the passages do an
 <!-- ============================================================ -->
 <h2 id="limits" data-toc="Honest limits">Honest assessment: works, limits, what I would change</h2>
 <div class="grid">
-<div class="card"><h4>Works well</h4><ul><li>The whole chain is local and automatic: PDF in, sourced <code>answers.md</code> out.</li><li>Retrieval ranked the right page first in every test.</li><li>The file is never corrupted (atomic write, failed answers skipped).</li><li>Two independent checks and a disagreement flag.</li><li>392 tests + 61 browser checks.</li></ul></div>
-<div class="card"><h4>Current limits</h4><ul><li>6 of 8 covered questions right: a small sample.</li><li>The 4B model sometimes refuses a question the PDF covers.</li><li>The judge is the same small model: lenient.</li><li>A refusal still prints "Quote check: not supported" (no quote), and a wrong refusal is only caught when the judge notices it.</li><li>Slow: ~40 s per question on CPU. Text PDFs only, no OCR.</li><li>It misses unit conversion (MW to kW) and cross-language questions; a user can order the model to say something and the quote check will not notice.</li></ul></div>
+<div class="card"><h4>Works well</h4><ul><li>The whole chain is local and automatic: PDF in, sourced <code>answers.md</code> out.</li><li>Retrieval ranked the right page first in every test.</li><li>The file is never corrupted (atomic write, failed answers skipped).</li><li>Two independent checks and a disagreement flag.</li><li>392 tests + 63 browser checks.</li></ul></div>
+<div class="card"><h4>Current limits</h4><ul><li>6 of 8 covered questions right: a small sample.</li><li>The 4B model sometimes refuses a question the PDF covers.</li><li>The judge is the same small model: lenient.</li><li>A refusal still prints "Quote check: not supported" (no quote), and a wrong refusal is only caught when the judge notices it.</li><li>Slow: ~1 min per question on CPU. Text PDFs only, no OCR.</li><li>It misses unit conversion (MW to kW) and cross-language questions; a user can order the model to say something and the quote check will not notice.</li></ul></div>
 <div class="card"><h4>What I would do differently</h4><ul><li>Measure the model choice earlier with a fixed question set.</li><li>Show "refused" instead of "not supported" on a refusal's quote-check line.</li><li>Store the chunk settings inside the index and rebuild automatically.</li><li>Add reranking, or retry with more chunks when the model refuses.</li><li>One Ollama client for everything, including the terminal chat.</li><li>A larger model if a GPU is available.</li></ul></div>
 </div>
 <div class="box say"><span class="tag">Say it</span><p>"We would rather show you the limits than hide them: 6 of 8 covered questions right, one refusal correct, and a flag that no longer cries wolf on correct refusals. The checks do not prove the answer is right, they make mistakes visible."</p></div>
@@ -469,7 +469,7 @@ refusal       + unfaithful  -> disagreement   (the judge says the passages do an
 <details><summary>How do you make sure answers.md is never corrupted?</summary><p>Two things. We never let the model touch the file: our code finds the section by its markers and replaces only that block. And we write atomically: a temporary file in the same folder, then <code>os.replace</code>, which is instant. A failed answer raises an error before anything is written. The tests compare the file byte for byte before and after.</p></details>
 <details><summary>What happens if the model fails or Ollama stops in the middle of a run?</summary><p>The failing question is reported ("failed: ...") and skipped, the run continues, and the summary lists it. If Ollama is down the error says "Start it with: ollama serve". Ctrl+C keeps what is already written. The exit code is 1 if any question failed, 130 on Ctrl+C.</p></details>
 <details><summary>Why a JSON file for the index and not a vector database?</summary><p>A few hundred chunks: a database adds setup for no benefit, and a JSON file is readable and easy to test. The cosine search over a few hundred 768-number vectors takes milliseconds with numpy. For millions of chunks we would switch.</p></details>
-<details><summary>What is a feature flag, where do you set it?</summary><p>An on/off switch for a component (<code>rag</code>, <code>judge</code>, <code>quote_check</code>, <code>cache</code>). You set it in <code>config.json</code> under <code>feature_flags</code>, with a command-line flag (<code>--no-judge</code>, <code>--no-rag</code>, <code>--no-quote-check</code>), or in the web UI settings. Useful to show what each part adds.</p></details>
+<details><summary>What is a feature flag, where do you set it?</summary><p>An on/off switch for a part of the pipeline (<code>rag</code>, <code>judge</code>, <code>quote_check</code>). You set it in <code>config.json</code> under <code>feature_flags</code>, with a command-line flag (<code>--no-judge</code>, <code>--no-rag</code>, <code>--no-quote-check</code>), or with the three switches in the web UI Settings (group Features, for the current server session). Useful to show what each part adds. Be honest: <code>config.json</code> also contains a <code>cache</code> flag, but it is reserved and nothing uses it yet.</p></details>
 <details><summary>Your chat command crashed once. What happened?</summary><p>(Section 9.) The documented command <code>python src/chat.py</code> had broken when memory was added, because the file could not find the <code>src</code> package when run as a script. The tests imported the module instead of running it, so they missed it. I wrote a failing test that runs it as a real script, then fixed it. Now 392 tests pass.</p></details>
 
 <h3>The web interface</h3>
@@ -477,7 +477,7 @@ refusal       + unfaithful  -> disagreement   (the judge says the passages do an
 <details><summary>What is SSE and why not just wait for the answer?</summary><p>A run takes minutes. Server-Sent Events keep one HTTP request open and let the server push small messages (<code>question_done</code> ...), so each answer appears as soon as it is ready and the progress bar moves. A normal request would show nothing for minutes.</p></details>
 <details><summary>Is your server safe to expose?</summary><p>By default it only listens on 127.0.0.1. It checks the Host header (against DNS rebinding) and the Origin header (against cross-site requests), never builds file paths from user text (documents are referred to by id and a strict name pattern), limits sizes (upload 50 MB), whitelists the settings the page may change, and when shared it requires a secret key in a HttpOnly SameSite cookie, compared in constant time. It has no real login, so we say clearly not to expose it to an untrusted network without the key.</p></details>
 <details><summary>What if two people use it at the same time?</summary><p>One model job at a time: a lock returns 409 "Another run or chat is in progress" to the second. A laptop cannot run two jobs at once.</p></details>
-<details><summary>How did you test the interface?</summary><p>Two levels: 48 tests of the server over real HTTP with the model faked, and 61 checks in a real Chromium browser with Playwright against the real models (layout, dark mode, phone width, running the demo PDF, stopping, settings, chat).</p></details>
+<details><summary>How did you test the interface?</summary><p>Two levels: 48 tests of the server over real HTTP with the model faked, and 63 checks in a real Chromium browser with Playwright against the real models (layout, dark mode, phone width, running the demo PDF, stopping, settings, chat).</p></details>
 
 <h3>Checks and honesty</h3>
 <details><summary>How do you know an answer is not invented?</summary><p>The model must give a word-for-word quote. Plain code checks the quote exists in the retrieved text; a second model call judges the whole answer. The quote check proves the quote exists but not that the reading is right; the judge reads everything but is a small lenient model. Where they disagree we flag the answer for a human.</p></details>
@@ -499,8 +499,8 @@ refusal       + unfaithful  -> disagreement   (the judge says the passages do an
 <p><b>Phase A (once per PDF):</b> <code>extract_pages</code> (text per page, scan check &lt; 50 chars) → <code>chunk_pages</code> (800 / 150, never crosses a page) → <code>embed</code> (batches of 16, 768 numbers) → <code>demo.index.json</code> (only saved when complete; reused if newer than the PDF; <code>--force</code> after changing chunk settings).</p>
 <p><b>Phase B (per question):</b> embed question → cosine top 4 → prompt with passages → JSON <code>{answer, page, quote}</code> (think off, temperature 0, 2 retries) → quote check → judge (reason first) → <code>upsert_section</code> (markers, atomic) → summary + exit code (0 / 1 / 130).</p>
 <p><b>Writer:</b> sections between <code>&lt;!-- sensai:section N --&gt;</code> markers; replace / insert in order / append; temp file + <code>os.replace</code>; failed answer never written.</p>
-<p><b>Web UI:</b> stdlib server, SSE events, one job at a time (409), localhost only, Host + Origin checks, no raw paths, 50 MB cap, <code>--allow-host</code> + <code>--key</code> to share; plain JS, tokens in CSS, 61 browser checks.</p>
-<p><b>Numbers:</b> 24 pages · 59 chunks · 768 dims · top 4 · 4096 ctx · 3 attempts · 6/8 right · 1/1 refusal · ~40 s/question · 392 tests.</p>
+<p><b>Web UI:</b> stdlib server, SSE events, one job at a time (409), localhost only, Host + Origin checks, no raw paths, 50 MB cap, <code>--allow-host</code> + <code>--key</code> to share; plain JS, tokens in CSS, 63 browser checks.</p>
+<p><b>Numbers:</b> 24 pages · 59 chunks · 768 dims · top 4 · 4096 ctx · 3 attempts · 6/8 right · 1/1 refusal · ~60 s/question · 392 tests.</p>
 <p><b>Limits:</b> small sample · false refusals · lenient same-model judge · refusal shows "not supported" · text PDFs only · quote check proves existence, not correctness.</p>
 <p><b>Always say:</b> what it does, why that choice, what it cannot do.</p>
 </div>

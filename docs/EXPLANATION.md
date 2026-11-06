@@ -44,6 +44,8 @@ Everything else in the project is built around this idea.
 
 **Token**: a piece of a word (about 3/4 of an English word). Models count text in tokens.
 
+**Quantization**: storing the model's numbers (its weights) with fewer bits, for example 4 instead of 16, so the model takes about 3 times less memory and runs faster on a CPU, at the price of a small loss of precision. `qwen3:4b` is `Q4_K_M` (about 2.5 GB instead of about 8 GB). See `MODEL_SELECTION.md`, section 2b.
+
 **Streaming**: the model sends its answer piece by piece, so you see it appear progressively instead of waiting for the end.
 
 **History**: the list of earlier messages. The model has no memory, so on each turn we re-send the whole conversation.
@@ -166,4 +168,4 @@ Each answer has a short version to say out loud and the reason behind it.
 
 **7. Why a local model?**
 *Say it:* the document stays on the machine, it costs nothing per question, and it works offline.
-*Behind it:* course notes, contracts or reports can be confidential, and a cloud API would receive the text. Honest trade-off: a 4B model is weaker than a large cloud model and slow on a laptop CPU (about 40 s per question). We compensate with retrieval, which hands the model exactly the text it needs, and with the two checks, which catch many of its mistakes.
+*Behind it:* course notes, contracts or reports can be confidential, and a cloud API would receive the text. Honest trade-off: a 4B model is weaker than a large cloud model and slow on a laptop CPU (about 1 minute per question). We compensate with retrieval, which hands the model exactly the text it needs, and with the two checks, which catch many of its mistakes.

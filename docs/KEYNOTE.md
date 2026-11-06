@@ -2,13 +2,13 @@
 
 What the subject asks for: open with a concrete scenario, demonstrate the features live in that scenario (one coherent system, not disconnected demos), explain the technical choices (what we considered, what we ruled out), and close with an honest assessment. A live system that crashes is a preparation failure, so a fallback is ready for everything that depends on the model.
 
-Suggested length: 12 to 15 minutes plus questions. The live demo is the longest part. A full run of the 9 questions takes 5 to 7 minutes, so on stage we run a short list of 3 questions chosen in advance (`data/questions_demo.txt`, about 3 minutes) and show the full 9-question result from the recorded run, **including its two errors**.
+Suggested length: 12 to 15 minutes plus questions. The live demo is the longest part. A full run of the 9 questions takes 6 to 10 minutes, so on stage we run a short list of 3 questions chosen in advance (`data/questions_demo.txt`, about 3 minutes) and show the full 9-question result from the recorded run, **including its two errors**.
 
 ## 1. The scenario (the opening, 30 seconds)
 
 > "Lea is a networking student. The exam is in two days and she has 24 pages of course notes: a PDF. She has nine questions to prepare. She could read everything again, or paste it into a chatbot, but the notes are private, and a chatbot that has not read them will happily invent an answer. What she wants is one file with an answer to each question, the page it came from, and a quote she can check."
 
-That is exactly what Sensai produces, and it runs on her laptop with no cloud and no cost.
+That is exactly what Sensai produces, and it runs on her laptop with no cloud and no cost. She does not sit and wait: she starts the run (about 9 minutes for the 9 questions), goes to dinner, and reads the file afterwards; re-running one reworded question takes about a minute.
 
 ## 2. Slide outline (13 slides, SENSAI style: blue background, white text, orange accent)
 
@@ -23,7 +23,7 @@ That is exactly what Sensai produces, and it runs on her laptop with no cloud an
 | 7 | M4: A living document (2 stars) | `answers.md` is the deliverable; re-run one question and only its section changes | the `diff` |
 | 8 | EV1: Do we trust the answer? (3 stars) | quote check (exact, cheap) plus judge (reads the whole answer); where they disagree we flag it | two checks, one flag |
 | 9 | LIVE DEMO | see section 3 | terminal |
-| 10 | What we measured | 6 of 8 covered questions right (page and quote), the uncovered question refused, about 40 s per question | the results table |
+| 10 | What we measured | 6 of 8 covered questions right (page and quote), the uncovered question refused, about 1 minute per question | the results table |
 | 11 | What we tried and ruled out | thinking mode, quote-first schema, reasoning-first answers, yes/no check | the table in section 5 |
 | 12 | Honest assessment | what works, what does not, what we would do differently | three columns |
 | 13 | Questions | | the 7 prepared questions |
@@ -98,7 +98,7 @@ Do not hide the weak points: the evaluation asks for an honest assessment. The d
 - 6 of 8 covered questions answered correctly on the demo PDF (75 %), the same in two runs and in a separate harness; a small sample
 - The 4B model sometimes refuses a question that the PDF does cover, even though retrieval found the right passage. It did not invent answers in our runs, but it is not complete.
 - The judge is the same small model as the answerer: lenient on some cases. It helps, it is not proof.
-- Speed: about 40 seconds per question on average on a CPU-only laptop (10 to 60 s).
+- Speed: about 1 minute per question on average on a CPU-only laptop (25 to 90 s).
 - Only text PDFs (no OCR), one PDF at a time, and quotes are checked per chunk.
 - A correct refusal still shows "Quote check: not supported" because it has no quote, but it is no longer flagged for review (only a refusal the judge disputes is), and the summary counts refusals apart.
 
