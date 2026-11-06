@@ -19,6 +19,18 @@ report.pdf ──► ingestion ──► index ──► retrieval ──► JSO
                                                                                          faithful?)
 ```
 
+## Demo video
+
+<p align="center">
+  <a href="docs/assets/demo/sensai_demo.mp4">
+    <img src="docs/assets/demo/sensai_demo_preview.gif" alt="Sensai web UI answering questions about a PDF, with sourced quotes, page links and checks" width="800">
+  </a>
+  <br>
+  <b><a href="docs/assets/demo/sensai_demo.mp4">▶ Watch the full demo (86 s, 1080p, narrated, with subtitles)</a></b>
+</p>
+
+The video shows the real web UI. The model's answers are scripted so it could be filmed without Ollama; with `qwen3:4b` each answer takes about 40 seconds instead of 2. How it is made: [scripts/demo_video/README.md](scripts/demo_video/README.md).
+
 ## Features
 
 | Feature | What it does here | Catalogue rating |
@@ -69,7 +81,7 @@ curl http://localhost:11434                          # must print: Ollama is run
 
 Check the installation (no Ollama needed for the tests):
 ```bash
-python -m pytest -q          # 386 tests (all the ways to test the project: docs/TESTING.md)
+python -m pytest -q          # 392 tests (all the ways to test the project: docs/TESTING.md)
 ```
 
 ## Quick start (the demo)
@@ -124,18 +136,22 @@ python -m src.cli <pdf>                  [--force] [--output FILE] [--config FIL
 
 Exit code 0 when every question was answered, 1 when a question failed or an input was wrong, 130 after Ctrl+C. The index is saved next to the PDF as `<name>.index.json` and reused on the next run. A failed question never stops the run and never damages the file.
 
-The end of a run prints a summary:
+The end of a run prints a summary. For the saved run in [docs/examples/answers_demo.md](docs/examples/answers_demo.md) it reads:
 ```text
 Done: 9/9 questions answered, 0 failed -> data/answers.md
 
 Quote check:
-  Supported    : 7/9  (78%)
-  Not supported: 2/9  (22%)
+  Supported    : 6/7  (86%)
+  Not supported: 1/7  (14%)
+  Refused (not in the document, no quote to check): 2/9
 Judge verdicts:
-  Faithful  : 9/9  (100%)
+  Faithful  : 8/9  (89%)
 ...
-⚠ 1 answer(s) where quote check and judge disagree – review manually:
+⚠ 2 answer(s) where quote check and judge disagree – review manually:
+  · [not supported / faithful] What are the four steps of the DHCP process?
+  · [not supported / unfaithful] Which port does SSH use?
 ```
+A refusal ("The document does not cover this.") has no quote, so it is counted apart from the quote check. It is flagged only when the judge says the passages do answer the question, as for the SSH question here.
 
 **Re-run one question** and see that only its section changes. Reword it first (the model is deterministic, so an unchanged question gives an identical section):
 ```bash
@@ -196,8 +212,8 @@ src/
 prompts/            system, answer, judge and chat prompts
 data/               demo.pdf, questions.txt (9), questions_demo.txt (3, for the live demo), expected_answers.md, demo_course.txt (the source text)
 WEB-UI/             X1: server.py (standard library) and static/ (the page); see WEB-UI/README.md
-scripts/            e2e_check.py (score a run), build_demo_pdf.py (rebuild and verify the demo PDF)
-tests/              386 automated tests (no Ollama needed)
+scripts/            e2e_check.py (score a run), build_demo_pdf.py (rebuild and verify the demo PDF), demo_video/ (builds the demo video)
+tests/              392 automated tests (no Ollama needed)
 docs/               explanation, architecture, user stories, testing guide, results, keynote, model choice
 ```
 
@@ -221,7 +237,7 @@ Measured on `data/demo.pdf` (24 pages, 9 questions), full details in [docs/RESUL
 | Question not in the PDF correctly refused | **1 of 1** |
 | Invented answers | none in this run |
 | Time | about 40 s per question on a CPU-only laptop (5 min 31 s and 6 min 42 s for the 9 questions in two clean runs; a 3-question run takes about 30 s) |
-| Automated tests | 386, none needs Ollama |
+| Automated tests | 392, none needs Ollama |
 
 What does not work well, said honestly:
 - The 4B model sometimes **refuses a question that the PDF does cover** (2 of the 8 here), even though retrieval found the right passage. It did not invent answers, but it is not complete.
@@ -253,7 +269,7 @@ What does not work well, said honestly:
 | [docs/MODEL_SELECTION.md](docs/MODEL_SELECTION.md) | hardware, models and why |
 | [docs/RESULTS.md](docs/RESULTS.md) | measured results, what worked and what did not |
 | [WEB-UI/README.md](WEB-UI/README.md) | the web interface: how to run it, what it does, its API and security |
-| [docs/TESTING.md](docs/TESTING.md) | every test you can run: 386 automated tests, manual checks, failure tests, quality scoring |
+| [docs/TESTING.md](docs/TESTING.md) | every test you can run: 392 automated tests, manual checks, failure tests, quality scoring |
 | [docs/PRIVACY_POLICY.md](docs/PRIVACY_POLICY.md) | 100% local privacy guarantee, zero-egress charter and GDPR compliance |
 | [docs/ETHICS_AND_LEGAL.md](docs/ETHICS_AND_LEGAL.md) | copyright exceptions (EU TDM, CPI, Fair Use), exam ethics and user disclaimer |
 | [docs/BUSINESS_IMPACT.md](docs/BUSINESS_IMPACT.md) | economic impact, 11 hrs/wk time savings model and institutional ROI analysis |
@@ -263,6 +279,7 @@ What does not work well, said honestly:
 | [docs/SCREENSHOTS.md](docs/SCREENSHOTS.md) | screenshot bank of CLI, branching, memory, green test suites and Web UI dashboard |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | how to work on the project: rules, workflow, commits, tests, measuring prompt changes |
 | [docs/KEYNOTE.md](docs/KEYNOTE.md) | the keynote: slide script, live demo script, fallback, questions to prepare |
+| [docs/assets/demo/sensai_demo.mp4](docs/assets/demo/sensai_demo.mp4) | 86-second narrated product demo of the web UI, with feature callouts, music and subtitles (real interface, scripted model output; how it is made: [scripts/demo_video/README.md](scripts/demo_video/README.md)) |
 | [docs/slides/keynote.html](docs/slides/keynote.html) | the slide deck (open in a browser; arrows to move, O for an overview, F for fullscreen) |
 
 ## Team

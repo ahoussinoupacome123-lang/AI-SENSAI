@@ -4,7 +4,7 @@ Everything you can run to check Sensai, from a one-second automated check to a f
 
 | Level | What | Needs Ollama | Time |
 |---|---|---|---|
-| **A. Automated tests** | 386 pytest tests | no | about 1 s |
+| **A. Automated tests** | 392 pytest tests | no | about 1 s |
 | **B. Manual checks without a model** | inspect a PDF, error messages, demo data, scoring a saved run | no | seconds |
 | **C. Manual checks with Ollama** | chatbot, short demo, full run, re-running one question, settings | yes | 30 s to 7 min |
 | **D. Failure tests** | server down, corrupt index, scanned PDF, wrong inputs | mostly no | seconds |
@@ -30,7 +30,7 @@ The commands below use the committed settings (`chunk_size` 800, `chunk_overlap`
 ## A. Automated tests (no Ollama, about 1 second)
 
 ```bash
-python -m pytest -q                  # expected: 386 passed
+python -m pytest -q                  # expected: 392 passed
 python -m pytest -q tests/test_writer.py        # one file
 python -m pytest -q -k quote                    # tests whose name contains "quote"
 python -m pytest -x -q                          # stop at the first failure
@@ -49,9 +49,9 @@ They never call Ollama: the model client and the store are replaced by fakes, an
 | `test_m3_m4_pipeline.py` | 18 | prompt building, top-k, JSON validation, retries, `AnswerError` | R1, T5 |
 | `test_quote_check.py` | 22 | exact, case, spaces, curly quotes, dashes, ligatures, empty quote, stitched quote | EV1 |
 | `test_m5_judge.py` | 12 | verdict parsing, `unknown` after a bad verdict, prompt content | EV1 |
-| `test_m6_eval_summary.py` | 9 | counts, percentages, disagreement list, empty run | EV1 |
-| `test_writer.py` | 32 | one section per question, only that section changes (hashes), order, hand-edited text kept, atomic write, file permissions, failed answers refused | M4 |
-| `test_cli.py` | 32 | wiring, failed question does not stop the run, `--only`, `--force`, input errors, judge optional, disagreement flag, Ctrl+C, exit codes | all |
+| `test_m6_eval_summary.py` | 13 | counts, percentages, disagreement list, refusals counted apart, empty run | EV1 |
+| `test_writer.py` | 33 | one section per question, only that section changes (hashes), order, hand-edited text kept, atomic write, file permissions, failed answers refused, disputed refusal explained | M4 |
+| `test_cli.py` | 33 | wiring, failed question does not stop the run, `--only`, `--force`, input errors, judge optional, disagreement flag (not for a correct refusal), Ctrl+C, exit codes | all |
 | `test_integration_fixes.py` | 4 | schema mode turns thinking off, retrieved chunks reach the judge, judge schema order | T5, EV1 |
 | `test_ollama_events.py` | 10 | the streaming chat events with token usage, early close, model list, errors (used by the web UI) | X1 |
 | `test_web_ui.py` | 85 | the web server over real HTTP with a faked model: routes, traversal, Host/Origin checks, uploads, serving PDFs, settings validation, a streamed run, `only`, errors, the one-job lock, disconnects, chat | X1 |

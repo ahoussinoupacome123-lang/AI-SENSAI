@@ -1,0 +1,307 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Sensai demo compositor</title>
+<!--
+  Draws one frame of the demo video for any time t: window.setup(manifest, timeline) once,
+  then await window.renderAt(t) per frame (render.py screenshots each one). Everything is a pure
+  function of t, so frames are deterministic. Brand: the keynote's navy, orange and mint.
+-->
+<style>
+  :root { --navy:#060b18; --ink:#fff; --muted:#aab4c8; --orange:#ff5b37; --mint:#00e5a0; --line:rgba(255,255,255,.12); }
+  * { box-sizing:border-box; }
+  html, body { margin:0; width:1920px; height:1080px; overflow:hidden; background:var(--navy); color:var(--ink);
+               font-family:Inter,"Segoe UI",Roboto,Arial,sans-serif; }
+  #bg { position:absolute; inset:0; background:url(../../docs/slides/img/01-code.jpg) center/cover; filter:blur(18px) saturate(.8);
+        opacity:.22; transform:scale(1.1); }
+  #bg2 { position:absolute; inset:0; background:radial-gradient(ellipse at 30% 20%, rgba(0,229,160,.10), transparent 55%),
+         radial-gradient(ellipse at 80% 90%, rgba(255,91,55,.12), transparent 50%), linear-gradient(180deg, rgba(6,11,24,.55), rgba(6,11,24,.92)); }
+  #grid { position:absolute; inset:0; background-image:linear-gradient(rgba(255,255,255,.035) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(255,255,255,.035) 1px, transparent 1px); background-size:64px 64px; }
+  #world { position:absolute; left:0; top:0; width:1920px; height:1080px; transform-origin:0 0; }
+  #win { position:absolute; left:240px; top:71px; width:1440px; height:938px; border-radius:14px; overflow:hidden;
+         box-shadow:0 30px 90px rgba(0,0,0,.65), 0 0 0 1px rgba(255,255,255,.10); background:#212121; }
+  #bar { height:38px; background:#2a2a2e; display:flex; align-items:center; padding:0 16px; gap:8px; border-bottom:1px solid rgba(0,0,0,.4); }
+  #bar i { width:12px; height:12px; border-radius:50%; display:block; }
+  #url { margin-left:22px; flex:0 0 420px; height:24px; border-radius:7px; background:#1c1c1f; color:#b9b9c0;
+         font:13px "JetBrains Mono",monospace; display:flex; align-items:center; padding:0 12px; gap:8px; }
+  #url b { color:var(--mint); font-weight:500; }
+  #screen { position:relative; width:1440px; height:900px; }
+  #screen img { position:absolute; inset:0; width:1440px; height:900px; }
+  #ui { position:absolute; inset:0; pointer-events:none; }
+  svg#links { position:absolute; inset:0; width:1920px; height:1080px; overflow:visible; }
+  .ring { position:absolute; border:3px solid var(--mint); border-radius:12px;
+          box-shadow:0 0 0 6px rgba(0,229,160,.16), 0 0 28px rgba(0,229,160,.45); }
+  .card { position:absolute; width:440px; padding:20px 24px 22px 28px; border-radius:16px; background:rgba(6,11,24,.93);
+          border:1px solid var(--line); box-shadow:0 18px 50px rgba(0,0,0,.55); overflow:hidden; }
+  .card::before { content:""; position:absolute; left:0; top:0; bottom:0; width:5px; background:var(--orange); }
+  .card .k { font:600 15px "JetBrains Mono",monospace; color:var(--mint); letter-spacing:.04em; margin-bottom:8px; }
+  .card .t { font-weight:800; font-size:30px; line-height:1.15; letter-spacing:-.01em; }
+  .card .d { margin-top:10px; font-size:20px; line-height:1.4; color:#c9d1e0; }
+  #cursor { position:absolute; width:34px; height:34px; left:0; top:0; filter:drop-shadow(0 3px 6px rgba(0,0,0,.6)); }
+  .ripple { position:absolute; border-radius:50%; border:3px solid var(--orange); }
+  #topband { position:absolute; left:0; right:0; top:0; height:120px;
+             background:linear-gradient(180deg, rgba(6,11,24,.94) 35%, rgba(6,11,24,0)); }
+  #chapter { position:absolute; left:64px; top:22px; display:flex; align-items:baseline; gap:14px; font-weight:700; font-size:24px; }
+  #chapter .n { font:700 18px "JetBrains Mono",monospace; color:var(--orange); }
+  #brand { position:absolute; right:64px; top:22px; font-weight:900; font-size:26px; letter-spacing:.02em; }
+  #brand span, .mark span { color:var(--orange); }
+  #progress { position:absolute; left:0; bottom:0; height:5px; background:linear-gradient(90deg, var(--orange), #ff8a5c); }
+  .full { position:absolute; inset:0; display:flex; flex-direction:column; justify-content:center; padding:0 150px; }
+  .full .bgimg { position:absolute; inset:0; background:url(../../docs/slides/img/01-code.jpg) center/cover; }
+  .full .shade { position:absolute; inset:0; background:linear-gradient(90deg, rgba(6,11,24,.97) 30%, rgba(6,11,24,.6)); }
+  .full > :not(.bgimg):not(.shade) { position:relative; }
+  .mark { font-weight:900; font-size:200px; letter-spacing:-.02em; line-height:1; }
+  .tag { font-size:42px; margin-top:26px; color:#e9eef8; }
+  .tag b { color:var(--mint); font-weight:600; }
+  .small { font:500 22px "JetBrains Mono",monospace; color:var(--muted); margin-top:36px; letter-spacing:.06em; }
+  .chips { display:flex; flex-wrap:wrap; gap:14px; margin-top:44px; max-width:1300px; }
+  .chip { padding:12px 20px; border-radius:999px; border:1px solid rgba(255,255,255,.18); background:rgba(255,255,255,.06);
+          font-size:24px; font-weight:600; }
+  .chip b { font-family:"JetBrains Mono",monospace; color:var(--mint); margin-right:10px; font-weight:600; }
+  .cmd { margin-top:40px; font:500 28px "JetBrains Mono",monospace; background:rgba(0,0,0,.45); border:1px solid var(--line);
+         border-radius:12px; padding:16px 24px; width:max-content; }
+  .cmd span { color:var(--mint); }
+</style>
+</head>
+<body>
+<div id="bg"></div><div id="bg2"></div><div id="grid"></div>
+<div id="world">
+  <div id="win">
+    <div id="bar"><i style="background:#ff5f57"></i><i style="background:#febc2e"></i><i style="background:#28c840"></i>
+      <div id="url"><b>&#9679;</b> 127.0.0.1:8000 &nbsp;&middot;&nbsp; local</div></div>
+    <div id="screen"><img id="imgA" alt=""><img id="imgB" alt=""></div>
+  </div>
+</div>
+<div id="ui">
+  <div id="topband"></div>
+  <svg id="links"></svg>
+  <div id="rings"></div><div id="cards"></div><div id="ripples"></div>
+  <svg id="cursor" viewBox="0 0 24 24"><path d="M4 2 L4 19 L8.6 14.8 L11.6 21.4 L14.6 20 L11.7 13.6 L18 13.4 Z" fill="#fff" stroke="#060b18" stroke-width="1.4" stroke-linejoin="round"/></svg>
+  <div id="chapter"><span class="n"></span><span class="l"></span></div>
+  <div id="brand">SENSAI<span>_</span></div>
+  <div id="progress"></div>
+</div>
+<div class="full" id="intro">
+  <div class="bgimg"></div><div class="shade"></div>
+  <div class="mark" id="introMark"></div>
+  <div class="tag" id="introTag">&lt; Ask a PDF, get <b>sourced answers</b>. Locally. /&gt;</div>
+  <div class="small" id="introSmall">PRODUCT DEMO &middot; WEB UI</div>
+</div>
+<div class="full" id="outro">
+  <div class="bgimg"></div><div class="shade"></div>
+  <div class="mark" style="font-size:150px">SENSAI<span>_</span></div>
+  <div class="tag">Every answer with its <b>page</b> and a <b>word-for-word quote</b>.</div>
+  <div class="chips" id="chips"></div>
+  <div class="cmd"><span>$</span> python WEB-UI/server.py</div>
+  <div class="small">100% LOCAL &middot; OLLAMA + QWEN3:4B &middot; NO LLM FRAMEWORK &middot; NO DATA LEAVES YOUR MACHINE</div>
+</div>
+<script>
+(function () {
+  "use strict";
+  var M, T, imgA = document.getElementById("imgA"), imgB = document.getElementById("imgB");
+  var WIN_X = 240, WIN_Y = 71 + 38;               // where the screenshot's (0,0) sits in the world
+  var $ = function (id) { return document.getElementById(id); };
+
+  // ---------- easing and interpolation ----------
+  function clamp(x, a, b) { return Math.max(a, Math.min(b, x)); }
+  function ease(x) { x = clamp(x, 0, 1); return x < .5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2; }
+  function out(x) { x = clamp(x, 0, 1); return 1 - Math.pow(1 - x, 3); }
+  function lerp(a, b, k) { return a + (b - a) * k; }
+  // fade in over `fi` from t0, out over `fo` before t1
+  function window01(t, t0, t1, fi, fo) { return Math.min(out((t - t0) / fi), out((t1 - t) / fo)); }
+
+  // ---------- manifest lookups ----------
+  function shot(ref) {                         // "home", "run#5", "run#-1"
+    var p = ref.split("#"), e = M[p[0]];
+    if (!Array.isArray(e)) return e;
+    var i = p.length > 1 ? parseInt(p[1], 10) : e.length - 1;
+    return e[(i + e.length) % e.length];
+  }
+  function box(ref) {                          // "results_top:quote1" -> [x, y, w, h] in screenshot px
+    var p = ref.split(":"), b = shot(p[0]).boxes[p[1]];
+    if (!b) throw new Error("no box " + ref);
+    return b;
+  }
+  function center(ref) { var b = box(ref); return [b[0] + b[2] / 2, b[1] + b[3] / 2]; }
+
+  // ---------- screens ----------
+  function frameAt(seg, local) {                // which image a segment shows `local` seconds in
+    var e = M[seg.burst];
+    if (!seg.burst) return M[seg.shot].file;
+    if (seg.dur) return e[clamp(Math.floor(local / seg.dur * e.length), 0, e.length - 1)].file;
+    var pick = e[0];
+    for (var i = 0; i < e.length; i++) if (e[i].t * (seg.speed || 1) <= local) pick = e[i];
+    return pick.file;
+  }
+  function screens(t) {
+    var segs = T.screens, cur = 0;
+    for (var i = 0; i < segs.length; i++) if (segs[i].at <= t) cur = i;
+    var s = segs[cur], top = frameAt(s, t - s.at), under = null, k = 1;
+    if (s.fade && cur > 0 && t - s.at < s.fade) {
+      var p = segs[cur - 1];
+      under = frameAt(p, s.at - p.at);
+      k = ease((t - s.at) / s.fade);
+    }
+    return { top: top, under: under, k: k };
+  }
+  function setImg(img, src) {
+    if (!src) { img.style.opacity = 0; return Promise.resolve(); }
+    if (img.getAttribute("src") === src) return Promise.resolve();
+    img.setAttribute("src", src);
+    return img.decode().catch(function () {});
+  }
+
+  // ---------- camera ----------
+  function camValue(key) {
+    var f = key.focus ? (typeof key.focus === "string" ? center(key.focus) : key.focus) : [720, 450];
+    return { z: key.z, x: WIN_X + f[0], y: WIN_Y + f[1] };
+  }
+  function camera(t) {
+    var keys = T.camera, prev = camValue({ z: 1 }), cur = prev;
+    for (var i = 0; i < keys.length; i++) {
+      if (keys[i].at > t) break;
+      var target = camValue(keys[i]), k = ease((t - keys[i].at) / (keys[i].dur || 1.2));
+      cur = { z: lerp(prev.z, target.z, k), x: lerp(prev.x, target.x, k), y: lerp(prev.y, target.y, k) };
+      prev = k >= 1 ? target : cur;
+    }
+    return cur;
+  }
+  function toScreen(cam, cx, cy) {             // screenshot px -> video px
+    return [(WIN_X + cx - cam.x) * cam.z + 960, (WIN_Y + cy - cam.y) * cam.z + 540];
+  }
+
+  // ---------- cursor ----------
+  function cursor(t, cam) {
+    var keys = T.cursor, pos = null, vis = 0, ripples = [];
+    for (var i = 0; i < keys.length; i++) {
+      var c = keys[i], dest = typeof c.to === "string" ? center(c.to) : c.to, start = c.at - (c.move || .8);
+      if (c.hide) { if (t >= c.at) vis = 1 - out((t - c.at) / .3); continue; }
+      if (t < start) { if (!pos) { pos = dest; vis = 0; } break; }
+      var from = pos || dest;
+      if (!pos) vis = out((t - start) / .3); else vis = 1;
+      pos = t < c.at ? [lerp(from[0], dest[0], ease((t - start) / (c.move || .8))), lerp(from[1], dest[1], ease((t - start) / (c.move || .8)))] : dest;
+      if (c.click && t >= c.at && t < c.at + .6) ripples.push({ p: dest, k: (t - c.at) / .6 });
+    }
+    var el = $("cursor");
+    if (!pos || vis <= 0) { el.style.opacity = 0; $("ripples").innerHTML = ""; return; }
+    var s = toScreen(cam, pos[0], pos[1]), press = ripples.length && ripples[0].k < .25 ? .85 : 1;
+    el.style.opacity = vis;
+    el.style.transform = "translate(" + (s[0] - 6) + "px," + (s[1] - 3) + "px) scale(" + press + ")";
+    $("ripples").innerHTML = ripples.map(function (r) {
+      var q = toScreen(cam, r.p[0], r.p[1]), d = 20 + 70 * out(r.k);
+      return '<div class="ripple" style="left:' + (q[0] - d / 2) + 'px;top:' + (q[1] - d / 2) + 'px;width:' + d + 'px;height:' + d +
+             'px;opacity:' + (1 - r.k) + '"></div>';
+    }).join("");
+  }
+
+  // ---------- callouts ----------
+  function callouts(t, cam) {
+    var rings = "", cards = "", links = "";
+    T.callouts.forEach(function (c, idx) {
+      var t1 = c.at + c.dur;
+      if (t < c.at || t > t1) return;
+      var a = window01(t, c.at, t1, .45, .35), b = box(c.target), pad = c.pad == null ? 8 : c.pad;
+      var p0 = toScreen(cam, b[0], b[1]), p1 = toScreen(cam, b[0] + b[2], b[1] + b[3]);
+      var r = { x: p0[0] - pad, y: p0[1] - pad, w: p1[0] - p0[0] + 2 * pad, h: p1[1] - p0[1] + 2 * pad };
+      var grow = 1 + .08 * (1 - out((t - c.at) / .5));
+      if (!c.noRing) rings += '<div class="ring" style="left:' + r.x + 'px;top:' + r.y + 'px;width:' + r.w + 'px;height:' + r.h +
+        'px;opacity:' + a + ';transform:scale(' + grow + ')"></div>';
+      // card position next to the ring
+      var W = 440, H = c.h || 190, gap = 64, x, y, side = c.side || "right";
+      if (side === "right") { x = r.x + r.w + gap; y = r.y + r.h / 2 - H / 2; }
+      if (side === "left") { x = r.x - gap - W; y = r.y + r.h / 2 - H / 2; }
+      if (side === "top") { x = r.x + r.w / 2 - W / 2; y = r.y - gap - H; }
+      if (side === "bottom") { x = r.x + r.w / 2 - W / 2; y = r.y + r.h + gap; }
+      if (c.dx) x += c.dx; if (c.dy) y += c.dy;
+      x = clamp(x, 48, 1920 - 48 - W); y = clamp(y, 80, 1080 - 48 - H);
+      var slide = (1 - out((t - c.at) / .5)) * (side === "left" ? -30 : side === "right" ? 30 : 0);
+      var slideY = (1 - out((t - c.at) / .5)) * (side === "top" ? -24 : side === "bottom" ? 24 : 0);
+      cards += '<div class="card" id="card' + idx + '" style="left:' + (x + slide) + 'px;top:' + (y + slideY) + 'px;opacity:' + a + '">' +
+        (c.kicker ? '<div class="k">' + c.kicker + '</div>' : "") + '<div class="t">' + c.title + '</div>' +
+        (c.text ? '<div class="d">' + c.text + '</div>' : "") + '</div>';
+      // connector from the card edge to the ring edge, drawn in as it appears
+      var cx = side === "right" ? x : side === "left" ? x + W : x + W / 2;
+      var cy = side === "top" ? y + H : side === "bottom" ? y : y + H / 2;
+      var tx = side === "right" ? r.x + r.w : side === "left" ? r.x : clamp(cx, r.x + 20, r.x + r.w - 20);
+      var ty = side === "top" ? r.y : side === "bottom" ? r.y + r.h : clamp(cy, r.y + 14, r.y + r.h - 14);
+      var k = out((t - c.at - .15) / .45), ex = lerp(cx, tx, k), ey = lerp(cy, ty, k);
+      if (!c.noRing) links += '<g opacity="' + a + '"><line x1="' + cx + '" y1="' + cy + '" x2="' + ex + '" y2="' + ey +
+        '" stroke="#00e5a0" stroke-width="3" stroke-dasharray="2 7" stroke-linecap="round"/>' +
+        '<circle cx="' + ex + '" cy="' + ey + '" r="' + 6 * k + '" fill="#00e5a0"/><circle cx="' + cx + '" cy="' + cy + '" r="5" fill="#ff5b37"/></g>';
+    });
+    $("rings").innerHTML = rings; $("cards").innerHTML = cards; $("links").innerHTML = links;
+  }
+
+  // ---------- chapter, intro, outro ----------
+  function chapter(t) {
+    var cur = null;
+    T.chapters.forEach(function (c) { if (c.at <= t) cur = c; });
+    var el = $("chapter");
+    if (!cur || t > T.outro) { el.style.opacity = 0; return; }
+    var k = out((t - cur.at) / .5);
+    el.querySelector(".n").textContent = cur.n;
+    el.querySelector(".l").textContent = cur.label;
+    el.style.opacity = Math.min(k, 1 - out((t - (T.outro - .4)) / .4));
+    el.style.transform = "translateY(" + (1 - k) * -14 + "px)";
+  }
+  function intro(t) {
+    var el = $("intro"), word = "SENSAI";
+    el.style.opacity = 1 - out((t - T.introEnd + .8) / .8);
+    el.style.display = t < T.introEnd ? "flex" : "none";
+    $("introMark").innerHTML = word.split("").map(function (ch, i) {
+      var k = out((t - .25 - i * .09) / .6);
+      return '<span style="display:inline-block;color:#fff;opacity:' + k + ';transform:translateY(' + (1 - k) * 60 + 'px)">' + ch + "</span>";
+    }).join("") + '<span style="color:var(--orange);opacity:' + (t > 1.1 && Math.floor(t * 2.2) % 2 === 0 ? 1 : t > 1.1 ? .15 : 0) + '">_</span>';
+    var a = out((t - 1.3) / .7), b = out((t - 1.9) / .7);
+    $("introTag").style.cssText = "opacity:" + a + ";transform:translateY(" + (1 - a) * 20 + "px)";
+    $("introSmall").style.cssText = "opacity:" + b;
+    var bg = el.querySelector(".bgimg");
+    bg.style.transform = "scale(" + (1.12 - .06 * clamp(t / T.introEnd, 0, 1)) + ")";
+  }
+  function outro(t) {
+    var el = $("outro");
+    if (t < T.outro) { el.style.display = "none"; return; }
+    el.style.display = "flex";
+    el.style.opacity = out((t - T.outro) / .9) * (1 - out((t - (T.end - 1.2)) / 1.2));
+    var kids = el.children;
+    for (var i = 2; i < kids.length; i++) {
+      var k = out((t - T.outro - .3 - (i - 2) * .25) / .7);
+      kids[i].style.opacity = k;
+      kids[i].style.transform = "translateY(" + (1 - k) * 24 + "px)";
+    }
+    el.querySelectorAll(".chip").forEach(function (c, i) {
+      var k = out((t - T.outro - 1.0 - i * .12) / .5);
+      c.style.opacity = k; c.style.transform = "scale(" + (.9 + .1 * k) + ")";
+    });
+  }
+
+  window.setup = function (manifest, timeline) {
+    M = manifest; T = timeline;
+    $("chips").innerHTML = T.features.map(function (f) { return '<div class="chip"><b>' + f[0] + "</b>" + f[1] + "</div>"; }).join("");
+    var all = [];
+    Object.keys(M).forEach(function (k) { (Array.isArray(M[k]) ? M[k] : [M[k]]).forEach(function (e) { all.push(e.file); }); });
+    return Promise.all(all.map(function (f) { var im = new Image(); im.src = f; return im.decode().catch(function () {}); }))
+      .then(function () { return document.fonts.ready; });
+  };
+
+  window.renderAt = function (t) {
+    var sc = screens(t), cam = camera(t);
+    // the window rises in as the intro clears
+    var rise = out((t - (T.introEnd - .9)) / 1.1);
+    $("world").style.transform = "translate(" + (960 - cam.z * cam.x) + "px," + (540 - cam.z * cam.y + (1 - rise) * 120) + "px) scale(" + cam.z + ")";
+    $("world").style.opacity = rise;
+    $("progress").style.width = (1920 * clamp(t / T.end, 0, 1)) + "px";
+    $("brand").style.opacity = t > T.introEnd && t < T.outro ? 1 : 0;
+    $("topband").style.opacity = rise * (t < T.outro ? 1 : 0);
+    cursor(t, cam); callouts(t, cam); chapter(t); intro(t); outro(t);
+    return Promise.all([setImg(imgA, sc.under || sc.top), setImg(imgB, sc.under ? sc.top : null)]).then(function () {
+      imgA.style.opacity = 1;
+      imgB.style.opacity = sc.under ? sc.k : 0;
+    });
+  };
+})();
+</script>
+</body>
+</html>

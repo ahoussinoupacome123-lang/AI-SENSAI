@@ -241,6 +241,18 @@ def test_summary_counts_quote_check_and_judge(env, monkeypatch, capsys):
     assert "Faithful  : 1/3" in out and "Partial   : 1/3" in out and "Unfaithful: 1/3" in out
 
 
+def test_correct_refusal_is_not_flagged_for_review(env, monkeypatch, capsys):
+    monkeypatch.setattr(pipeline, "retrieve_and_answer", lambda q, r, c: {
+        "question": q, "answer": "The document does not cover this.", "page": 0, "quote": "",
+        "status": "not supported"})
+    monkeypatch.setattr(judge, "evaluate", lambda *a: {"verdict": "faithful", "reason": "no passage answers it"})
+    run(env)
+    out = capsys.readouterr().out
+    assert "**Review needed:**" not in env["out"].read_text()
+    assert "disagree" not in out.replace("No disagreements", "")
+    assert "Refused (not in the document, no quote to check): 3/3" in out
+
+
 def test_progress_lines_are_printed(env, capsys):
     run(env)
     out = capsys.readouterr().out

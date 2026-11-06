@@ -21,6 +21,8 @@ import stat
 import tempfile
 from pathlib import Path
 
+from src import eval_summary
+
 HEADER = "# Answers\n\n"
 SECTION_RE = re.compile(
     r"<!-- sensai:section (\d+) -->\n.*?<!-- /sensai:section \1 -->\n\n?", re.DOTALL
@@ -76,7 +78,10 @@ def render_section(index, checked):
         f"**Judge:** {judge}",
     ]
     if checked.get("disagreement"):
-        lines.append("**Review needed:** the quote check and the judge disagree.")
+        if eval_summary.is_refusal(checked):
+            lines.append("**Review needed:** the model says the document does not cover this, but the judge says the passages answer it.")
+        else:
+            lines.append("**Review needed:** the quote check and the judge disagree.")
     lines.append(f"<!-- /sensai:section {index} -->")
     return "\n".join(lines) + "\n\n"
 

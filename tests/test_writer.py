@@ -187,6 +187,12 @@ def test_missing_judge_verdict_says_not_evaluated(out):
     assert "**Judge:** not evaluated" in out.read_text()
 
 
+def test_disputed_refusal_explains_why(out):
+    upsert_section(out, 1, checked(1, answer="The document does not cover this.", quote="", page=0,
+                                   status="not supported", verdict="unfaithful", disagreement=True))
+    assert "the judge says the passages answer it" in out.read_text()
+
+
 def test_disagreement_flag_is_shown(out):
     upsert_section(out, 1, checked(1, disagreement=True))
     assert "**Review needed:**" in out.read_text()
