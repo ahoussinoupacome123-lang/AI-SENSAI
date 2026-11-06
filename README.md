@@ -241,7 +241,7 @@ Measured on `data/demo.pdf` (24 pages, 9 questions), full details in [docs/RESUL
 
 What does not work well, said honestly:
 - The 4B model sometimes **refuses a question that the PDF does cover** (2 of the 8 here), even though retrieval found the right passage. It did not invent answers, but it is not complete.
-- The judge is the same small model as the answerer. It caught one of the two wrong refusals; the quote-check versus judge disagreement flag lists answers worth reading, and also raises one false alarm for a correct refusal (a refusal has no quote).
+- The judge is the same small model as the answerer. It caught one of the two wrong refusals; the quote-check versus judge disagreement flag lists answers worth reading, and a correct refusal is no longer flagged (a refusal has no quote; only a refusal the judge disputes is).
 - Only text PDFs (no OCR), one PDF at a time, CPU speed, and a small sample: 6 of 8 on one document is a result, not a guarantee.
 
 ## Troubleshooting
@@ -284,4 +284,8 @@ What does not work well, said honestly:
 
 ## Team
 
-Pacome, Murchid and Fati (Epitech Tek3, module G-AIA-500).
+Abdul Murchid Aboudoumamatarouwere, Fatih Olaofe and Pacôme Yaébec Ahoussinou (Epitech Tek3, module G-AIA-500).
+
+## License
+
+The code and documents are released under the [MIT License](LICENSE). The photos used as slide backgrounds are public domain or CC0 images from Wikimedia Commons and keep their own terms, credited in [docs/slides/img/CREDITS.md](docs/slides/img/CREDITS.md).
