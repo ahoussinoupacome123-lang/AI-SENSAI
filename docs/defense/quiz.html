@@ -1,0 +1,347 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Sensai defense quiz</title>
+<link rel="stylesheet" href="defense.css">
+<style>
+.qwrap { max-width:820px; margin:0 auto; padding:1.4rem 1.2rem 5rem; }
+.topics { display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:.8rem; margin:1rem 0; }
+.topic { text-align:left; background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:.9rem 1rem; box-shadow:var(--shadow); }
+.topic:hover { border-color:var(--accent); }
+.topic b { display:block; font-size:1.02rem; } .topic span { font-size:.82rem; color:var(--muted); }
+.meter { height:6px; border-radius:6px; background:var(--soft); margin-top:.55rem; overflow:hidden; } .meter i { display:block; height:100%; background:var(--ok); width:0; transition:width .4s; }
+.big { display:flex; gap:.6rem; flex-wrap:wrap; margin:1rem 0; }
+.big .btn { padding:.7rem 1.2rem; font-size:1rem; }
+.qhead { display:flex; justify-content:space-between; align-items:center; color:var(--muted); font-size:.9rem; margin:1.2rem 0 .4rem; gap:1rem; }
+.prog { height:6px; background:var(--soft); border-radius:6px; overflow:hidden; flex:1; } .prog i { display:block; height:100%; background:var(--accent); transition:width .3s; }
+.qtext { font-size:1.3rem; line-height:1.45; margin:.6rem 0 1rem; font-weight:600; }
+.opt { display:flex; gap:.8rem; align-items:flex-start; width:100%; text-align:left; background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:.75rem 1rem; margin:.5rem 0; font-size:1rem; line-height:1.45; }
+.opt:hover:not(:disabled) { border-color:var(--accent); background:var(--accent-soft); }
+.opt kbd { flex:none; margin-top:.1rem; }
+.opt.right { border-color:var(--ok); background:var(--ok-soft); } .opt.wrong { border-color:var(--bad); background:var(--bad-soft); }
+.opt:disabled { cursor:default; }
+.expl { margin:1rem 0; }
+.card.big-card { min-height:12rem; display:flex; flex-direction:column; justify-content:center; padding:1.4rem 1.5rem; }
+.tpill { font-size:.72rem; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); }
+.score { font-size:3rem; font-weight:800; line-height:1; }
+.row2 { display:flex; gap:.6rem; flex-wrap:wrap; margin:1rem 0; }
+.bar-row { display:grid; grid-template-columns:9rem 1fr 3.2rem; gap:.6rem; align-items:center; font-size:.9rem; margin:.3rem 0; }
+.miss { border-left:3px solid var(--bad); padding:.2rem 0 .2rem .9rem; margin:1rem 0; }
+.miss .a { color:var(--ok); font-weight:600; }
+a.link { cursor:pointer; color:var(--accent); background:none; border:0; text-decoration:underline; padding:0; }
+</style>
+</head>
+<body>
+<div class="bar" id="bar"></div>
+<div class="qwrap">
+<div id="app"></div>
+</div>
+
+<script src="defense.js"></script>
+<script>
+(function () {
+  "use strict";
+
+  /* Question bank. Each entry: [topic, question, CORRECT answer, wrong 1, wrong 2, wrong 3, explanation].
+     Options are shuffled when shown. */
+  var BANK = [
+    /* ---------------- Basics ---------------- */
+    ["Basics", "What does RAG stand for?", "Retrieval-Augmented Generation", "Random Answer Generator", "Rapid AI Gateway", "Recursive Algorithm Graph", "First retrieve the relevant passages, then generate an answer from them. Like an open-book exam where we hand over only the right pages."],
+    ["Basics", "Why can't we give the whole 24-page PDF to the model?", "It does not fit in the context window (4096 tokens)", "Ollama refuses PDF files", "PDFs are always encrypted", "The model can only read images", "The demo PDF is about 5,500 words; the window is about 3,000. A bigger window also needs more RAM and is slower, so we search first and send only the best chunks."],
+    ["Basics", "What is an embedding?", "A list of numbers that stands for the meaning of a text", "A compressed copy of the PDF", "A copy of the model", "A password for Ollama", "Similar meanings give similar numbers, so we can find a passage by meaning, not by exact words."],
+    ["Basics", "How many numbers does one nomic-embed-text vector contain?", "768", "4096", "59", "128", "Every chunk and every question becomes 768 numbers."],
+    ["Basics", "A cosine similarity close to 1 means...", "the two texts have very similar meaning", "the texts are identical word for word", "the texts are unrelated", "the vector is empty", "Cosine measures how much two vectors point the same way: 1 = same direction, 0 = unrelated."],
+    ["Basics", "How many chunks are retrieved per question by default (top_k)?", "4", "1", "8", "All of them", "config.json has top_k 4: the four closest chunks are given to the model."],
+    ["Basics", "What is a token?", "A small piece of text (about 3 to 4 characters) that the model reads", "A password for Ollama", "A page number", "A PDF object", "Models count in tokens, not words. The context window is measured in tokens."],
+    ["Basics", "What does Ollama do?", "Runs models on your own computer and offers them on a local web address", "Hosts models in the cloud", "Converts PDFs to text", "Trains new models", "Our code calls it on http://localhost:11434, like a phone call."],
+    ["Basics", "What does the context window limit?", "How much text the model can look at at once (prompt plus answer)", "How many PDFs can be uploaded", "How many questions are in a file", "The size of answers.md", "Ours is 4096 tokens (num_ctx in config.json)."],
+    ["Basics", "Why is the temperature set to 0 in schema mode?", "To make the answers as deterministic as possible", "To make the model more creative", "To speed up the embeddings", "To save RAM", "Same input gives the same answer: it makes results reproducible and tests meaningful."],
+    ["Basics", "What does a JSON schema do in this project?", "It forces the model's answer into a fixed shape: answer, page, quote", "It encrypts the answer", "It translates the answer", "It compresses the prompt", "Our code needs three separate fields to write the file, so the shape is forced and then validated."],
+    ["Basics", "Why is thinking turned off (think=false) when a schema is used?", "With a schema and thinking the model returned empty answers or hung", "Thinking costs money", "qwen3 does not support thinking", "The schema forbids long text", "Tested on qwen3:4b: empty content after 40+ seconds, versus clean JSON in 2 to 8 seconds with thinking off."],
+
+    /* ---------------- Ingestion ---------------- */
+    ["Ingestion", "What does extract_pages return?", "A list of (page_number, text) pairs, numbering from 1", "One big string", "A list of vectors", "A dictionary of chunks", "Pages stay separate so we can later say \"page 13\"."],
+    ["Ingestion", "How does the code decide a PDF is scanned (no text)?", "The whole document has fewer than 50 characters of text", "The file is larger than 50 MB", "The PDF contains no pictures", "Page 1 is empty", "MIN_TEXT_CHARS = 50. A scan is only pictures: pypdf finds almost no text, and NoTextError is raised."],
+    ["Ingestion", "What happens with a page that has no text?", "It is kept with an empty string so the other page numbers stay correct", "It is deleted and the pages are renumbered", "It stops the program", "It is replaced by OCR", "Deleting it would shift every later page number and break the citations."],
+    ["Ingestion", "Which check does extract_pages do first?", "That the file exists", "That it has at least 50 characters", "That it is encrypted", "That it has 24 pages", "Order: exists, starts with %PDF-, encrypted, readable by pypdf, enough text."],
+    ["Ingestion", "How does the code recognise a real PDF?", "Its first 5 bytes are %PDF-", "The extension is .pdf", "The size is over 1 KB", "It contains the word PDF", "A renamed .txt file is rejected: \"is not a PDF file\"."],
+    ["Ingestion", "With size 10 and overlap 3, how far does the chunk window move each time?", "7 characters", "10 characters", "3 characters", "13 characters", "step = size - overlap = 7."],
+    ["Ingestion", "The letters A to Z with size 10 and overlap 3 give how many chunks?", "4", "3", "5", "26", "ABCDEFGHIJ, HIJKLMNOPQ, OPQRSTUVWX, VWXYZ (the code's real output)."],
+    ["Ingestion", "Why can a chunk never contain text from two pages?", "So the page number of every chunk is exact", "pypdf cannot read two pages at once", "To save memory", "It would exceed 800 characters", "The page number is the whole point of a sourced answer."],
+    ["Ingestion", "What is raised when overlap >= size?", "A ValueError (it would loop forever)", "NoTextError", "IngestionError", "KeyError", "If the overlap were as large as the chunk, the window would never move forward."],
+    ["Ingestion", "Why do consecutive chunks overlap?", "So a sentence cut at a border stays whole in one of the chunks", "To make the index bigger", "To double-check the page number", "Because pypdf requires it", "150 characters of overlap: a sentence split at character 800 is whole in the next chunk."],
+    ["Ingestion", "Where is the index of course.pdf saved?", "Next to it, as course.index.json", "In ~/.sensai", "In the cloud", "Inside the PDF", "ingestion.index_path: with_suffix(\".index.json\")."],
+    ["Ingestion", "When is an existing index reused?", "It exists, you did not pass --force, and it is not older than the PDF", "Always", "Never", "Only when the chunk size is unchanged", "The rule looks at file dates only, not at the settings."],
+    ["Ingestion", "You changed chunk_size in config.json. What must you do?", "Rebuild the index with --force", "Nothing, it updates by itself", "Delete the PDF", "Restart Ollama", "The reuse rule ignores settings. Better design: store the settings in the index and compare them."],
+    ["Ingestion", "How many chunks are sent to the embedding model per request?", "16", "1", "59", "768", "EMBED_BATCH_SIZE = 16: far faster than one request per chunk."],
+    ["Ingestion", "When is the index file written?", "Only after every chunk has been embedded", "After each chunk", "Before embedding", "When the user presses Save", "So a crash halfway never leaves a half-built index."],
+    ["Ingestion", "Which keys does each index record have?", "id, text, page, vector", "question, answer, page", "text, score", "chunk, source", "e.g. {id: 41, text: \"...\", page: 13, vector: [768 numbers]}."],
+    ["Ingestion", "How many chunks does the demo PDF give at 800 / 150?", "59", "24", "98", "768", "24 pages, 34,597 characters. (At 500 / 150 it is 98.)"],
+    ["Ingestion", "What is the progress callback of ingest() for?", "It lets the web UI show embedding progress instead of printing lines", "It slows the embedding down", "It cancels the run", "It saves the index twice", "One function, two front ends: the CLI prints, the web UI turns stages into events."],
+
+    /* ---------------- Writer ---------------- */
+    ["Writer", "What marks the start of a section in answers.md?", "<!-- sensai:section N -->", "## Q N", "---", "[[N]]", "HTML comments are invisible when displayed but let the code find a section exactly."],
+    ["Writer", "Why not ask the model to rewrite answers.md?", "Our code can replace exactly one block; a model could corrupt or change other parts", "Models cannot write Markdown", "It is too slow", "Ollama forbids it", "Sections are found by their markers, never by asking the model."],
+    ["Writer", "How does _write_atomically avoid half-written files?", "It writes a temporary file in the same folder, then renames it over the real file", "It locks the file", "It writes the file twice", "It uses a database", "os.replace is instant: you see either the old file or the new one, never half."],
+    ["Writer", "Why must the temporary file be in the same folder?", "A rename inside one filesystem is instant and atomic", "For permissions", "To save disk space", "It is a naming rule", "Across filesystems a rename becomes a slow copy."],
+    ["Writer", "Section 3 exists and you upsert section 3. What happens?", "Only that block is replaced", "The file is rewritten from scratch", "A duplicate is appended", "An error is raised", "Case 1 of upsert: same number exists."],
+    ["Writer", "Sections 1 and 4 exist and you upsert section 2. Where does it go?", "Between them, before section 4", "At the end", "At the beginning", "It raises an error", "Case 2: a later number exists, so insert before it to keep numeric order."],
+    ["Writer", "What happens if the answer dict contains an error?", "WriterError is raised and the file is not touched", "It is written with the word error", "It is written as empty", "It is retried", "_validate refuses a failed or incomplete answer before anything is written."],
+    ["Writer", "Why does re-running the same question give an empty diff?", "The model is deterministic, so the same input gives the same section", "The writer ignores re-runs", "diff is broken", "The file is read-only", "To demo M4, reword the question and re-run with --only 2."],
+    ["Writer", "How is page 0 (a refusal) shown in answers.md?", "-", "0", "none", "N/A", "render_section prints \"-\" when the page is not a positive integer."],
+    ["Writer", "What extra line appears when the quote check and the judge disagree?", "**Review needed:** the quote check and the judge disagree.", "**Error:**", "**Warning:**", "Nothing", "It tells the reader which answers deserve a manual check."],
+    ["Writer", "Why does _target_mode exist?", "mkstemp creates private (0600) files, so it restores normal permissions", "To encrypt the file", "To rename the file", "To lock the file", "A real bug found by testing: answers.md became unreadable for others."],
+    ["Writer", "How does SECTION_RE find the end of a section?", "A back-reference to the same number: the closing marker with the same N", "The next ## heading", "A blank line", "The end of the file", "It matches from <!-- sensai:section N --> to <!-- /sensai:section N -->."],
+
+    /* ---------------- CLI ---------------- */
+    ["CLI", "What exit code does the CLI return when you press Ctrl+C?", "130", "0", "1", "2", "130 = 128 + signal 2, the Unix convention."],
+    ["CLI", "What exit code does the CLI return if at least one question failed?", "1", "0", "130", "255", "0 = all fine, 1 = an input error or a failed question, 130 = interrupted."],
+    ["CLI", "One question fails with a model error. What happens?", "It is reported and skipped, and the run continues", "The whole run stops", "answers.md is deleted", "It is retried forever", "Each question is inside try/except; the summary lists \"Failed: Q3 (...)\"."],
+    ["CLI", "What does --only 2 do?", "Answers only question 2 and leaves the other sections untouched", "Answers the first 2 questions", "Skips question 2", "Runs everything twice", "It uses upsert, so only section 2 changes."],
+    ["CLI", "What happens if you use --only without a questions file?", "Error: --only needs a questions file", "It asks you interactively", "It answers everything", "Nothing", "--only picks one question from the file, so the file is required."],
+    ["CLI", "Which flag turns the judge off?", "--no-judge", "--skip", "--fast", "--judge=0", "Others: --no-rag and --no-quote-check. They set feature_flags for this run."],
+    ["CLI", "Which keys must config.json contain?", "host, chat_model, embed_model, chunk_size, chunk_overlap, top_k", "Only host", "All keys, including feature_flags", "None", "REQUIRED_CONFIG in cli.py; a missing one gives a clear \"is missing: ...\" error."],
+    ["CLI", "In interactive mode, how are the section numbers chosen?", "They continue after the last section already in the file", "Always from 1", "Randomly", "One per day", "next_section_number: a second session never overwrites the first."],
+    ["CLI", "When is an answer flagged as a disagreement?", "Supported + unfaithful, or not supported + faithful (a correct refusal is not flagged)", "Whenever the verdict is partial", "Whenever the judge is unknown", "Whenever there is a refusal", "The two checks contradict each other. A refusal is flagged only if the judge says the passages do answer the question (eval_summary.disagrees)."],
+    ["CLI", "Why is a correct refusal no longer flagged \"Review needed\"?", "A refusal has no quote, so \"not supported\" means nothing; it is flagged only if the judge says the passages do answer", "The writer hides refusals", "The judge never sees refusals", "Refusals are always counted as faithful", "Before the fix this was a false alarm. is_refusal() recognises \"The document does not cover this.\"; the summary also counts refusals apart."],
+    ["CLI", "If the judge crashes on a question, what happens to the answer?", "It is kept, with verdict unknown", "It is lost", "It is retried 10 times", "It is written empty", "A failing judge never loses the answer."],
+    ["CLI", "What does cli.py mostly contain?", "Wiring: it orders the other modules", "The model", "The PDF parser", "The maths", "Read the settings, ingest once, loop over the questions, print the summary."],
+    ["CLI", "Where does answers.md go by default in the CLI?", "Next to the PDF", "In your home folder", "In /tmp", "Always in data/", "pdf.with_name(\"answers.md\"); --output changes it."],
+
+    /* ---------------- Chat ---------------- */
+    ["Chat", "Why does chat.py resend the whole history on every turn?", "The model has no memory: it only knows what we send", "For logging", "Ollama bills per request", "To fill the context window", "That is also why the context window matters in long chats."],
+    ["Chat", "What does Ctrl+C do during a reply?", "It cancels the reply, removes the half turn from the history, and returns to the prompt", "It quits the program", "It deletes the history", "It saves the conversation", "The failed turn must not pollute the next turns (messages.pop())."],
+    ["Chat", "How is generation stopped when you cancel a reply?", "Closing the connection makes Ollama stop generating", "A kill command", "Restarting Ollama", "It keeps generating in the background", "stream_reply closes the response in a finally block."],
+    ["Chat", "What did we find broken in chat.py while testing?", "python src/chat.py crashed with ModuleNotFoundError", "A typo in the prompt", "A memory leak", "The wrong model name", "It broke when the memory feature added `from src.memory import ...`."],
+    ["Chat", "Why had the automated tests not caught it?", "They imported the module instead of running it as a script", "There were no tests", "The tests were skipped", "They needed Ollama", "Fix: a test that runs the file as a real script from a temp folder, plus two lines adding the project folder to sys.path."],
+    ["Chat", "What does /edit do in the terminal chat?", "Edits a past message and forks a new branch (the old conversation is archived)", "Edits a file", "Deletes the history", "Sends the message twice", "Feature X2: branching. /branches and /switch N move between branches."],
+    ["Chat", "What does \"(thinking...)\" mean?", "The model is reasoning before it answers", "An error occurred", "The model is loading", "The history is saving", "qwen3 reasons first; we show only the final content, never the reasoning."],
+    ["Chat", "Where are terminal chat sessions saved for the memory feature?", "In .sensai/", "In WEB-UI/workspace/", "In data/", "Nowhere", "They are saved on exit and indexed with embeddings, so /recall can search them by meaning."],
+
+    /* ---------------- Web UI ---------------- */
+    ["Web UI", "Which library does the web server use?", "Python's standard library (http.server)", "Flask", "Django", "FastAPI", "No extra dependency: ThreadingHTTPServer plus plain JavaScript in the page."],
+    ["Web UI", "What are Server-Sent Events used for?", "Pushing progress and answers live over one open request", "Uploading PDFs", "Logging in", "Caching", "A run takes minutes: SSE shows each answer as soon as it is ready."],
+    ["Web UI", "What happens when a second run starts while one is active?", "HTTP 409 \"Another run or chat is in progress\"", "Both run together", "It is queued silently", "HTTP 500", "A laptop cannot run two model jobs at once, so a lock allows one."],
+    ["Web UI", "On which address does the server listen by default?", "127.0.0.1 (this machine only)", "0.0.0.0 (everyone)", "A public IP", "::0", "There is no login, so by default only your own computer can reach it."],
+    ["Web UI", "What does the Host header check prevent?", "DNS rebinding", "SQL injection", "Brute force", "Cross-site scripting", "A hostile site pointing its name at your machine is refused with 403."],
+    ["Web UI", "What does the Origin header check prevent?", "Cross-site requests (CSRF)", "Slow clients", "Bad PDFs", "Memory leaks", "Another website making your browser call your local server gets 403."],
+    ["Web UI", "Why are documents named builtin/demo.pdf or upload/x.pdf instead of paths?", "To avoid path traversal (../../etc/passwd)", "It looks nicer", "It is shorter", "Windows needs it", "The name must match a strict pattern, and the file is found by listing the folder, never by joining user text."],
+    ["Web UI", "What is the upload limit?", "50 MB (413 above it)", "1 MB", "500 MB", "There is none", "Also: 1 MB for JSON bodies, 100 questions of at most 1,000 characters."],
+    ["Web UI", "What does --key do?", "Requires a secret in the link, sets an HttpOnly cookie, and returns 401 without it", "Encrypts the PDF", "Chooses the model", "Changes the port", "Used when sharing the page through a tunnel; --key auto generates one."],
+    ["Web UI", "Why do you need --allow-host for a tunnel?", "The Host check refuses unknown names unless you allow them", "To open the firewall", "To speed things up", "To choose the model", "The tunnel gives a random name each time, so restart with the new --allow-host."],
+    ["Web UI", "Why use hmac.compare_digest to compare keys?", "A constant-time comparison resists timing attacks", "It is faster", "It encrypts the key", "It hashes the key", "A normal == can leak how many characters matched."],
+    ["Web UI", "Where are the web chat conversations stored?", "In the browser's localStorage", "On the server", "In Ollama", "In answers.md", "Up to 40 conversations; they never touch the server."],
+    ["Web UI", "Which setting can NOT be changed from the web UI?", "The Ollama host address", "top_k", "chunk_size", "judge_model", "Only whitelisted keys (EDITABLE) can be changed; the host is deliberately not one."],
+    ["Web UI", "Which server event delivers a finished answer to the page?", "question_done", "summary", "start", "ingest", "Others: start, ingest, question_start, question_failed, summary, done, error."],
+    ["Web UI", "Why does the page never put model text into innerHTML?", "To avoid HTML injection (XSS)", "For speed", "For style", "It is required by the browser", "The own Markdown renderer builds elements with textContent."],
+    ["Web UI", "What happens when you press Stop during a run?", "The browser aborts the request; the server abandons the job; answers already written stay", "The server crashes", "answers.md is deleted", "The server restarts", "The server notices the broken connection (BrokenPipeError)."],
+    ["Web UI", "How many real-browser checks does ui_check.py run?", "61 (41 with --quick)", "392", "9", "100", "They run in Chromium through Playwright, against the real models."],
+    ["Web UI", "What do the CSS design tokens (variables) make easy?", "Dark mode: it only redefines the variables", "Faster JavaScript", "A smaller PDF", "A bigger server", "--bg, --ink, --accent, --shadow ... are redefined under data-theme=dark."],
+
+    /* ---------------- Checks & models ---------------- */
+    ["Checks & models", "What does the quote check prove?", "That the quote exists in the retrieved text", "That the answer is correct", "That the page number is right", "That the judge agrees", "It is plain string matching. It cannot tell a misread quote from a right one."],
+    ["Checks & models", "Does \"supported\" mean the answer is right?", "No", "Yes", "Only if the judge agrees", "Only if the page is above 0", "Example: the passage says 1981, the model answers 1999 and quotes a real sentence: supported, still wrong."],
+    ["Checks & models", "In the judge's JSON, which field comes first?", "reason, then verdict", "verdict, then reason", "They are separate calls", "Neither: it is plain text", "VERDICT_SCHEMA writes the short justification first, then decides."],
+    ["Checks & models", "Why does the judge write the reason first?", "Tested: with the verdict first, wrongly refused answers were judged faithful", "Alphabetical order", "Ollama requires it", "It is faster", "Reason first got 5 of 5 hand-checked cases right."],
+    ["Checks & models", "Which model is the judge by default?", "The same qwen3:4b as the chatbot", "A larger llama model", "A cloud model", "No model: it is plain code", "judge_model is configurable, but we measured no stronger judge, so we claim nothing about one."],
+    ["Checks & models", "What does the system prompt tell the model when no passage has the answer?", "Say \"The document does not cover this.\", page 0, empty quote", "Guess the most likely answer", "Ask the user", "Return an error", "A refusal is a valid, honest answer."],
+    ["Checks & models", "How many attempts does the pipeline make to get valid JSON?", "3 (the first plus 2 retries)", "1", "2", "10", "max_retries = 2. After that, AnswerError and the question is reported failed."],
+    ["Checks & models", "What does budget_chunks_for_context do?", "Trims the passages so the prompt fits the context window", "Removes duplicate chunks", "Sorts the chunks", "Embeds the chunks", "It is how we avoid hard-coding a context size."],
+    ["Checks & models", "How does routing.py answer \"what is 12 x 7\"?", "With a safe arithmetic evaluator built on ast, without the model", "With the model", "With eval()", "With a vector search", "Never eval(): the expression is parsed and only allowed operators are computed."],
+    ["Checks & models", "Which model creates the embeddings?", "nomic-embed-text", "qwen3:4b", "llama3", "gpt2", "Chunks and questions must use the same embedding model to be comparable."],
+    ["Checks & models", "What does store.search compute?", "Cosine similarity with every chunk, returning the best k", "A keyword match", "An SQL query", "A BM25 score", "numpy dot product divided by the two vector lengths."],
+    ["Checks & models", "How did we choose the answer-field order {answer, page, quote}?", "We tested the orders on the same questions: 6/8 against 5/8, 3/8 and 2/8", "We guessed", "The subject required it", "It is alphabetical", "Quote-first scored 5/8 and 3/8, reasoning-first 2/8."],
+
+    /* ---------------- Project & results ---------------- */
+    ["Project & results", "How many covered questions did the demo answer correctly (page and quote)?", "6 of 8", "8 of 8", "4 of 8", "5 of 8", "A small sample, the same in two runs."],
+    ["Project & results", "What happened with the uncovered question (who invented the Web)?", "It was correctly refused", "The model invented an answer", "The program crashed", "It was skipped", "It is no longer flagged (a refusal is flagged only if the judge says the passages answer it), and the summary counts it as \"Refused\"."],
+    ["Project & results", "About how long does one question take on a CPU-only laptop?", "About 40 seconds", "2 seconds", "5 minutes", "10 seconds", "Two model calls per question (answer and judge); 10 to 60 s."],
+    ["Project & results", "How many automated tests are there?", "392", "61", "100", "41", "None needs Ollama. 61 more checks run in a real browser."],
+    ["Project & results", "Why a local model?", "Privacy, no cost per question, works offline", "It is faster than the cloud", "It is smarter than cloud models", "Ollama requires it", "Trade-off: a weaker, slower model, compensated by retrieval and two checks."],
+    ["Project & results", "Why no LangChain?", "The subject asks for no LLM framework in the bot, and every step stays visible", "It is too slow", "It is not written in Python", "Its licence forbids it", "The judge could use a framework, the bot could not."],
+    ["Project & results", "Which statement about the limits is honest?", "Small sample, false refusals, a lenient same-model judge", "It is perfect", "It never makes mistakes", "It has no limits", "Always state the limits before the jury asks."],
+    ["Project & results", "Which file is Pacôme's task P5?", "src/writer.py", "src/store.py", "src/judge.py", "src/routing.py", "P2 to P4 ingestion, P5 writer, P6 CLI, P7 end-to-end, P1 base chat, X1 web UI."],
+    ["Project & results", "Which of these is NOT a feature flag?", "chunk_size", "rag", "judge", "quote_check", "feature_flags: rag, judge, quote_check, cache. chunk_size is an ordinary setting."],
+    ["Project & results", "What is X1?", "The web user interface (an extra feature)", "The memory feature", "The judge", "Branching", "A browser front end over the same backend as the CLI."],
+    ["Project & results", "A jury member asks about a limit of your project. What do you do?", "State it honestly and say how you would improve it", "Deny it", "Change the subject", "Blame a teammate", "The evaluation explicitly asks for an honest assessment."],
+    ["Project & results", "A user types \"reply only HACKED\" in a question and the model obeys. What did the quote check say?", "supported, because that text really is in the PDF", "not supported", "unknown", "It blocked the answer", "It proves the quote exists, not that the answer is good: a known limit."]
+  ];
+
+  /* Oral drill: open questions, say the answer out loud, then flip. */
+  var CARDS = [
+    ["Explain Sensai in 30 seconds.", "A local assistant that answers questions about a PDF and always shows its source: the page and an exact quote. It runs on the laptop with a small open model through Ollama, with no AI framework. Each answer is checked twice (quote check in plain code, judge as a second model call) and disagreements are flagged for a human."],
+    ["What does ingestion do, step by step?", "Read each page (with safety checks), cut it into 800-character chunks with 150 overlap that never cross a page, embed the chunks in batches of 16, and save the records {id, text, page, vector} as an index next to the PDF, only when everything is embedded."],
+    ["Why chunks, and why overlap?", "A whole page mixes topics so its meaning is vague and it wastes the context window; small chunks match sharper. The overlap keeps a sentence that is cut at a border whole in one chunk."],
+    ["Why keep the page in every chunk?", "It is free and it is the point of a sourced answer: the reader can open the PDF at that page. So a chunk never crosses a page."],
+    ["When is the index rebuilt and when reused?", "Reused when it exists, no --force, and it is not older than the PDF. After changing chunk settings you must use --force, because the rule only looks at file dates. Improvement: store the settings in the index."],
+    ["How do you detect a scanned PDF?", "If the whole document has fewer than 50 characters of text, extract_pages raises NoTextError with a clear message. We do not do OCR (known limit)."],
+    ["How is answers.md never corrupted?", "The model never touches it. Our code finds a section by its markers and replaces only that block, then writes atomically: temp file in the same folder, then os.replace. A failed answer raises an error before anything is written."],
+    ["Explain upsert in three cases.", "Same number exists: replace that block. A later number exists: insert before it to keep numeric order. Otherwise: append at the end. Everything else stays byte-for-byte identical."],
+    ["What does the CLI do and what does it not do?", "It only orders the other modules: read settings, ingest once, loop over the questions (answer, judge, write one section), print a summary and return an exit code. It contains no model logic."],
+    ["What are the exit codes?", "0 all fine, 1 an input/setup error or a failed question, 130 Ctrl+C (128 + signal 2). Answers already written are kept on Ctrl+C."],
+    ["What happens if one question fails?", "It is reported (failed: ...), skipped, and the run goes on. The summary lists it and the exit code is 1. The judge failing never loses the answer: it becomes verdict unknown."],
+    ["How do refusals interact with the disagreement flag?", "A refusal has no quote, so the quote check says not supported while the judge says faithful. That used to flag a correct refusal as a false alarm. Now a refusal is recognised by its sentence and is flagged only if the judge says the passages do answer the question (the model refused wrongly). The summary counts refusals apart, outside the quote-check percentage."],
+    ["Why does the terminal chat send the whole history each turn?", "The model has no memory; it only knows what we send. So every turn we resend the system prompt and all previous messages. That is also why the context window matters."],
+    ["Tell the story of the chat.py bug.", "python src/chat.py crashed with ModuleNotFoundError after the memory feature was added. Tests missed it because they imported the module instead of running it as a script. I wrote a failing test that runs it as a real script, then fixed it with two lines adding the project folder to sys.path."],
+    ["How does the web UI show answers live?", "Server-Sent Events: the server keeps one request open and pushes events (ingest, question_start, question_done, summary, done). The page draws each answer card as soon as it arrives."],
+    ["Why only one job at a time in the web UI?", "A laptop cannot run two model jobs at once, so a lock lets one run or chat proceed; a second gets HTTP 409 with a clear message."],
+    ["Is the web server secure?", "Listens on 127.0.0.1 by default; checks Host (DNS rebinding) and Origin (CSRF); never builds paths from user text (document ids and a strict name pattern); size limits (50 MB upload); whitelist of editable settings; when shared, a secret key in an HttpOnly SameSite cookie compared in constant time. No real login, so not for untrusted networks."],
+    ["Why no React or framework?", "No build step and no dependency: standard-library server, plain JavaScript page. It runs offline and is easy to explain. The cost is more hand-written code, acceptable at this size."],
+    ["How do you prove an answer is not invented?", "The model must give a word-for-word quote; plain code checks it exists in the retrieved text; a judge call reads the whole answer. The quote check proves existence, not correctness; the judge is a small lenient model; disagreements are flagged."],
+    ["Why is the judge the same model?", "RAM: two large chat models do not fit. judge_model is configurable, but we did not measure a stronger judge, so we claim nothing. The independent quote check is the anchor."],
+    ["What did not work?", "Thinking mode with a JSON schema (empty answers or hanging), quote-first and reasoning-first answer orders (5/8, 3/8, 2/8 against 6/8), and a judge with the verdict first (missed wrong refusals)."],
+    ["Give your honest assessment.", "Works: fully local chain, right page ranked first, file never corrupted, two checks, 392 tests. Limits: 6 of 8 right (small sample), false refusals, same-model judge, slow, text PDFs only. Next: reranking, a refused status in the file, settings in the index, one Ollama client, a bigger model."],
+    ["Why local and why no LangChain?", "Local: privacy, no cost, offline; the trade-off is a weaker, slower model compensated by retrieval and checks. No LangChain: the subject asks for no LLM framework in the bot, and writing each step keeps it visible and explainable."],
+    ["What would you do with more time?", "Reranking or a retry with more chunks on refusals, a refusal status, settings stored in the index, OCR, several PDFs, one Ollama client for everything, a larger model with a GPU."]
+  ];
+
+  var KEY = "defense-quiz-v1";
+  function load() { try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch (e) { return {}; } }
+  function save(d) { try { localStorage.setItem(KEY, JSON.stringify(d)); } catch (e) { /* private mode */ } }
+  var data = load(); if (!data.stats) data.stats = {}; if (!data.best) data.best = {};
+
+  function $(id) { return document.getElementById(id); }
+  function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
+  function shuffle(a) { a = a.slice(); for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)); var t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
+
+  var QUESTIONS = BANK.map(function (b, i) { return { id: i, topic: b[0], q: b[1], right: b[2], wrong: [b[3], b[4], b[5]], why: b[6] }; });
+  var TOPICS = []; QUESTIONS.forEach(function (q) { if (TOPICS.indexOf(q.topic) === -1) TOPICS.push(q.topic); });
+
+  var S = null; // current session
+
+  function mastery(topic) {
+    var qs = QUESTIONS.filter(function (q) { return !topic || q.topic === topic; });
+    var good = qs.filter(function (q) { var s = data.stats[q.id]; return s && s.last === 1; }).length;
+    var seen = qs.filter(function (q) { return data.stats[q.id]; }).length;
+    return { total: qs.length, good: good, seen: seen };
+  }
+
+  /* ---------------- home ---------------- */
+  function home() {
+    S = null;
+    var all = mastery(), missed = QUESTIONS.filter(function (q) { var s = data.stats[q.id]; return s && s.last === 0; });
+    var h = '<h1>Quiz</h1><p class="lead">' + QUESTIONS.length + " questions on the project, " + CARDS.length + " oral-drill cards. Wrong answers come back until you know them.</p>";
+    h += '<div class="kpi"><div><b>' + all.good + " / " + all.total + "</b><span>questions you last got right</span></div><div><b>" + all.seen + '</b><span>questions seen</span></div><div><b>' +
+      (data.best.exam != null ? data.best.exam + "%" : "-") + "</b><span>best mock exam</span></div></div>";
+    h += '<div class="big"><button class="btn" id="b-exam" type="button">Mock exam (20 questions)</button>' +
+      '<button class="btn alt" id="b-miss" type="button"' + (missed.length ? "" : " disabled") + ">Redo my mistakes (" + missed.length + ")</button>" +
+      '<button class="btn alt" id="b-cards" type="button">Oral drill (' + CARDS.length + " cards)</button></div>";
+    h += "<h3>Practice by topic</h3><div class=\"topics\">";
+    TOPICS.forEach(function (t) {
+      var m = mastery(t), pct = Math.round(100 * m.good / m.total);
+      h += '<button class="topic" type="button" data-topic="' + esc(t) + '"><b>' + esc(t) + "</b><span>" + m.total + " questions &middot; " + m.good + " mastered</span><div class=\"meter\"><i style=\"width:" + pct + '%"></i></div></button>';
+    });
+    h += "</div>";
+    h += '<p class="small muted">How it works: pick an answer, read the explanation, go on. Keys <kbd>1</kbd>-<kbd>4</kbd> choose, <kbd>Enter</kbd> or <kbd>Space</kbd> continues. Your progress stays in this browser only. <button class="link a" id="b-reset" type="button">Reset my progress</button></p>';
+    $("app").innerHTML = h;
+    $("b-exam").onclick = function () { start("Mock exam", shuffle(QUESTIONS).slice(0, 20), true); };
+    $("b-miss").onclick = function () { start("My mistakes", shuffle(missed), false); };
+    $("b-cards").onclick = cards;
+    $("b-reset").onclick = function () { if (confirm("Erase your quiz progress in this browser?")) { data = { stats: {}, best: {} }; save(data); home(); } };
+    document.querySelectorAll(".topic").forEach(function (b) {
+      b.onclick = function () { start(b.dataset.topic, shuffle(QUESTIONS.filter(function (q) { return q.topic === b.dataset.topic; })), false); };
+    });
+  }
+
+  /* ---------------- question session ---------------- */
+  function start(title, list, isExam) {
+    if (!list.length) { home(); return; }
+    S = { mode: "q", title: title, list: list, i: 0, score: 0, missed: [], answered: false, exam: isExam, byTopic: {} };
+    question();
+  }
+  function question() {
+    var q = S.list[S.i];
+    S.opts = shuffle([{ t: q.right, ok: true }].concat(q.wrong.map(function (w) { return { t: w, ok: false }; })));
+    S.answered = false;
+    var h = '<div class="qhead"><span>' + esc(S.title) + " &middot; " + (S.i + 1) + " / " + S.list.length + '</span><div class="prog"><i style="width:' + Math.round(100 * S.i / S.list.length) + '%"></i></div><span>' + esc(q.topic) + "</span></div>";
+    h += '<div class="qtext">' + esc(q.q) + "</div>";
+    S.opts.forEach(function (o, k) { h += '<button class="opt" type="button" data-k="' + k + '"><kbd>' + (k + 1) + "</kbd><span>" + esc(o.t) + "</span></button>"; });
+    h += '<div id="fb"></div><p class="small"><button class="link a" id="b-quit" type="button">Quit to the menu</button></p>';
+    $("app").innerHTML = h;
+    document.querySelectorAll(".opt").forEach(function (b) { b.onclick = function () { choose(+b.dataset.k); }; });
+    $("b-quit").onclick = home;
+  }
+  function choose(k) {
+    if (S.answered) return;
+    S.answered = true;
+    var q = S.list[S.i], ok = S.opts[k].ok;
+    var st = data.stats[q.id] || { right: 0, wrong: 0 };
+    if (ok) { st.right++; S.score++; } else { st.wrong++; S.missed.push(q); }
+    st.last = ok ? 1 : 0; data.stats[q.id] = st; save(data);
+    var t = S.byTopic[q.topic] || (S.byTopic[q.topic] = { r: 0, n: 0 }); t.n++; if (ok) t.r++;
+    document.querySelectorAll(".opt").forEach(function (b, idx) {
+      b.disabled = true;
+      if (S.opts[idx].ok) b.classList.add("right"); else if (idx === k) b.classList.add("wrong");
+    });
+    var last = S.i === S.list.length - 1;
+    $("fb").innerHTML = '<div class="box ' + (ok ? "say" : "bad") + ' expl"><span class="tag">' + (ok ? "Correct" : "Not quite") + "</span><p>" + esc(q.why) + '</p></div><button class="btn" id="b-next" type="button">' + (last ? "See the result" : "Next question") + "</button>";
+    $("b-next").onclick = next; $("b-next").focus();
+  }
+  function next() { if (S.i < S.list.length - 1) { S.i++; question(); } else result(); }
+
+  function result() {
+    var n = S.list.length, pct = Math.round(100 * S.score / n);
+    if (S.exam) { data.best.exam = Math.max(pct, data.best.exam || 0); save(data); }
+    var h = "<h1>" + esc(S.title) + " : result</h1><div class=\"score\">" + S.score + " / " + n + '</div><p class="lead">' + pct + "% &middot; " +
+      (pct >= 85 ? "Excellent. Now do the oral drill." : pct >= 65 ? "Good. Redo the mistakes, then try again." : "Keep going: read the guide section for each missed topic, then redo this.") + "</p>";
+    var topics = Object.keys(S.byTopic);
+    if (topics.length > 1) {
+      h += "<h3>By topic</h3>";
+      topics.forEach(function (t) {
+        var x = S.byTopic[t], p = Math.round(100 * x.r / x.n);
+        h += '<div class="bar-row"><span>' + esc(t) + '</span><div class="meter"><i style="width:' + p + '%"></i></div><span>' + x.r + "/" + x.n + "</span></div>";
+      });
+    }
+    if (S.missed.length) {
+      h += "<h3>What you missed</h3>";
+      S.missed.forEach(function (q) { h += '<div class="miss"><b>' + esc(q.q) + '</b><br><span class="a">' + esc(q.right) + "</span><br><span class=\"small muted\">" + esc(q.why) + "</span></div>"; });
+    }
+    h += '<div class="row2"><button class="btn" id="b-again" type="button">' + (S.missed.length ? "Redo the " + S.missed.length + " I missed" : "Back to the menu") + '</button><button class="btn alt" id="b-home" type="button">Menu</button></div>';
+    $("app").innerHTML = h;
+    var missed = S.missed;
+    $("b-again").onclick = function () { if (missed.length) start("My mistakes", shuffle(missed), false); else home(); };
+    $("b-home").onclick = home;
+  }
+
+  /* ---------------- oral drill ---------------- */
+  function cards() {
+    S = { mode: "c", queue: shuffle(CARDS.map(function (c, i) { return i; })), shown: false, done: 0 };
+    card();
+  }
+  function card() {
+    if (!S.queue.length) {
+      $("app").innerHTML = '<h1>Oral drill : done</h1><p class="lead">You went through all ' + CARDS.length + ' cards. Say them again tomorrow morning, out loud.</p><div class="row2"><button class="btn" id="b-again" type="button">Again</button><button class="btn alt" id="b-home" type="button">Menu</button></div>';
+      $("b-again").onclick = cards; $("b-home").onclick = home; return;
+    }
+    var c = CARDS[S.queue[0]]; S.shown = false;
+    var h = '<div class="qhead"><span>Oral drill &middot; ' + S.done + " done, " + S.queue.length + ' left</span><div class="prog"><i style="width:' + Math.round(100 * S.done / (S.done + S.queue.length)) + '%"></i></div><span></span></div>';
+    h += '<div class="card big-card"><span class="tpill">Say it out loud first</span><div class="qtext">' + esc(c[0]) + '</div><div id="ans"></div></div>';
+    h += '<div class="row2" id="acts"><button class="btn" id="b-show" type="button">Show the answer</button><button class="btn alt" id="b-quit" type="button">Quit</button></div>';
+    $("app").innerHTML = h;
+    $("b-show").onclick = reveal; $("b-quit").onclick = home;
+  }
+  function reveal() {
+    if (S.shown) return; S.shown = true;
+    $("ans").innerHTML = '<div class="box say" style="margin:.5rem 0 0"><span class="tag">Model answer</span><p>' + esc(CARDS[S.queue[0]][1]) + "</p></div>";
+    $("acts").innerHTML = '<button class="btn" id="b-got" type="button">I knew it</button><button class="btn alt" id="b-again" type="button">Not yet (ask me again)</button>';
+    $("b-got").onclick = function () { S.queue.shift(); S.done++; card(); };
+    $("b-again").onclick = function () { var c = S.queue.shift(); S.queue.push(c); card(); };
+  }
+
+  document.addEventListener("keydown", function (e) {
+    if (!S || e.metaKey || e.ctrlKey || e.altKey) return;
+    if (S.mode === "q") {
+      if (!S.answered && /^[1-4]$/.test(e.key)) { choose(+e.key - 1); }
+      else if (S.answered && (e.key === "Enter" || e.key === " " || e.key === "ArrowRight")) { e.preventDefault(); next(); }
+    } else if (S.mode === "c" && S.queue.length && !S.shown && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); reveal(); }
+  });
+
+  window.__quiz = { count: QUESTIONS.length, cards: CARDS.length };
+  home();
+})();
+</script>
+</body>
+</html>

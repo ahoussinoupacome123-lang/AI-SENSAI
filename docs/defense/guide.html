@@ -1,0 +1,649 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Sensai defense guide</title>
+<link rel="stylesheet" href="defense.css">
+</head>
+<body>
+<div class="bar" id="bar"></div>
+<div class="wrap">
+<nav class="toc" id="toc" aria-label="Contents"></nav>
+<main>
+
+<h1>The study guide</h1>
+<p class="lead">Everything you need to explain Sensai at the defense, written for someone who has never programmed. Read it in order the first time. Every part ends with what to <b>say out loud</b>.</p>
+
+<div class="box info"><span class="tag">How to use this page</span>
+<p>The <b>purple boxes</b> are your own work. The <b>green boxes</b> are sentences you can say almost word for word. The <b>yellow boxes</b> are traps: things a jury likes to ask. The small <b>tools</b> (grey cards with buttons) let you play with the real logic: do them, they are the fastest way to understand.</p>
+<p class="small muted">Code snippets are copied from the real project. Line numbers can move a little; function names will not.</p>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="plan" data-group="Start" data-toc="A plan for the next hours">A plan for the next hours</h2>
+<table>
+<tr><th>Time</th><th>Do this</th><th>Where</th></tr>
+<tr><td>30 min</td><td>Read sections 1 to 4 (story, words, picture, journey of one question). Play with the journey tool.</td><td>this page</td></tr>
+<tr><td>60 min</td><td>Read <b>your part</b>: ingestion, writer, CLI, chat, web UI. Use the 3 tools (chunking, writer, quote check).</td><td>sections 5 to 9</td></tr>
+<tr><td>20 min</td><td>Skim the rest of the system (Murchid's part) and learn the numbers.</td><td>sections 10 and 11</td></tr>
+<tr><td>30 min</td><td>Quiz: topic by topic, then one mock exam. Redo what you missed.</td><td><a href="quiz.html">quiz.html</a></td></tr>
+<tr><td>30 min</td><td>Read the jury questions out loud, answer without looking, then compare.</td><td>section 13</td></tr>
+<tr><td>10 min</td><td>One-page cheat sheet (print it, or keep it open).</td><td>section 14</td></tr>
+</table>
+<p>If you are short on time: sections 1, 4, 5, 6, 7, 13 and the mock exam are the core.</p>
+
+<!-- ============================================================ -->
+<h2 id="story" data-toc="1. The story in 60 seconds">1. The story in 60 seconds</h2>
+<p><b>The problem.</b> Lea is a student. Her exam is in two days. She has a 24-page PDF of course notes and nine questions. She does not want to re-read everything, and a normal chatbot has never read her notes: it would happily <em>invent</em> an answer. Also, her notes are private.</p>
+<p><b>What Sensai does.</b> You give it a PDF and a list of questions. For each question it finds the right passages in the PDF, asks a small AI model to answer <em>using only those passages</em>, and writes the result into a file <code>answers.md</code>: the answer, the page, and a word-for-word quote you can check. It then double-checks itself in two ways. Everything runs on the laptop: no internet, no cost, no data leaving the machine.</p>
+<div class="box say"><span class="tag">Say it (30 seconds)</span>
+<p>"Sensai is a local assistant that answers questions about a PDF and always shows its source: the page and an exact quote. It runs fully on the laptop with a small open model through Ollama. We do not use any AI framework: we wrote every step ourselves. Each answer is checked twice: a plain-code check that the quote really exists, and a second model call that judges the answer. When the two disagree, the tool flags it for a human."</p></div>
+
+<div class="box mine"><span class="tag">My part (Pacôme)</span>
+<p>The project was split in two halves. <b>Mine is the "plumbing"</b>: everything that gets the PDF ready, writes the result, and lets a person use it.</p>
+<table>
+<tr><th>Task</th><th>What I built</th><th>File</th></tr>
+<tr><td>P1</td><td>Environment and the base chatbot in the terminal (streaming, history, Ctrl+C)</td><td><code>src/chat.py</code></td></tr>
+<tr><td>P2</td><td>Read the PDF page by page, detect scanned PDFs</td><td><code>src/ingestion.py</code> (<code>extract_pages</code>)</td></tr>
+<tr><td>P3</td><td>Cut pages into overlapping chunks that keep their page number</td><td><code>src/ingestion.py</code> (<code>chunk_pages</code>)</td></tr>
+<tr><td>P4</td><td>Turn chunks into vectors and build the saved index</td><td><code>src/ingestion.py</code> (<code>ingest</code>)</td></tr>
+<tr><td>P5</td><td>The writer: update exactly one section of <code>answers.md</code></td><td><code>src/writer.py</code></td></tr>
+<tr><td>P6</td><td>The CLI: the entry point that wires everything and prints the summary</td><td><code>src/cli.py</code></td></tr>
+<tr><td>P7</td><td>End-to-end run on the demo PDF, with a scoring script</td><td><code>scripts/e2e_check.py</code></td></tr>
+<tr><td>X1</td><td>The web interface (extra feature), later sharing through a tunnel</td><td><code>WEB-UI/</code></td></tr>
+<tr><td>+</td><td>Interactive terminal mode, the quote check, demo data, docs, slides, tests</td><td><code>cli.py</code>, <code>quote_check.py</code>, <code>data/</code>, <code>docs/</code></td></tr>
+</table>
+<p>Murchid built the "brain": the Ollama client, the vector store, retrieval and prompting, the JSON answer, the judge, the summary, memory. You must know the brain at a high level (section 10) because the jury will ask how the whole system works, but your depth must be in your own files.</p>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="words" data-toc="2. Words you must know">2. Words you must know, from zero</h2>
+<p>Read these once. Whenever a later section uses a word you forget, come back here.</p>
+<div class="grid">
+<div class="card"><h4>Model (LLM)</h4><p>A program that predicts the next piece of text. You give it text, it writes text back. Ours is <b>qwen3:4b</b> ("4 billion parameters"): small, about 2.5 GB, runs on a laptop.</p></div>
+<div class="card"><h4>Ollama</h4><p>A free program that runs models on your own computer and offers them through a local web address (<code>http://localhost:11434</code>). Our code talks to it like a phone call: send a request, get an answer.</p></div>
+<div class="card"><h4>Token</h4><p>A piece of text the model reads, roughly 3 or 4 characters. Models count in tokens, not words.</p></div>
+<div class="card"><h4>Context window</h4><p>The maximum amount of text (in tokens) the model can look at <em>at once</em>: question + passages + answer. Ours is <b>4096 tokens</b> (about 3,000 words). A 24-page PDF does not fit, which is why we only send the best passages.</p></div>
+<div class="card"><h4>Prompt</h4><p>The text we send to the model: instructions + passages + question. The prompts live in <code>prompts/*.txt</code> so they can change without touching code.</p></div>
+<div class="card"><h4>Embedding / vector</h4><p>A text turned into a list of numbers (768 of them for our model) that stands for its <em>meaning</em>. Similar meanings give similar numbers. "How do plants make food?" lands near "photosynthesis" even with no shared word.</p></div>
+<div class="card"><h4>Cosine similarity</h4><p>A score for how much two vectors point the same way. Near <b>1</b> = same meaning, near <b>0</b> = unrelated. We keep the best <b>4</b> chunks.</p></div>
+<div class="card"><h4>RAG</h4><p><b>R</b>etrieval-<b>A</b>ugmented <b>G</b>eneration: first <em>retrieve</em> the relevant passages, then <em>generate</em> an answer from them. Like an open-book exam where we hand the student only the right pages.</p></div>
+<div class="card"><h4>Chunk</h4><p>A small piece of a page (800 characters). Small pieces match a question more sharply than a whole page, and they fit in the prompt.</p></div>
+<div class="card"><h4>Overlap</h4><p>Consecutive chunks share some characters (150), so a sentence cut at a border is still whole in one of them.</p></div>
+<div class="card"><h4>Index</h4><p>The saved file (<code>demo.index.json</code>) holding every chunk with its page and vector. Built once per PDF, like the index at the back of a book.</p></div>
+<div class="card"><h4>JSON and schema</h4><p>JSON is a strict text format for data: <code>{"answer": "128 bits", "page": 13}</code>. A <b>schema</b> says which fields must exist. We force the model to answer in this shape so our code can use it.</p></div>
+<div class="card"><h4>Retry</h4><p>If the model's JSON is broken, ask again (at most twice more). After that the question is reported as failed and the file is not touched.</p></div>
+<div class="card"><h4>Quote check</h4><p>Plain code (no AI) that checks the model's quote really appears in the passages we gave it. Proves the quote exists, <em>not</em> that the answer is right.</p></div>
+<div class="card"><h4>Judge</h4><p>A second model call that reads question + passages + answer and says <b>faithful / partial / unfaithful</b>. Catches misreadings the quote check cannot.</p></div>
+<div class="card"><h4>CLI</h4><p>Command-line interface: you type a command in the terminal. <code>python -m src.cli data/demo.pdf data/questions.txt</code>.</p></div>
+<div class="card"><h4>Server, HTTP, SSE</h4><p>A server is a program waiting for requests. HTTP is the language of the web. <b>SSE</b> (Server-Sent Events) lets the server push updates to the browser one after another over a single request: that is how answers appear live.</p></div>
+<div class="card"><h4>Atomic write</h4><p>Writing a file so it is never half-written: write a temporary copy, then rename it over the real file in one instant.</p></div>
+<div class="card"><h4>Upsert</h4><p>"Update or insert": replace the section if it exists, add it in the right place if not.</p></div>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="picture" data-toc="3. The system in one picture">3. The system in one picture</h2>
+<p>Think of a <b>library assistant</b>. <code>ingestion.py</code> reads the book and writes index cards (one per paragraph, with the page). <code>store.py</code> is the card drawer. <code>pipeline.py</code> takes a question, pulls the 4 best cards, reads them, writes an answer. <code>judge.py</code> is a second person who double-checks. <code>writer.py</code> copies the answer onto the right page of a report. <code>ollama_client.py</code> is the phone used to call the "brain". <code>cli.py</code> is the manager who orders everything.</p>
+
+<svg viewBox="0 0 860 470" width="100%" role="img" aria-label="Pipeline diagram" style="background:var(--panel);border:1px solid var(--line);border-radius:14px;margin:1rem 0">
+<defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#8a8a96"/></marker></defs>
+<g font-size="13" fill="currentColor" style="color:var(--ink)">
+<text x="20" y="28" font-weight="700" fill="#7a3fe0">PHASE A: once per PDF (ingestion)</text>
+<g stroke="#8a8a96" stroke-width="1.5" marker-end="url(#ah)" fill="none">
+<path d="M130 70 H168"/><path d="M290 70 H328"/><path d="M450 70 H488"/><path d="M610 70 H648"/>
+</g>
+<g stroke-width="1.5">
+<rect x="20" y="45" width="110" height="50" rx="10" fill="#f0e9ff" stroke="#7a3fe0"/><text x="75" y="68" text-anchor="middle" fill="#2b1a55">PDF file</text><text x="75" y="84" text-anchor="middle" font-size="11" fill="#2b1a55">demo.pdf</text>
+<rect x="170" y="45" width="120" height="50" rx="10" fill="#f0e9ff" stroke="#7a3fe0"/><text x="230" y="66" text-anchor="middle" fill="#2b1a55">extract_pages</text><text x="230" y="83" text-anchor="middle" font-size="11" fill="#2b1a55">text per page</text>
+<rect x="330" y="45" width="120" height="50" rx="10" fill="#f0e9ff" stroke="#7a3fe0"/><text x="390" y="66" text-anchor="middle" fill="#2b1a55">chunk_pages</text><text x="390" y="83" text-anchor="middle" font-size="11" fill="#2b1a55">800 chars, 150 overlap</text>
+<rect x="490" y="45" width="120" height="50" rx="10" fill="#e8f0ff" stroke="#2f6fed"/><text x="550" y="66" text-anchor="middle" fill="#14306b">embed</text><text x="550" y="83" text-anchor="middle" font-size="11" fill="#14306b">768 numbers each</text>
+<rect x="650" y="45" width="190" height="50" rx="10" fill="#e3f6ee" stroke="#12805c"/><text x="745" y="66" text-anchor="middle" fill="#0b4a35">demo.index.json</text><text x="745" y="83" text-anchor="middle" font-size="11" fill="#0b4a35">{id, text, page, vector}</text>
+</g>
+<text x="20" y="150" font-weight="700" fill="#7a3fe0">PHASE B: once per question (answering)</text>
+<g stroke="#8a8a96" stroke-width="1.5" marker-end="url(#ah)" fill="none">
+<path d="M130 195 H168"/><path d="M290 195 H328"/><path d="M450 195 H488"/><path d="M610 195 H648"/>
+<path d="M745 220 V268 H745"/><path d="M745 320 V348"/>
+<path d="M550 395 H420"/><path d="M300 395 H260"/>
+</g>
+<g stroke-width="1.5">
+<rect x="20" y="170" width="110" height="50" rx="10" fill="#f0e9ff" stroke="#7a3fe0"/><text x="75" y="192" text-anchor="middle" fill="#2b1a55">question</text><text x="75" y="209" text-anchor="middle" font-size="11" fill="#2b1a55">from the CLI</text>
+<rect x="170" y="170" width="120" height="50" rx="10" fill="#e8f0ff" stroke="#2f6fed"/><text x="230" y="192" text-anchor="middle" fill="#14306b">embed question</text><text x="230" y="209" text-anchor="middle" font-size="11" fill="#14306b">same model</text>
+<rect x="330" y="170" width="120" height="50" rx="10" fill="#e8f0ff" stroke="#2f6fed"/><text x="390" y="192" text-anchor="middle" fill="#14306b">store.search</text><text x="390" y="209" text-anchor="middle" font-size="11" fill="#14306b">cosine, top 4</text>
+<rect x="490" y="170" width="120" height="50" rx="10" fill="#e8f0ff" stroke="#2f6fed"/><text x="550" y="192" text-anchor="middle" fill="#14306b">prompt + model</text><text x="550" y="209" text-anchor="middle" font-size="11" fill="#14306b">JSON, retries</text>
+<rect x="650" y="170" width="190" height="50" rx="10" fill="#e8f0ff" stroke="#2f6fed"/><text x="745" y="192" text-anchor="middle" fill="#14306b">answer {answer, page, quote}</text><text x="745" y="209" text-anchor="middle" font-size="11" fill="#14306b">validated</text>
+<rect x="650" y="270" width="190" height="50" rx="10" fill="#fff3d6" stroke="#9a5b00"/><text x="745" y="292" text-anchor="middle" fill="#5a3600">quote check (plain code)</text><text x="745" y="309" text-anchor="middle" font-size="11" fill="#5a3600">supported / not supported</text>
+<rect x="650" y="350" width="190" height="50" rx="10" fill="#fff3d6" stroke="#9a5b00"/><text x="745" y="372" text-anchor="middle" fill="#5a3600">judge (second model call)</text><text x="745" y="389" text-anchor="middle" font-size="11" fill="#5a3600">faithful / partial / unfaithful</text>
+<rect x="300" y="370" width="120" height="50" rx="10" fill="#f0e9ff" stroke="#7a3fe0"/><text x="360" y="392" text-anchor="middle" fill="#2b1a55">writer.upsert</text><text x="360" y="409" text-anchor="middle" font-size="11" fill="#2b1a55">one section only</text>
+<rect x="130" y="370" width="130" height="50" rx="10" fill="#e3f6ee" stroke="#12805c"/><text x="195" y="392" text-anchor="middle" fill="#0b4a35">answers.md</text><text x="195" y="409" text-anchor="middle" font-size="11" fill="#0b4a35">the deliverable</text>
+</g>
+<path d="M550 395 H420" stroke="#8a8a96" stroke-width="1.5" marker-end="url(#ah)" fill="none"/>
+<path d="M300 395 H262" stroke="#8a8a96" stroke-width="1.5" marker-end="url(#ah)" fill="none"/>
+<text x="20" y="455" font-size="12" fill="#8a8a96">Purple = my files. Blue = Murchid's files. Yellow = the two checks. Green = files on disk. The index feeds phase B (search).</text>
+</g>
+</svg>
+
+<div class="box say"><span class="tag">Say it</span>
+<p>"There are two phases. Once per PDF we <b>ingest</b> it: read the pages, cut chunks, turn each chunk into a vector, save an index. Then, for each question, we <b>retrieve</b> the four closest chunks, ask the model for a JSON answer, check the quote, ask a judge, and write one section of <code>answers.md</code>. My part is the left side (ingestion), the writer, the CLI that orders everything, and the web interface."</p></div>
+
+<!-- ============================================================ -->
+<h2 id="journey" data-toc="4. The journey of one question">4. The journey of one question (interactive)</h2>
+<p>Follow one real question through the code: <em>"How many bits long is an IPv6 address?"</em> Click the steps. Each step shows <b>which function</b> runs, <b>what goes in</b> and <b>what comes out</b>.</p>
+<div class="tool" id="journey-tool">
+<div class="steps" id="j-steps"></div>
+<div class="stage" id="j-stage"></div>
+<div class="row" style="margin-top:.8rem"><button class="btn alt" id="j-prev" type="button">Back</button><button class="btn" id="j-next" type="button">Next step</button></div>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="objects" data-toc="5. Where each object lives" data-group="Your part, in depth">5. Where each object lives and how data moves</h2>
+<p>A program is just <b>data moving between boxes</b>. These are the five shapes of data in Sensai. If you can draw them, you understand the architecture.</p>
+<table>
+<tr><th>Object</th><th>Shape (example)</th><th>Lives in</th><th>Made by, used by</th></tr>
+<tr><td><b>Page</b></td><td><code>(13, "An IPv6 address is 128 bits long ...")</code> a pair: page number, text</td><td>memory only</td><td>made by <code>extract_pages</code>, used by <code>chunk_pages</code></td></tr>
+<tr><td><b>Chunk</b></td><td><code>{"text": "...", "page": 13}</code></td><td>memory only</td><td>made by <code>chunk_pages</code>, used by <code>ingest</code></td></tr>
+<tr><td><b>Record</b></td><td><code>{"id": 41, "text": "...", "page": 13, "vector": [0.12, -0.53, ... 768 numbers]}</code></td><td><b>on disk</b> in <code>X.index.json</code>, then in memory during a run</td><td>made by <code>ingest</code>, saved by <code>store.save</code>, searched by <code>store.search</code></td></tr>
+<tr><td><b>Checked answer</b></td><td><code>{"question", "answer", "page", "quote", "status", "verdict", "reason", "disagreement", "chunks"}</code></td><td>memory only</td><td>made by <code>pipeline</code> + <code>judge</code> + <code>cli.answer_question</code>, used by the writer, the summary and the web UI</td></tr>
+<tr><td><b>Section</b></td><td>a block of Markdown between <code>&lt;!-- sensai:section 2 --&gt;</code> and <code>&lt;!-- /sensai:section 2 --&gt;</code></td><td><b>on disk</b> in <code>answers.md</code></td><td>made by <code>writer.render_section</code>, replaced by <code>upsert_section</code></td></tr>
+</table>
+<p><b>Where files are placed on disk.</b> The index sits <em>next to the PDF</em>: <code>course.pdf</code> becomes <code>course.index.json</code> (<code>ingestion.index_path</code>). The answers file defaults to <code>answers.md</code> next to the PDF (or <code>--output</code>). In the web UI, uploads go to <code>WEB-UI/workspace/uploads/</code> and answers to <code>WEB-UI/workspace/outputs/</code>. Chat conversations of the web UI live in the <em>browser</em> (<code>localStorage</code>), not on the server. Terminal chat sessions are saved by the memory feature under <code>.sensai/</code>.</p>
+<p><b>How data moves.</b> Only one thing talks to the model: the functions in <code>ollama_client.py</code> (plus the terminal chat, which streams with its own small request). Everything else passes plain Python values around: a list of pages, a list of chunks, a dict for an answer. Nothing is global or hidden; each function receives what it needs and returns a result. That is why 392 tests can check every piece without a model.</p>
+
+<!-- ============================================================ -->
+<h2 id="p-ingest" data-toc="6. ingestion.py: PDF to index">6. <code>src/ingestion.py</code>: from PDF to index <span class="pill me">mine</span></h2>
+<p><b>Job:</b> turn a PDF into small searchable pieces and save them. Four functions, in order: <code>extract_pages</code> → <code>chunk_pages</code> → <code>ingest</code> (which embeds and saves), plus <code>index_path</code> and <code>_load_index</code> helpers.</p>
+
+<h3>6.1 <code>extract_pages(pdf_path)</code>: read the text, page by page</h3>
+<p>Returns a list of <code>(page_number, text)</code>. Page numbers start at 1. Before reading, it makes a series of <b>safety checks, in this order</b>, each with a clear error message:</p>
+<ol>
+<li>The file exists, else <code>IngestionError("PDF not found")</code>.</li>
+<li>Its first 5 bytes are <code>%PDF-</code>, else "is not a PDF file" (a renamed <code>.txt</code> is rejected).</li>
+<li>If it is encrypted and an empty password fails: "password protected".</li>
+<li>If the PDF library (pypdf) cannot parse it: "Cannot read ... as a PDF".</li>
+<li>If the <b>whole</b> document has fewer than <b>50 characters</b> of text, it is probably scanned images: <code>NoTextError</code>. We do not do OCR.</li>
+</ol>
+<p>A page with no text is <b>kept</b> with an empty string, so the page numbers of the other pages stay correct.</p>
+<div class="box care"><span class="tag">Trap</span><p><i>"What if the PDF is scanned?"</i> We detect it (under 50 characters in total), stop with a clear message, and build no empty index. OCR (reading text from pictures) is out of scope: a known limit, said honestly.</p></div>
+
+<h3>6.2 <code>chunk_pages(pages, size, overlap)</code>: cut into pieces</h3>
+<p>For each page: collapse all whitespace to single spaces, then cut windows of at most <code>size</code> characters, moving forward by <code>step = size − overlap</code>. Rules:</p>
+<ul>
+<li><b>A chunk never mixes two pages</b>, so its page number is always exact (that is the whole point of a sourced answer).</li>
+<li>Consecutive chunks of one page share exactly <code>overlap</code> characters, so a sentence cut at a border is whole in one of them.</li>
+<li>Empty pages are skipped. Invalid settings raise <code>ValueError</code> (size ≤ 0, negative overlap, or <b>overlap ≥ size</b>, which would loop forever).</li>
+</ul>
+<pre><code>step = size - overlap
+start = 0
+while True:
+    chunks.append({"text": text[start:start+size], "page": page})
+    if start + size >= len(text):   # this chunk reached the end of the page
+        break
+    start += step</code></pre>
+<p><b>Real example</b> (the code's own output): the letters A to Z with size 10, overlap 3 give step 7 and 4 chunks: <code>ABCDEFGHIJ</code>, <code>HIJKLMNOPQ</code>, <code>OPQRSTUVWX</code>, <code>VWXYZ</code>. Notice <code>HIJ</code> ends the first and starts the second: that is the overlap. For the demo PDF (24 pages, 34,597 characters) the committed settings (800 / 150) give <b>59 chunks</b>.</p>
+
+<div class="tool" id="chunk-tool">
+<h3>Tool: the chunking playground</h3>
+<p class="small muted">This is the same algorithm as <code>chunk_pages</code>, ported to the browser. Change the numbers and watch the chunks. Orange characters are the overlap.</p>
+<label for="c-text">Text of one page</label>
+<textarea id="c-text">The OSI model has seven layers. Each layer has one job. The physical layer sends bits over a cable, and the transport layer makes sure data arrives in order.</textarea>
+<div class="row"><div><label for="c-size">Chunk size (characters)</label><input id="c-size" type="number" value="60" min="1"></div>
+<div><label for="c-ov">Overlap (characters)</label><input id="c-ov" type="number" value="15" min="0"></div>
+<div><label for="c-page">Page number</label><input id="c-page" type="number" value="2" min="1"></div></div>
+<div id="c-out" style="margin-top:.8rem"></div>
+</div>
+
+<h3>6.3 <code>ingest(pdf_path, config, force, progress)</code>: embed and save</h3>
+<ol>
+<li><b>Reuse rule:</b> if <code>X.index.json</code> exists, you did not pass <code>--force</code>, and the index is <b>not older than the PDF</b>, load it and skip everything (saves minutes).</li>
+<li>Otherwise: <code>extract_pages</code> → <code>chunk_pages</code> with the <code>chunk_size</code> and <code>chunk_overlap</code> from <code>config.json</code>.</li>
+<li><b>Embed in batches of 16</b> chunks per request to Ollama (one request per chunk would be slow). It checks that the model returned exactly as many vectors as texts.</li>
+<li>Build the records <code>{id, text, page, vector}</code> and save them with <code>store.save</code>.</li>
+<li>The index is written <b>only after every chunk is embedded</b>: a crash halfway never leaves a half-built index.</li>
+</ol>
+<p><code>progress</code> is an optional callback. The CLI leaves it empty and prints lines; the web UI passes a function that turns each stage (<code>reuse</code>, <code>embedding</code>, <code>saved</code>) into an event for the progress bar. One function, two front ends, no duplication.</p>
+<p><code>_load_index</code> validates a saved index: if the file is unreadable or each record lacks <code>id, text, page, vector</code>, it says "Rebuild it with --force" instead of crashing.</p>
+<div class="box care"><span class="tag">Trap</span><p><i>"You change the chunk size. Does the index update?"</i> <b>No.</b> The reuse rule only looks at file dates, not at settings. After changing <code>chunk_size</code> or <code>chunk_overlap</code> you must rebuild with <code>--force</code> (in the web UI: the "Rebuild the PDF index" checkbox). We documented it and say it in the settings dialog. A better design would store the settings in the index and compare them: say that as "what I would improve".</p></div>
+<div class="box say"><span class="tag">Say it</span><p>"Ingestion has three steps: read each page, cut it into 800-character chunks with 150 characters of overlap, and embed the chunks in batches. A chunk never crosses a page, so the page number in the answer is exact. The index is saved only when everything is embedded, and it is reused as long as it is newer than the PDF."</p></div>
+
+<!-- ============================================================ -->
+<h2 id="p-writer" data-toc="7. writer.py: answers.md">7. <code>src/writer.py</code>: the answers file <span class="pill me">mine</span></h2>
+<p><b>Job:</b> own <code>answers.md</code>. After each question, <b>change exactly one section and leave every other byte untouched</b> (feature M4, "a living document"). The model never rewrites the file: our code does, so it can never corrupt it.</p>
+<h3>7.1 The file format</h3>
+<pre><code># Answers
+
+&lt;!-- sensai:section 1 --&gt;
+## Q1. How many bits long is an IPv6 address?
+
+**Answer:** 128 bits
+
+**Page:** 13
+
+&gt; An IPv6 address is 128 bits long, which gives about ...
+
+**Quote check:** supported
+**Judge:** faithful - the passage states 128 bits
+&lt;!-- /sensai:section 1 --&gt;</code></pre>
+<p>The HTML comments are invisible when the Markdown is displayed but let the code find a section exactly, with a regular expression <code>SECTION_RE</code> that matches from <code>&lt;!-- sensai:section N --&gt;</code> to the matching <code>&lt;!-- /sensai:section N --&gt;</code>. If the judge and quote check disagree, a line <b>Review needed</b> is added (for a refusal, only when the judge says the passages do answer the question). A refusal has page 0, which is written as <code>-</code>.</p>
+<h3>7.2 <code>upsert_section(path, index, checked)</code></h3>
+<ol>
+<li><code>_validate</code>: the section number must be a positive integer; the answer must be a dict with <code>question, answer, page, quote, status</code>; if it carries an <code>error</code>, <b>refuse to write</b> (<code>WriterError</code>, file untouched).</li>
+<li>Read the file (or start with <code># Answers</code>).</li>
+<li>Three cases: <b>same number exists</b> → replace that block only; <b>a later number exists</b> → insert before it (numeric order); <b>otherwise</b> → append at the end.</li>
+<li><code>_write_atomically</code>: write to a temporary file in the <em>same folder</em>, then <code>os.replace</code> it over the real file. The rename is instant, so a crash or Ctrl+C can never leave a half-written <code>answers.md</code>.</li>
+</ol>
+<p><b>Small detail worth knowing:</b> the temporary file is created with private permissions (<code>0600</code>); <code>_target_mode</code> copies the original file's permissions (or the normal default) so <code>answers.md</code> does not become unreadable for others. That was a real bug found by testing and fixed (commit "keep normal file permissions").</p>
+
+<div class="tool" id="writer-tool">
+<h3>Tool: the writer simulator</h3>
+<p class="small muted">A tiny model of <code>upsert_section</code>. Click the buttons and look at which sections change (they flash green) and which stay identical.</p>
+<div class="row"><button class="btn" id="w-rerun" type="button">Re-run question 2 (new answer)</button><button class="btn alt" id="w-add" type="button">Answer question 5 (insert in order)</button><button class="btn alt" id="w-fail" type="button">Write a failed answer</button><button class="btn alt" id="w-reset" type="button">Reset</button></div>
+<p id="w-msg" class="small" style="margin:.7rem 0 .3rem"></p>
+<div id="w-file"></div>
+</div>
+<div class="box care"><span class="tag">Trap</span><p><i>"Why does re-running the same question give an empty diff?"</i> Because the model answers deterministically (temperature 0 and a fixed prompt), so the same input gives the same section. To show M4 in the demo, <b>reword the question</b>, re-run with <code>--only 2</code>, and <code>diff</code> the two files: only section 2 changes.</p></div>
+<div class="box say"><span class="tag">Say it</span><p>"The answers file is a living document. Each section sits between two markers. To update a question we find its markers, replace only that block and write the whole file atomically: temporary file, then rename. So nothing else changes, even by one byte, and the file is never half-written. A failed answer is never written."</p></div>
+
+<!-- ============================================================ -->
+<h2 id="p-cli" data-toc="8. cli.py: the entry point">8. <code>src/cli.py</code>: the entry point <span class="pill me">mine</span></h2>
+<p><b>Job:</b> wiring only. It reads the arguments and the settings, ingests the PDF once, loops over the questions, prints a summary. It contains almost no logic of its own: it <em>orders</em> the other modules. A conductor, not a musician.</p>
+<h3>8.1 The command</h3>
+<pre><code>python -m src.cli data/demo.pdf data/questions.txt            # batch: all questions
+python -m src.cli data/demo.pdf data/questions.txt --only 2     # just question 2
+python -m src.cli data/demo.pdf                                  # interactive: type questions
+flags: --force  --output FILE  --config FILE  --no-judge  --no-rag  --no-quote-check</code></pre>
+<h3>8.2 What <code>main()</code> does, in order</h3>
+<ol>
+<li><code>parse_args</code> (the standard <code>argparse</code> library) reads the command.</li>
+<li><code>load_config</code> reads <code>config.json</code> and fails clearly if a required key is missing (<code>host, chat_model, embed_model, chunk_size, chunk_overlap, top_k</code>). It fills defaults for the <b>feature flags</b> <code>rag, judge, quote_check, cache</code>.</li>
+<li>The three <code>--no-...</code> flags switch those feature flags off for this run.</li>
+<li>Checks: PDF exists; <code>--only</code> needs a questions file and must be in range; questions are read (blank lines ignored; an empty file is an error).</li>
+<li><code>ingestion.ingest</code> runs once (section 6.3).</li>
+<li>If no questions file: <code>interactive()</code>. Otherwise loop over the selected questions.</li>
+<li>For each: <code>answer_question</code> then <code>writer.upsert_section</code>. Print one progress line.</li>
+<li>Print the summary from <code>eval_summary</code> and return an <b>exit code</b>.</li>
+</ol>
+<h3>8.3 <code>answer_question(question, records, config)</code></h3>
+<p>This is the glue for <b>one</b> question. With RAG on it calls <code>pipeline.retrieve_and_answer</code> (embed, search, prompt, JSON, quote check). With RAG off it calls the model with no passages (to show the difference). Then, if the pipeline did not already produce a verdict, it calls <code>judge.evaluate</code>. A failing judge <b>never loses the answer</b>: it becomes verdict <code>unknown</code>. Finally it sets <code>disagreement</code> (the rule lives in <code>eval_summary.disagrees</code>):</p>
+<pre><code>supported     + unfaithful  -> disagreement
+not supported + faithful    -> disagreement   (but NOT for a correct refusal)
+refusal       + unfaithful  -> disagreement   (the judge says the passages do answer)</code></pre>
+<div class="box care"><span class="tag">Trap: refusals and the flag (fixed, with a history)</span><p>When the model <b>correctly refuses</b> (a question not in the PDF), it gives no quote, so the quote check says "not supported", while the judge says "faithful". In our first runs these two "disagreed" and the correct refusal of "Who invented the World Wide Web?" was flagged <b>Review needed</b>: a false alarm. We fixed it: a refusal has no quote, so "not supported" means nothing for it. Now (<code>eval_summary.is_refusal</code> and <code>disagrees</code>) a refusal is flagged <b>only if the judge says the passages do answer the question</b>, i.e. the model refused wrongly. The run summary also counts refusals apart ("Refused: 1/9") so they no longer lower the quote-check percentage. Old recorded runs in <code>docs/examples</code> still show the old behavior. Honest remaining limit: the file still prints "Quote check: not supported" on a refusal.</p></div>
+<h3>8.4 The principle: one failed question never stops the run</h3>
+<p>Each question is inside <code>try/except</code>. If one fails (model timeout, bad JSON after retries) the CLI prints <code>failed: ...</code>, adds it to a list, and goes to the next. At the end the summary lists <code>Failed: Q3 (...)</code>. Ctrl+C is also handled: the answers already written are kept.</p>
+<table>
+<tr><th>Exit code</th><th>Meaning</th></tr>
+<tr><td><code>0</code></td><td>all questions answered</td></tr>
+<tr><td><code>1</code></td><td>an input/setup error, or at least one question failed</td></tr>
+<tr><td><code>130</code></td><td>you pressed Ctrl+C (the Unix convention: 128 + signal 2)</td></tr>
+</table>
+<h3>8.5 Interactive mode</h3>
+<p>Without a questions file you get a prompt <code>question&gt;</code>. Each answer is printed (<code>format_answer</code>) <em>and</em> written as a section. <code>next_section_number</code> continues after the sections already in the file, so a second session never overwrites the first. <code>exit</code>, <code>quit</code> or Ctrl+D ends it; Ctrl+C cancels only the current question.</p>
+<div class="box say"><span class="tag">Say it</span><p>"The CLI only orders the other modules: read the settings, ingest once, then for each question retrieve, answer, judge, and write one section. It is built to never lose work: a failing question is reported and skipped, the judge failing never drops an answer, Ctrl+C keeps what is written, and the exit code tells a script what happened. Feature flags let you switch the retrieval, the judge or the quote check off from the command line, the config file, or the web UI."</p></div>
+
+<!-- ============================================================ -->
+<h2 id="p-chat" data-toc="9. chat.py: terminal chatbot">9. <code>src/chat.py</code>: the terminal chatbot <span class="pill me">mine</span></h2>
+<p><b>Job:</b> the base chatbot (task P1): a loop in the terminal where you talk to the model with streaming output. It is also where the extra features X2 (branching) and M3 (memory) show up.</p>
+<ul>
+<li><b>History is sent every turn.</b> The model has no memory: it only knows what we send. So <code>messages</code> (system prompt + every user/assistant turn) is resent with each request. This is also why the context window matters.</li>
+<li><b>Streaming.</b> <code>stream_reply</code> sends <code>stream: true</code> and prints each fragment as it arrives, so words appear live. It closes the connection in a <code>finally</code>, which makes Ollama stop generating.</li>
+<li><b>Thinking indicator.</b> The qwen3 model "thinks" before answering; we print <code>(thinking...)</code> once, and show only the final content (never the reasoning).</li>
+<li><b>Errors in plain words:</b> Ollama not running → "Start it with: ollama serve"; model missing → "ollama pull MODEL"; timeout.</li>
+<li><b>Ctrl+C</b> during a reply cancels it, removes the half-finished turn from the history (<code>messages.pop()</code>) so it does not pollute the next turns, and returns to the prompt.</li>
+<li><b>Commands:</b> <code>/edit</code> (edit a past message and fork a new branch; the old conversation is archived), <code>/history</code>, <code>/branches</code>, <code>/switch N</code>, <code>/memory</code> and <code>/recall query</code> (cross-session memory: past sessions are saved to <code>.sensai/</code> on exit and searched by meaning).</li>
+</ul>
+<div class="box mine"><span class="tag">A good story to tell (honest testing)</span>
+<p>While testing everything, I found that <code>python src/chat.py</code>, the very command written in the README, crashed with <code>ModuleNotFoundError</code>. It had broken when the memory feature added <code>from src.memory import ...</code>, and our automated tests never noticed because they <em>import</em> the module instead of running it as a script. I wrote a failing test first (it runs the file as a real script from a temporary folder), then fixed it with two lines that add the project folder to <code>sys.path</code>. Lesson: also test the real command, not only the functions.</p></div>
+<div class="box care"><span class="tag">Trap</span><p><i>"Your docs say only one module talks to Ollama."</i> Be exact: the answering pipeline, the judge and ingestion all go through <code>ollama_client.py</code>. The terminal chat (<code>chat.py</code>) is the original base chatbot and streams with its own small <code>requests</code> call; the web UI uses <code>ollama_client.chat_events</code>. If asked, say that honestly, and that merging them into one client would be a clean-up.</p></div>
+
+<!-- ============================================================ -->
+<h2 id="p-web" data-toc="10. The web interface (X1)">10. <code>WEB-UI/</code>: the web interface <span class="pill me">mine</span></h2>
+<p><b>Job (feature X1):</b> a browser front end over the <em>same</em> backend as the CLI. It does not reimplement anything: the server calls <code>cli.answer_question</code>, <code>ingestion.ingest</code> and <code>writer.upsert_section</code>. The browser just shows progress. Zero extra dependency: the server uses only Python's standard library, and the page uses plain JavaScript (no React, no framework).</p>
+<h3>10.1 The pieces</h3>
+<table>
+<tr><th>File</th><th>Role</th></tr>
+<tr><td><code>WEB-UI/server.py</code></td><td>The server: <code>App</code> (shared state and settings), <code>Handler</code> (answers each request), <code>run_job</code> and <code>chat_job</code> (do the work and emit events)</td></tr>
+<tr><td><code>WEB-UI/index.html</code></td><td>The page skeleton: sidebar, top bar, conversation, composer, settings dialog, side panel</td></tr>
+<tr><td><code>WEB-UI/static/app.js</code></td><td>All the behavior in the browser (about 1,190 lines of plain JavaScript)</td></tr>
+<tr><td><code>WEB-UI/static/style.css</code></td><td>The look: colors, spacing, animations, dark mode, phone layout</td></tr>
+<tr><td><code>WEB-UI/e2e/ui_check.py</code></td><td>61 real-browser checks (Chromium through Playwright)</td></tr>
+</table>
+<h3>10.2 The routes (the "menu" of the server)</h3>
+<table>
+<tr><th>Request</th><th>What it does</th></tr>
+<tr><td><code>GET /</code>, <code>/static/...</code></td><td>sends the page and its files</td></tr>
+<tr><td><code>GET /api/status</code></td><td>is Ollama up, which models are installed/missing, current settings, is a job running</td></tr>
+<tr><td><code>GET /api/documents</code></td><td>the demo PDF + uploaded PDFs (pages, indexed?, has answers?)</td></tr>
+<tr><td><code>GET /files/&lt;doc&gt;</code></td><td>the PDF itself (shown in the side panel at the quoted page)</td></tr>
+<tr><td><code>GET /api/answers?doc=...</code></td><td>the <code>answers.md</code> of a document (view or download)</td></tr>
+<tr><td><code>POST /api/upload</code></td><td>upload a PDF (checked: must be a text PDF, at most 50 MB)</td></tr>
+<tr><td><code>POST /api/config</code></td><td>change settings for this server session, or <code>{"reset": true}</code></td></tr>
+<tr><td><code>POST /api/run</code></td><td>answer questions about a PDF, <b>streaming events</b></td></tr>
+<tr><td><code>POST /api/chat</code></td><td>plain chat, streaming tokens</td></tr>
+<tr><td><code>POST /api/memory/search</code>, <code>GET /api/memory/sessions</code></td><td>cross-session memory</td></tr>
+</table>
+<h3>10.3 How "movement" works: events</h3>
+<p>A run takes minutes, so the answer cannot come back in one piece. The server answers <code>/api/run</code> with <b>Server-Sent Events</b>: it keeps the connection open and pushes small messages. The browser (<code>streamPost</code> in <code>app.js</code>) reads them and updates the screen:</p>
+<table>
+<tr><th>Event</th><th>Sent when</th><th>What the page does</th></tr>
+<tr><td><code>start</code></td><td>the job begins</td><td>shows the status line and the progress bar</td></tr>
+<tr><td><code>ingest</code></td><td>embedding progress (<code>reuse</code> / <code>embedding done/total</code> / <code>saved</code>)</td><td>moves the bar: "Reading the PDF: 32 of 59 chunks"</td></tr>
+<tr><td><code>question_start</code></td><td>a question begins</td><td>shows a shimmering skeleton for that question</td></tr>
+<tr><td><code>question_done</code></td><td>an answer is ready</td><td>draws the answer card: answer, page button, quote, two badges</td></tr>
+<tr><td><code>question_failed</code></td><td>a question failed</td><td>draws an error card with a retry</td></tr>
+<tr><td><code>summary</code>, <code>done</code></td><td>the end</td><td>shows the totals tiles; stops the timer</td></tr>
+<tr><td><code>error</code></td><td>ingestion failed</td><td>shows the message, marks the pending questions</td></tr>
+</table>
+<p><b>Stop button:</b> it aborts the browser request. The server notices the broken connection (<code>BrokenPipeError</code>) and abandons the job; answers already written stay in the file.</p>
+<h3>10.4 One job at a time</h3>
+<p>A small laptop cannot run two models at once, so <code>stream_job</code> takes a lock (<code>threading.Lock</code>). A second run or chat while one is active gets <b>HTTP 409</b> "Another run or chat is in progress". Nothing is lost: the page shows the message.</p>
+<h3>10.5 Security (a favorite jury topic)</h3>
+<p>The server has no login, so by default it only listens on <code>127.0.0.1</code> (your own machine). On top of that:</p>
+<table>
+<tr><th>Protection</th><th>Against what</th></tr>
+<tr><td><b>Host check</b> (<code>check_origin</code>): only <code>localhost</code>, <code>127.0.0.1</code>, <code>::1</code> (+ names you allow) → else <b>403</b></td><td><b>DNS rebinding</b>: a hostile website pointing its name at your machine</td></tr>
+<tr><td><b>Origin check</b> on posts: a request from another website → <b>403</b></td><td><b>CSRF</b>: another tab making your browser call your local server</td></tr>
+<tr><td><b>No raw paths.</b> A document is referred to as <code>builtin/demo.pdf</code> or <code>upload/x.pdf</code>; the name must match <code>^[A-Za-z0-9._ -]{1,120}$</code> and end in <code>.pdf</code>; the file is found by listing the folder, never by joining user text into a path</td><td><b>Path traversal</b> (<code>../../etc/passwd</code>)</td></tr>
+<tr><td><b>Size limits:</b> upload 50 MB (413), JSON body 1 MB, 100 questions, 1,000 characters each</td><td>memory exhaustion</td></tr>
+<tr><td><b>Settings whitelist</b> (<code>EDITABLE</code>): only listed keys, with min/max; the Ollama <code>host</code> cannot be changed from the UI</td><td>pointing the server at another machine</td></tr>
+<tr><td><b>Upload validation:</b> the file is tested with <code>extract_pages</code> before it is kept</td><td>scans, non-PDFs, broken files</td></tr>
+<tr><td><b>Sharing key</b> (<code>--key</code>): a secret in the link; the server sets an <code>HttpOnly; SameSite=Strict</code> cookie; compared with <code>hmac.compare_digest</code>; wrong or missing → <b>401</b></td><td>strangers who find a shared link</td></tr>
+</table>
+<p><b>Sharing a running page</b> with a partner (through a Cloudflare tunnel) needs <code>--allow-host the-tunnel-name</code> (so the Host check accepts it) and <code>--key auto</code> (so only the link holder gets in). The tunnel gives a new random name each time and stops when the PC sleeps: a free quick tunnel is for a demo, not a service.</p>
+<h3>10.6 Inside the page: layout (where each object is placed)</h3>
+<pre><code>.app  (flex row, full height)
+ ├─ aside.sidebar  260px: logo, New chat, Try the demo PDF, Chats list, Settings, Theme
+ └─ div.stage  (flex column)
+     ├─ header.topbar: sidebar button, "Ollama ready · qwen3:4b" status pill
+     ├─ div.banner: errors
+     └─ main  (flex column)
+         ├─ div.scroller: .empty (the greeting) and .thread (the messages)
+         └─ div.composer-wrap (max-width 768px, centered)
+             ├─ form.composer: "+" attach menu, textarea, send / stop button
+             ├─ div.suggest: the four starter rows (only on an empty chat)
+             └─ div.foot: "can make mistakes" + context meter
+ + aside.drawer (right, 560px): the PDF page or answers file
+ + div.modal: settings   + div.toasts: small messages</code></pre>
+<p>The look is controlled by <b>design tokens</b>: variables at the top of <code>style.css</code> (<code>--bg</code>, <code>--ink</code>, <code>--accent</code>, <code>--shadow</code> ...). Dark mode only redefines them. Below 820 px wide the sidebar becomes a slide-over drawer.</p>
+<h3>10.7 Inside the page: how things move</h3>
+<ul>
+<li><b>Pure CSS transitions:</b> the sidebar slides with <code>margin-left</code>/<code>transform</code> (0.25 s); buttons fade their background.</li>
+<li><b>Keyframe animations:</b> <code>fadeUp</code> (8 px rise + fade) for new messages, <code>pop</code> (scale .96→1) for menus and dialogs, <code>slideIn</code> for the drawer, <code>shimmer</code> and <code>sheen</code> for the loading skeleton, <code>spin</code> for the spinner, <code>pulse</code> for the typing dot.</li>
+<li><b>Respect for the user:</b> <code>prefers-reduced-motion</code> turns every animation off.</li>
+<li><b>Smart scrolling:</b> new content scrolls into view only if you were already near the bottom; if you scrolled up a "jump to latest" button appears (when you are more than 260 px from the end).</li>
+<li><b>Own mini Markdown renderer</b> (<code>renderMarkdown</code>) builds elements with <code>createElement</code> and <code>textContent</code>, never <code>innerHTML</code> with model text: so a model cannot inject HTML into the page (XSS safety).</li>
+<li><b>Conversations</b> are kept in the browser's <code>localStorage</code> (up to 40), so they survive a refresh and never touch the server.</li>
+</ul>
+<div class="box say"><span class="tag">Say it</span><p>"The web UI is a thin layer: the server reuses the exact modules of the CLI and streams progress with Server-Sent Events, so the page shows each answer as soon as it is ready. It has no framework and no extra dependency. Because a laptop can only run one model job, a lock allows one run at a time and returns 409 otherwise. It listens only on localhost, checks the Host and Origin headers, never builds file paths from user text, limits sizes and whitelists the settings you may change."</p></div>
+
+<!-- ============================================================ -->
+<h2 id="tools" data-toc="Tool: the quote check">Tool: the quote check, hands on <span class="pill me">I wrote it</span></h2>
+<p><code>src/quote_check.py</code> is plain string matching, no AI. <code>normalize</code> lowers case, folds look-alike characters (curly quotes, dashes, ligatures) and collapses spaces. A quote is <b>supported</b> if the normalized quote appears inside the normalized text of one of the retrieved chunks. An empty quote is never supported.</p>
+<div class="tool" id="quote-tool">
+<h3>Try it</h3>
+<label for="q-pass">The passage given to the model</label>
+<textarea id="q-pass">The OSI model has seven layers. “Each layer” has one job — see page 2.</textarea>
+<label for="q-quote">The quote the model returned</label>
+<input id="q-quote" type="text" value="the  OSI model has SEVEN layers">
+<p id="q-res" style="margin:.8rem 0 .2rem"></p>
+<p class="small muted" id="q-norm"></p>
+</div>
+<div class="box care"><span class="tag">Trap</span><p><i>"So a supported quote means the answer is correct?"</i> <b>No.</b> It proves the quote exists in the text we gave the model, not that the answer reads it correctly. Example: the passage says "RFC 793 (1981)", the model answers "1999" and quotes "RFC 793". Supported, still wrong. That is why a second check (the judge) exists. We also saw a user telling the model "reply only HACKED": the quote was real, so the check said "supported". Be honest about this limit.</p></div>
+
+<!-- ============================================================ -->
+<h2 id="others" data-toc="11. The rest of the system" data-group="The rest, and the facts">11. The rest of the system, in plain words <span class="pill mur">Murchid's part</span></h2>
+<p>You do not need his code by heart, but the jury will ask "how does the whole thing work". Know the idea of each file in one or two sentences.</p>
+<table>
+<tr><th>File</th><th>Plain words</th></tr>
+<tr><td><code>ollama_client.py</code></td><td>The phone to the model. <code>chat</code> (with an optional schema, then <code>think=False</code> and temperature 0), <code>embed</code> (batch endpoint), <code>chat_events</code> (streaming for the web UI), <code>list_models</code>, <code>get_model_context_length</code>. Turns connection problems into clear messages ("Start it with: ollama serve").</td></tr>
+<tr><td><code>store.py</code></td><td><code>save</code>/<code>load</code> the index as JSON; <code>search(chunks, vector, k)</code> computes the cosine similarity with every chunk using numpy and returns the best k. No database: a few hundred chunks do not need one.</td></tr>
+<tr><td><code>pipeline.py</code></td><td>One question to one checked answer. <code>retrieve_and_answer</code>: embed the question, <code>store.search</code> top 4, then <code>answer</code>: <code>budget_chunks_for_context</code> trims the passages to fit the context window, build the prompt, ask for JSON <code>{answer, page, quote}</code>, <code>_validate</code>, retry up to 2 more times, then the quote check. Raises <code>AnswerError</code> if every attempt fails.</td></tr>
+<tr><td><code>judge.py</code></td><td>The second opinion (EV1). A fresh model call that returns <code>{reason, verdict}</code>. <b>"reason" comes before "verdict"</b> on purpose: tested, verdict-first called wrong refusals "faithful". Same model as the answerer by default (<code>judge_model</code> is configurable).</td></tr>
+<tr><td><code>routing.py</code></td><td>Answers simple things without the model: arithmetic ("what is 12 x 7") with a <b>safe evaluator</b> built on Python's <code>ast</code> (never <code>eval()</code>), and greetings. So Sensai does not answer "hello" with "the document does not cover this".</td></tr>
+<tr><td><code>quote_check.py</code></td><td>The plain-code quote check (see the tool above).</td></tr>
+<tr><td><code>eval_summary.py</code></td><td>Counts quote-check and judge results, percentages, and lists the disagreements.</td></tr>
+<tr><td><code>memory.py</code></td><td>"Second brain": saves chat sessions as JSON, indexes them with embeddings, and when you say "remember what we discussed" injects the best matches into the prompt.</td></tr>
+</table>
+<div class="info box"><span class="tag">The prompts</span><p><code>prompts/system_prompt.txt</code>: "Answer using ONLY the passages. If no passage contains the answer, say <i>The document does not cover this.</i>, page 0, empty quote. Never invent a quote. Reply with JSON only." <code>answer_prompt.txt</code>: the passages then the question. <code>judge_prompt.txt</code>: "strict fact checker ... reason first, then verdict", with a special rule for refusals. <code>chat_prompt.txt</code>: the plain chat persona.</p></div>
+
+<h3>Why these choices (the decisions table)</h3>
+<table>
+<tr><th>Decision</th><th>Chosen</th><th>Ruled out</th><th>Why</th></tr>
+<tr><td>Model</td><td><code>qwen3:4b</code></td><td>8B and other small models</td><td>fits in about 2.5 GB; 8B too slow and tight on 8 GB RAM without a GPU</td></tr>
+<tr><td>Embeddings</td><td><code>nomic-embed-text</code></td><td>bigger models</td><td>0.3 GB, retrieval ranked the right page first in every test</td></tr>
+<tr><td>Vector store</td><td>JSON file + numpy</td><td>SQLite, vector DB</td><td>simple, readable, enough for hundreds of chunks</td></tr>
+<tr><td>Framework</td><td>none (<code>requests</code>)</td><td>LangChain, LlamaIndex</td><td>the subject asks for no LLM framework in the bot; every step stays visible</td></tr>
+<tr><td>Chunking</td><td>800 chars, 150 overlap, page kept</td><td>whole pages, sentence splitting</td><td>sharper matches; overlap protects cut sentences; page enables citations</td></tr>
+<tr><td>Thinking mode</td><td>off in schema mode</td><td>on everywhere</td><td>tested: with a schema it returned empty answers or hung for minutes</td></tr>
+<tr><td>Answer field order</td><td>answer, page, quote</td><td>quote first; reasoning first</td><td>tested on the same questions: current order scored 6/8, the others 5/8, 3/8, 2/8</td></tr>
+<tr><td>Checks</td><td>quote check <b>and</b> judge</td><td>only one of them</td><td>the quote check is exact but blind to misreading; the judge reads everything but is a lenient small model</td></tr>
+</table>
+
+<!-- ============================================================ -->
+<h2 id="numbers" data-toc="12. The numbers to know">12. The numbers to know by heart</h2>
+<div class="kpi">
+<div><b>24</b><span>pages in the demo PDF</span></div>
+<div><b>59</b><span>chunks at 800 / 150 (committed config)</span></div>
+<div><b>768</b><span>numbers per embedding</span></div>
+<div><b>4</b><span>chunks retrieved per question (top_k)</span></div>
+<div><b>4096</b><span>tokens of context window (num_ctx)</span></div>
+<div><b>3</b><span>attempts for the JSON (1 + 2 retries)</span></div>
+<div><b>16</b><span>chunks embedded per request</span></div>
+<div><b>50</b><span>characters minimum, else "scanned PDF"</span></div>
+<div><b>6 / 8</b><span>covered questions answered right (page + quote)</span></div>
+<div><b>1 / 1</b><span>uncovered question correctly refused</span></div>
+<div><b>~40 s</b><span>per question on a CPU laptop</span></div>
+<div><b>392</b><span>automated tests (no Ollama needed)</span></div>
+<div><b>61</b><span>real-browser checks of the web UI</span></div>
+<div><b>50 MB</b><span>upload limit in the web UI</span></div>
+<div><b>11434</b><span>Ollama's port; the web UI uses 8000</span></div>
+<div><b>0 / 1 / 130</b><span>CLI exit codes</span></div>
+</div>
+<p class="small muted">Your own <code>config.json</code> currently has <code>chunk_size 500</code> (98 chunks); the committed value is <b>800</b> (59 chunks). If the jury runs your laptop, know which one is loaded.</p>
+
+<!-- ============================================================ -->
+<h2 id="limits" data-toc="Honest limits">Honest assessment: works, limits, what I would change</h2>
+<div class="grid">
+<div class="card"><h4>Works well</h4><ul><li>The whole chain is local and automatic: PDF in, sourced <code>answers.md</code> out.</li><li>Retrieval ranked the right page first in every test.</li><li>The file is never corrupted (atomic write, failed answers skipped).</li><li>Two independent checks and a disagreement flag.</li><li>392 tests + 61 browser checks.</li></ul></div>
+<div class="card"><h4>Current limits</h4><ul><li>6 of 8 covered questions right: a small sample.</li><li>The 4B model sometimes refuses a question the PDF covers.</li><li>The judge is the same small model: lenient.</li><li>A refusal still prints "Quote check: not supported" (no quote), and a wrong refusal is only caught when the judge notices it.</li><li>Slow: ~40 s per question on CPU. Text PDFs only, no OCR.</li><li>It misses unit conversion (MW to kW) and cross-language questions; a user can order the model to say something and the quote check will not notice.</li></ul></div>
+<div class="card"><h4>What I would do differently</h4><ul><li>Measure the model choice earlier with a fixed question set.</li><li>Show "refused" instead of "not supported" on a refusal's quote-check line.</li><li>Store the chunk settings inside the index and rebuild automatically.</li><li>Add reranking, or retry with more chunks when the model refuses.</li><li>One Ollama client for everything, including the terminal chat.</li><li>A larger model if a GPU is available.</li></ul></div>
+</div>
+<div class="box say"><span class="tag">Say it</span><p>"We would rather show you the limits than hide them: 6 of 8 covered questions right, one refusal correct, and a flag that no longer cries wolf on correct refusals. The checks do not prove the answer is right, they make mistakes visible."</p></div>
+
+<!-- ============================================================ -->
+<h2 id="qa" data-toc="13. Jury questions with answers">13. Jury questions, with answers</h2>
+<p>Read each question, answer out loud, then open the card. Answers are short on purpose: say the first sentence, add the rest only if asked.</p>
+<p class="noprint"><button class="tbtn" type="button" data-toggle-all="1">Open all</button></p>
+
+<h3>The big picture</h3>
+<details><summary>Why can't you give the whole PDF to the model?</summary><p>A model reads a limited amount of text at once, its context window (4096 tokens here, about 3,000 words). The demo PDF is about 5,500 words, so it does not fit. A bigger window needs more RAM and is slower, and small models get worse at finding details in long text. So we search first and send only the best 4 chunks: that is RAG.</p></details>
+<details><summary>What is an embedding and why does it find passages with different words?</summary><p>A list of 768 numbers that stands for the meaning of a text. Similar meanings give similar numbers, so "how do plants make food" lands near "photosynthesis turns light into sugar" with no common word, where Ctrl+F finds nothing. Questions and chunks are embedded with the same model so they can be compared.</p></details>
+<details><summary>What is cosine similarity?</summary><p>A score for how much two vectors point the same way: near 1 very similar, near 0 unrelated. Question [1, 0] against chunk A [0.9, 0.1] scores about 0.99 and against chunk B [0, 1] scores 0, so A wins. Real vectors have 768 numbers but the idea is identical. We keep the 4 best.</p></details>
+<details><summary>Why local, and why no LangChain?</summary><p>Local: the document stays on the machine, no cost per question, works offline: important for private notes or contracts. The trade-off is a weaker, slower model, which we compensate with retrieval and two checks. No LangChain: the subject asks for no LLM framework in the bot, and writing each step ourselves keeps everything visible and explainable: about 600 lines of plain Python.</p></details>
+
+<h3>My part</h3>
+<details><summary>Walk me through what happens when I run the CLI.</summary><p>It reads the arguments and <code>config.json</code>, ingests the PDF once (read pages, cut chunks, embed, save the index, or reuse it if it is newer than the PDF), then for each question it retrieves the 4 best chunks, asks the model for a JSON answer, checks the quote, asks the judge, writes that question's section atomically, prints a progress line, and at the end prints a summary and returns an exit code.</p></details>
+<details><summary>Why chunks, and why overlap?</summary><p>A whole page mixes topics, so its embedding is vague and it wastes the context window. Small chunks (800 characters) match sharper. A sentence can be cut exactly at a border, so consecutive chunks share 150 characters and the sentence is whole in one of them. Too small loses context, too big blurs the match: both sizes are settings.</p></details>
+<details><summary>Why do you keep the page number in each chunk?</summary><p>It is free (we know the page when we read it) and it is the whole point of a sourced answer: the user can open the PDF at that page. That is why a chunk never crosses a page.</p></details>
+<details><summary>What if two different PDFs? / What if I change the PDF?</summary><p>The index is named after the PDF and sits next to it. If the PDF is newer than its index, the index is rebuilt; otherwise it is reused. We handle one PDF at a time: a known limit.</p></details>
+<details><summary>How do you make sure answers.md is never corrupted?</summary><p>Two things. We never let the model touch the file: our code finds the section by its markers and replaces only that block. And we write atomically: a temporary file in the same folder, then <code>os.replace</code>, which is instant. A failed answer raises an error before anything is written. The tests compare the file byte for byte before and after.</p></details>
+<details><summary>What happens if the model fails or Ollama stops in the middle of a run?</summary><p>The failing question is reported ("failed: ...") and skipped, the run continues, and the summary lists it. If Ollama is down the error says "Start it with: ollama serve". Ctrl+C keeps what is already written. The exit code is 1 if any question failed, 130 on Ctrl+C.</p></details>
+<details><summary>Why a JSON file for the index and not a vector database?</summary><p>A few hundred chunks: a database adds setup for no benefit, and a JSON file is readable and easy to test. The cosine search over a few hundred 768-number vectors takes milliseconds with numpy. For millions of chunks we would switch.</p></details>
+<details><summary>What is a feature flag, where do you set it?</summary><p>An on/off switch for a component (<code>rag</code>, <code>judge</code>, <code>quote_check</code>, <code>cache</code>). You set it in <code>config.json</code> under <code>feature_flags</code>, with a command-line flag (<code>--no-judge</code>, <code>--no-rag</code>, <code>--no-quote-check</code>), or in the web UI settings. Useful to show what each part adds.</p></details>
+<details><summary>Your chat command crashed once. What happened?</summary><p>(Section 9.) The documented command <code>python src/chat.py</code> had broken when memory was added, because the file could not find the <code>src</code> package when run as a script. The tests imported the module instead of running it, so they missed it. I wrote a failing test that runs it as a real script, then fixed it. Now 392 tests pass.</p></details>
+
+<h3>The web interface</h3>
+<details><summary>Why no React or other framework?</summary><p>No build step and no dependency: the server is Python's standard library and the page is plain JavaScript, so it runs offline and is easy to explain. The cost is more code by hand (own Markdown renderer, own state). For a project of this size that was fine.</p></details>
+<details><summary>What is SSE and why not just wait for the answer?</summary><p>A run takes minutes. Server-Sent Events keep one HTTP request open and let the server push small messages (<code>question_done</code> ...), so each answer appears as soon as it is ready and the progress bar moves. A normal request would show nothing for minutes.</p></details>
+<details><summary>Is your server safe to expose?</summary><p>By default it only listens on 127.0.0.1. It checks the Host header (against DNS rebinding) and the Origin header (against cross-site requests), never builds file paths from user text (documents are referred to by id and a strict name pattern), limits sizes (upload 50 MB), whitelists the settings the page may change, and when shared it requires a secret key in a HttpOnly SameSite cookie, compared in constant time. It has no real login, so we say clearly not to expose it to an untrusted network without the key.</p></details>
+<details><summary>What if two people use it at the same time?</summary><p>One model job at a time: a lock returns 409 "Another run or chat is in progress" to the second. A laptop cannot run two jobs at once.</p></details>
+<details><summary>How did you test the interface?</summary><p>Two levels: 48 tests of the server over real HTTP with the model faked, and 61 checks in a real Chromium browser with Playwright against the real models (layout, dark mode, phone width, running the demo PDF, stopping, settings, chat).</p></details>
+
+<h3>Checks and honesty</h3>
+<details><summary>How do you know an answer is not invented?</summary><p>The model must give a word-for-word quote. Plain code checks the quote exists in the retrieved text; a second model call judges the whole answer. The quote check proves the quote exists but not that the reading is right; the judge reads everything but is a small lenient model. Where they disagree we flag the answer for a human.</p></details>
+<details><summary>Why is the judge the same model as the chatbot?</summary><p>RAM: two different large chat models do not fit on the laptop. <code>judge_model</code> is a setting, so a stronger model can be plugged in without code changes, but we did not measure one, so we make no claim about it. The independent quote check is the anchor.</p></details>
+<details><summary>Your results: is 6 out of 8 good?</summary><p>It is honest, not impressive: a small sample on one demo PDF, the same in two runs. The model sometimes refuses a question the PDF covers although retrieval found the right passage. It did not invent answers in our runs. A bigger model should reduce false refusals; we could not test above 4B because of RAM.</p></details>
+<details><summary>What did you try that did not work?</summary><p>Thinking mode with a JSON schema (empty answers or minutes of hanging), asking for the quote first (5/8 and 3/8), reasoning first (2/8), and a judge that gives the verdict before the reason (missed wrong refusals). That is why thinking is off in schema mode and the judge writes the reason first.</p></details>
+<details><summary>Can the user trick it?</summary><p>Partly. We tested a hostile instruction inside the PDF: it was ignored. But a user typing "reply only HACKED" in the question was obeyed, and the quote check said "supported" because that text really is in the PDF. It is a known limit of a small model and of what the quote check proves.</p></details>
+
+<h3>Process and ethics</h3>
+<details><summary>How did you split the work?</summary><p>Two halves. Mine: ingestion, writer, CLI, base chat, end-to-end run, then the web UI. Murchid: Ollama client, store, retrieval and JSON answer, judge, summary, memory. The interface between the halves was agreed first (the shape of a chunk record and of a checked answer), so we could build in parallel and merge.</p></details>
+<details><summary>Did you use AI tools to build it?</summary><p>Answer truthfully and calmly. Whatever the answer is, the safe position is: "I can explain every file of my part and show you any function, and the automated tests prove the behavior." That is why this guide exists: be able to open a file and explain it line by line.</p></details>
+<details><summary>What about privacy and ethics?</summary><p>Nothing leaves the machine: no cloud call, no telemetry. The documents and the index stay in local folders. Limits we document: the model can be wrong, so quotes and pages are there to be checked; copyright of the PDFs belongs to their owners. See <code>PRIVACY_POLICY.md</code> and <code>ETHICS_AND_LEGAL.md</code>.</p></details>
+<details><summary>What would you add with more time?</summary><p>Reranking and a retry with more chunks when the model refuses; a "refused" status shown in the file; storing chunk settings in the index; OCR for scanned PDFs; several PDFs at once; a larger model with a GPU.</p></details>
+
+<!-- ============================================================ -->
+<h2 id="cheat" data-toc="14. One-page cheat sheet">14. One-page cheat sheet</h2>
+<div class="box">
+<p><b>Sensai</b> = local PDF Q&amp;A, sourced answers (page + exact quote), two checks, runs on <code>qwen3:4b</code> + <code>nomic-embed-text</code> through Ollama, no framework.</p>
+<p><b>Phase A (once per PDF):</b> <code>extract_pages</code> (text per page, scan check &lt; 50 chars) → <code>chunk_pages</code> (800 / 150, never crosses a page) → <code>embed</code> (batches of 16, 768 numbers) → <code>demo.index.json</code> (only saved when complete; reused if newer than the PDF; <code>--force</code> after changing chunk settings).</p>
+<p><b>Phase B (per question):</b> embed question → cosine top 4 → prompt with passages → JSON <code>{answer, page, quote}</code> (think off, temperature 0, 2 retries) → quote check → judge (reason first) → <code>upsert_section</code> (markers, atomic) → summary + exit code (0 / 1 / 130).</p>
+<p><b>Writer:</b> sections between <code>&lt;!-- sensai:section N --&gt;</code> markers; replace / insert in order / append; temp file + <code>os.replace</code>; failed answer never written.</p>
+<p><b>Web UI:</b> stdlib server, SSE events, one job at a time (409), localhost only, Host + Origin checks, no raw paths, 50 MB cap, <code>--allow-host</code> + <code>--key</code> to share; plain JS, tokens in CSS, 61 browser checks.</p>
+<p><b>Numbers:</b> 24 pages · 59 chunks · 768 dims · top 4 · 4096 ctx · 3 attempts · 6/8 right · 1/1 refusal · ~40 s/question · 392 tests.</p>
+<p><b>Limits:</b> small sample · false refusals · lenient same-model judge · refusal shows "not supported" · text PDFs only · quote check proves existence, not correctness.</p>
+<p><b>Always say:</b> what it does, why that choice, what it cannot do.</p>
+</div>
+<p class="noprint small muted">Tip: print this page to PDF (<kbd>Ctrl</kbd>+<kbd>P</kbd>): the cheat sheet and the questions print cleanly, the tools are hidden.</p>
+
+</main>
+</div>
+
+<script src="defense.js"></script>
+<script>
+(function () {
+  "use strict";
+  function $(id) { return document.getElementById(id); }
+  function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
+
+  /* ---------- 4. journey of one question ---------- */
+  var STEPS = [
+    { t: "Start", where: "cli.py: main()", i: "python -m src.cli data/demo.pdf data/questions.txt", o: "arguments + config dict + list of questions",
+      p: "The command is read. <code>config.json</code> is loaded and checked (host, models, chunk size, top_k ...). The questions file is read: one question per line, blank lines ignored." },
+    { t: "1 Read pages", where: "ingestion.py: extract_pages()", i: "demo.pdf", o: '[(1, "Chapter 1 ..."), (2, "..."), ... (24, "...")]',
+      p: "Safety checks first (file exists, starts with %PDF-, not encrypted, readable, enough text). Then one <code>(page_number, text)</code> pair per page. Pages numbers start at 1." },
+    { t: "2 Cut chunks", where: "ingestion.py: chunk_pages()", i: "24 pages, size 800, overlap 150", o: '[{"text": "...", "page": 13}, ... ] 59 chunks',
+      p: "Each page is cleaned (spaces collapsed) and cut into windows of 800 characters moving forward by 650. Consecutive chunks share 150 characters. A chunk never crosses a page." },
+    { t: "3 Embed", where: "ingestion.py: ingest() → ollama_client.embed()", i: "59 chunk texts, 16 per request", o: "59 vectors of 768 numbers",
+      p: "The texts go to Ollama's embedding model (<code>nomic-embed-text</code>) in batches of 16. Each text comes back as 768 numbers that stand for its meaning. The code checks that the number of vectors equals the number of texts." },
+    { t: "4 Save index", where: "store.py: save()", i: "59 records {id, text, page, vector}", o: "data/demo.index.json",
+      p: "Saved only after <b>all</b> chunks are embedded. Next time, if this file is newer than the PDF, steps 1 to 4 are skipped." },
+    { t: "5 Ask", where: "cli.py: answer_question() → pipeline.retrieve_and_answer()", i: '"How many bits long is an IPv6 address?"', o: "question vector (768 numbers)",
+      p: "First <code>routing.solve_basic_query</code>: is it just arithmetic or a greeting? No. Then the question is embedded with the <b>same</b> model as the chunks, so they can be compared." },
+    { t: "6 Retrieve", where: "store.py: search()", i: "question vector + 59 chunk vectors", o: "the 4 closest chunks (best first)",
+      p: "Cosine similarity between the question and every chunk, sorted, keep 4 (<code>top_k</code>). The chunk from page 13 saying \"An IPv6 address is 128 bits long\" scores highest." },
+    { t: "7 Ask the model", where: "pipeline.py: answer() → ollama_client.chat()", i: "system prompt + 4 passages (with pages) + question", o: '{"answer": "128 bits", "page": 13, "quote": "An IPv6 address is 128 bits long ..."}',
+      p: "<code>budget_chunks_for_context</code> trims passages to fit 4096 tokens. The request carries a JSON <b>schema</b>, <code>think=false</code> and temperature 0. The reply is validated (valid JSON, all three fields, page is a number). If not, retry (max 2 more times); after that <code>AnswerError</code>." },
+    { t: "8 Quote check", where: "quote_check.py: quote_is_supported()", i: "the quote + the 4 chunks", o: 'status = "supported"',
+      p: "Plain code, no AI: is the normalized quote inside one of the normalized chunks? Case, extra spaces and curly quotes are ignored. Empty quote = not supported." },
+    { t: "9 Judge", where: "judge.py: evaluate()", i: "question + 4 passages + answer", o: '{"reason": "The passage states 128 bits.", "verdict": "faithful"}',
+      p: "A second model call, strict fact checker, reason written <b>before</b> the verdict. Then <code>cli</code> sets <code>disagreement</code> if the two checks contradict each other. A judge failure becomes verdict <code>unknown</code>, never a lost answer." },
+    { t: "10 Write", where: "writer.py: upsert_section()", i: "section number 1 + the checked answer", o: "section 1 of data/answers.md replaced",
+      p: "Validate, find the markers of section 1, replace only that block, write a temp file, rename it over the real file. Everything else in the file is byte-for-byte identical." },
+    { t: "11 Summary", where: "cli.py: build_summary() → eval_summary.summarize()", i: "all checked answers of the run", o: "printed summary + exit code 0 / 1 / 130",
+      p: "Counts: quote check supported x/n, judge faithful/partial/unfaithful, the list of disagreements to review, and any failed questions." }
+  ];
+  var cur = 0;
+  function renderStep() {
+    var s = STEPS[cur];
+    $("j-steps").innerHTML = STEPS.map(function (x, i) { return '<button type="button" data-i="' + i + '" class="' + (i === cur ? "on" : "") + '">' + esc(x.t) + "</button>"; }).join("");
+    $("j-stage").innerHTML = '<div class="where">' + esc(s.where) + "</div><p>" + s.p + '</p><dl class="kv"><dt>Goes in</dt><dd><code>' + esc(s.i) + '</code></dd><dt>Comes out</dt><dd><code>' + esc(s.o) + "</code></dd></dl>";
+    $("j-prev").disabled = cur === 0; $("j-next").disabled = cur === STEPS.length - 1;
+  }
+  $("j-steps").addEventListener("click", function (e) { var b = e.target.closest("button"); if (b) { cur = +b.dataset.i; renderStep(); } });
+  $("j-prev").addEventListener("click", function () { if (cur > 0) { cur--; renderStep(); } });
+  $("j-next").addEventListener("click", function () { if (cur < STEPS.length - 1) { cur++; renderStep(); } });
+  renderStep();
+
+  /* ---------- 6. chunking playground: same algorithm as ingestion.chunk_pages ---------- */
+  function chunkPages(pages, size, overlap) {
+    if (size <= 0) throw new Error("chunk size must be positive, got " + size);
+    if (overlap < 0) throw new Error("overlap cannot be negative, got " + overlap);
+    if (overlap >= size) throw new Error("overlap (" + overlap + ") must be smaller than chunk size (" + size + ")");
+    var step = size - overlap, chunks = [];
+    pages.forEach(function (p) {
+      var text = p[1].split(/\s+/).filter(Boolean).join(" ");
+      if (!text) return;
+      var start = 0;
+      for (;;) {
+        chunks.push({ text: text.slice(start, start + size), page: p[0], start: start });
+        if (start + size >= text.length) break;
+        start += step;
+      }
+    });
+    return chunks;
+  }
+  window.__chunkPages = chunkPages; // exposed for the self-test
+  function renderChunks() {
+    var out = $("c-out");
+    var size = parseInt($("c-size").value, 10), ov = parseInt($("c-ov").value, 10), page = parseInt($("c-page").value, 10) || 1;
+    try {
+      var ch = chunkPages([[page, $("c-text").value]], size, ov);
+      if (!ch.length) { out.innerHTML = '<p class="muted">Empty page: no chunk (empty pages are skipped).</p>'; return; }
+      var html = '<p class="small"><b>' + ch.length + " chunk" + (ch.length === 1 ? "" : "s") + "</b> &middot; step = size &minus; overlap = " + (size - ov) + " characters</p>";
+      ch.forEach(function (c, i) {
+        var shared = i > 0 ? Math.min(ov, c.text.length) : 0;
+        html += '<div class="chunk"><b>chunk ' + i + " &middot; page " + c.page + " &middot; " + c.text.length + " chars" + (i > 0 ? " &middot; first " + shared + " chars repeat the previous chunk" : "") + "</b>" +
+          (shared ? '<span class="ov">' + esc(c.text.slice(0, shared)) + "</span>" + esc(c.text.slice(shared)) : esc(c.text)) + "</div>";
+      });
+      out.innerHTML = html;
+    } catch (e) {
+      out.innerHTML = '<div class="box bad"><span class="tag">ValueError</span> ' + esc(e.message) + ' <span class="small">(the real code raises this too)</span></div>';
+    }
+  }
+  ["c-text", "c-size", "c-ov", "c-page"].forEach(function (id) { $(id).addEventListener("input", renderChunks); });
+  renderChunks();
+
+  /* ---------- 7. writer simulator ---------- */
+  var BASE = {
+    1: { q: "How many bits long is an IPv6 address?", a: "128 bits", p: 13, quote: "An IPv6 address is 128 bits long", st: "supported", v: "faithful" },
+    2: { q: "What is the maximum payload size of an Ethernet frame?", a: "1500 bytes", p: 8, quote: "maximum payload of 1500 bytes", st: "supported", v: "faithful" },
+    3: { q: "Who invented the World Wide Web?", a: "The document does not cover this.", p: 0, quote: "", st: "not supported", v: "faithful" }
+  };
+  var secs, changed;
+  function block(n, s) {
+    return "<!-- sensai:section " + n + " -->\n## Q" + n + ". " + s.q + "\n\n**Answer:** " + s.a + "\n\n**Page:** " + (s.p > 0 ? s.p : "-") + "\n\n" + (s.quote ? "> " + s.quote : "_(no quote)_") +
+      "\n\n**Quote check:** " + s.st + "\n**Judge:** " + s.v + "\n<!-- /sensai:section " + n + " -->";
+  }
+  function wRender() {
+    var keys = Object.keys(secs).map(Number).sort(function (a, b) { return a - b; });
+    $("w-file").innerHTML = '<div class="section-doc same"># Answers</div>' + keys.map(function (n) {
+      return '<div class="section-doc ' + (changed === n ? "flash" : "same") + '">' + esc(block(n, secs[n])) + "</div>";
+    }).join("");
+  }
+  function wReset() { secs = JSON.parse(JSON.stringify(BASE)); changed = null; $("w-msg").textContent = "Starting file: three sections."; wRender(); }
+  $("w-rerun").addEventListener("click", function () {
+    secs[2] = { q: "What is the largest payload an Ethernet frame can carry?", a: "1500 bytes (the MTU)", p: 8, quote: "maximum payload of 1500 bytes", st: "supported", v: "faithful" };
+    changed = 2; $("w-msg").innerHTML = "<b>Case 1: the number exists</b> → only section 2 was replaced. Sections 1 and 3 are byte-for-byte identical."; wRender();
+  });
+  $("w-add").addEventListener("click", function () {
+    secs[5] = { q: "What does DNS do?", a: "It translates names into IP addresses", p: 15, quote: "translates domain names into IP addresses", st: "supported", v: "faithful" };
+    changed = 5; $("w-msg").innerHTML = "<b>Case 3: no later section</b> → section 5 was appended at the end. (If a later number existed, it would be inserted before it, keeping numeric order.)"; wRender();
+  });
+  $("w-fail").addEventListener("click", function () {
+    changed = null; $("w-msg").innerHTML = '<b>WriterError:</b> "Refusing to write a failed answer: Model failed to produce valid JSON after 3 attempts". The file was <b>not touched</b>; the CLI reports the question as failed and goes on.'; wRender();
+  });
+  $("w-reset").addEventListener("click", wReset);
+  wReset();
+
+  /* ---------- quote check: same rules as quote_check.normalize ---------- */
+  function normalize(t) {
+    t = String(t).normalize("NFKC");
+    [["‘", "'"], ["’", "'"], ["‚", "'"], ["′", "'"], ["“", '"'], ["”", '"'], ["„", '"'], ["″", '"'],
+     ["‐", "-"], ["‑", "-"], ["‒", "-"], ["–", "-"], ["—", "-"], ["―", "-"], ["−", "-"], ["­", ""]].forEach(function (r) { t = t.split(r[0]).join(r[1]); });
+    return t.toLowerCase().split(/\s+/).filter(Boolean).join(" ");
+  }
+  window.__normalize = normalize;
+  function qRender() {
+    var needle = normalize($("q-quote").value), hay = normalize($("q-pass").value);
+    var ok = needle !== "" && hay.indexOf(needle) !== -1;
+    $("q-res").innerHTML = needle === "" ? '<span class="pill">empty quote → never supported (a refusal is handled separately)</span>'
+      : ok ? '<b style="color:var(--ok)">supported</b> — the quote is inside the passage.' : '<b style="color:var(--bad)">not supported</b> — the quote is not in the passage.';
+    $("q-norm").innerHTML = "Normalized quote: <code>" + esc(needle) + "</code><br>Normalized passage: <code>" + esc(hay) + "</code>";
+  }
+  ["q-pass", "q-quote"].forEach(function (id) { $(id).addEventListener("input", qRender); });
+  qRender();
+})();
+</script>
+</body>
+</html>

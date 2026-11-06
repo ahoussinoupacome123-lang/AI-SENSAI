@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Sensai defense kit</title>
+<link rel="stylesheet" href="defense.css">
+<style>
+.hero { padding:2.2rem 0 .5rem; }
+.hero h1 { font-size:2.6rem; margin:0; }
+.cta { display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:1rem; margin:1.6rem 0; }
+.cta a { display:block; text-decoration:none; color:inherit; background:var(--panel); border:1px solid var(--line); border-radius:16px; padding:1.2rem 1.3rem; box-shadow:var(--shadow); transition:transform .15s, border-color .15s; }
+.cta a:hover { transform:translateY(-2px); border-color:var(--accent); }
+.cta a > b { display:block; font-size:1.15rem; margin-bottom:.3rem; } .cta a > span { display:block; color:var(--muted); font-size:.93rem; line-height:1.6; }
+.cta a > span.n { font-size:.72rem; font-weight:700; letter-spacing:.08em; color:var(--accent); text-transform:uppercase; margin-bottom:.2rem; }
+</style>
+</head>
+<body>
+<div class="bar" id="bar"></div>
+<div class="wrap" style="display:block;max-width:980px">
+<main style="max-width:none">
+
+<div class="hero">
+<p class="muted" style="margin:0">Epitech Tek3 &middot; G-AIA-500</p>
+<h1>Sensai defense kit</h1>
+<p class="lead">Everything to master the project in a few hours: how it works, what is in every file, and a quiz to check you really know it. Written for someone who has never programmed. Works offline.</p>
+</div>
+
+<div class="cta">
+<a href="guide.html"><span class="n">Start here &middot; 2 h</span><b>Study guide</b><span>The story, the vocabulary, the picture, the journey of one question, then <b>your part</b> in depth (ingestion, writer, CLI, chat, web interface) with interactive tools and the jury questions.</span></a>
+<a href="files.html"><span class="n">Reference</span><b>Every file</b><span>What is inside each file, who it talks to, what breaks if it breaks. Search by file or function name.</span></a>
+<a href="quiz.html"><span class="n">Check yourself</span><b>Quiz</b><span>105 questions by topic, a 20-question mock exam, your mistakes replayed, and an oral drill to practise saying it out loud.</span></a>
+</div>
+
+<h2 style="border:0;margin-top:2rem;padding-top:0">The plan that fits a few hours</h2>
+<table>
+<tr><th>When</th><th>What</th></tr>
+<tr><td>Hour 1</td><td>Guide sections 1 to 5: the story, the words, the picture, the journey (click through it), where each object lives.</td></tr>
+<tr><td>Hour 2</td><td>Guide sections 6 to 10: <b>your files</b>. Play with the chunking playground, the writer simulator and the quote check.</td></tr>
+<tr><td>Last 40 min</td><td>Quiz: one topic you feel weak on, then a mock exam. Read the jury questions (guide section 13) out loud. Finish with the oral drill.</td></tr>
+<tr><td>Just before</td><td>The one-page cheat sheet (guide section 14).</td></tr>
+</table>
+
+<div class="box mine"><span class="tag">The five things to be able to explain without notes</span>
+<ol>
+<li><b>Ingestion:</b> pages, then 800-character chunks with 150 overlap that never cross a page, then vectors, then the saved index (only when complete, reused if newer than the PDF).</li>
+<li><b>The writer:</b> markers, replace one block, atomic write, a failed answer is never written.</li>
+<li><b>The CLI:</b> it only orders the other modules; one failed question never stops the run; exit codes 0, 1, 130.</li>
+<li><b>The web interface:</b> same backend, live events (SSE), one job at a time, localhost-only plus Host and Origin checks.</li>
+<li><b>Honesty:</b> 6 of 8 right, how refusals interact with the flag, what the quote check proves and does not prove.</li>
+</ol></div>
+
+<div class="box care"><span class="tag">Two things to check on your laptop before you go in</span>
+<p>1. Your local <code>config.json</code> has <code>chunk_size 500</code> but the committed value is <b>800</b> (59 chunks, not 98). Know which one you show.</p>
+<p>2. Warm the models and clear old files before the live demo: see the steps in <code>docs/KEYNOTE.md</code>, section 3.</p></div>
+
+<h2 style="margin-top:2.2rem">How to open this kit</h2>
+<p>Double-click <code>index.html</code>, or in VS Code right-click it and choose <b>Open with Live Server</b>, or run <code>xdg-open docs/defense/index.html</code>. No internet and no server are needed. The quiz remembers your progress in this browser only. Use the <b>Dark / light</b> button at the top right to change the look, and print the guide to PDF with <kbd>Ctrl</kbd>+<kbd>P</kbd> if you want a paper copy (the interactive tools are hidden when printing).</p>
+
+</main>
+</div>
+<script src="defense.js"></script>
+</body>
+</html>

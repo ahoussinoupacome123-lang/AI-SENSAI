@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Sensai: every file</title>
+<link rel="stylesheet" href="defense.css">
+<style>
+.filters { display:flex; gap:.5rem; flex-wrap:wrap; align-items:center; margin:1rem 0; }
+.filters input { flex:1 1 14rem; background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:.55rem .8rem; color:var(--ink); font:inherit; }
+.filters button { background:var(--soft); border:1px solid var(--line); border-radius:999px; padding:.3rem .9rem; font-size:.88rem; }
+.filters button.on { background:var(--accent); border-color:var(--accent); color:#fff; font-weight:600; }
+.file > summary { display:flex; gap:.6rem; align-items:center; flex-wrap:wrap; }
+.file .path { font-family:var(--mono); font-size:.95rem; }
+.file .meta { margin-left:auto; font-size:.78rem; color:var(--muted); font-weight:400; }
+.file h4 { margin:.9rem 0 .2rem; }
+.file ul { margin:.2rem 0; }
+.grp-title { margin:2rem 0 .3rem; font-size:1.25rem; padding-top:1rem; border-top:1px solid var(--line); }
+#count { color:var(--muted); font-size:.9rem; }
+</style>
+</head>
+<body>
+<div class="bar" id="bar"></div>
+<div class="wrap" style="display:block;max-width:980px">
+<main style="max-width:none">
+
+<h1>Every file, in plain words</h1>
+<p class="lead">What each file is for, what is inside, who it talks to, and what breaks if it breaks. Purple = your files, blue = Murchid's.</p>
+
+<div class="box info"><span class="tag">How to read a file card</span>
+<p><b>In plain words</b>: the job in one or two sentences. <b>Inside</b>: the main functions or sections. <b>Talks to</b>: who calls it and who it calls. <b>If it breaks</b>: the visible symptom (jury questions often start there).</p></div>
+
+<div class="filters noprint">
+<input id="f-q" type="search" placeholder="Search a file or a function name (for example: upsert, chunk, SSE, config)" aria-label="Search">
+<button type="button" data-f="all" class="on">All</button>
+<button type="button" data-f="me">Mine</button>
+<button type="button" data-f="mur">Murchid's</button>
+<button type="button" data-f="all-team">Shared</button>
+<button type="button" data-toggle-all="1">Open all</button>
+</div>
+<p id="count"></p>
+<div id="list"></div>
+
+</main>
+</div>
+
+<script src="defense.js"></script>
+<script>
+(function () {
+  "use strict";
+  var ME = "me", MUR = "mur", ALL = "all-team";
+
+  // g = group, o = owner, p = path, n = lines, w = plain words, in = inside, t = talks to, b = if it breaks
+  var FILES = [
+    /* ------------------------------------------------ root */
+    { g: "Project root", o: ALL, p: "README.md", n: 270, w: "The front door of the project: what Sensai is, how to install it, how to run it, the results and the limits, and links to every other document.", in: ["Install and run commands", "Features table and results", "Links to docs/, the keynote and the testing guide"], t: "Read by humans (the jury, the school).", b: "Nothing breaks, but a wrong command here makes a bad first impression: keep it true (test counts, commands)." },
+    { g: "Project root", o: ALL, p: "config.json", n: 20, w: "The settings file. Every number you might want to change lives here instead of inside the code.", in: ["host (Ollama address), chat_model, embed_model, judge_model", "chunk_size (committed 800), chunk_overlap 150, top_k 4, num_ctx 4096, max_retries 2", "prompt file paths", "feature_flags: rag, judge, quote_check, cache"], t: "Read by cli.load_config (CLI and web server), chat.py. The web UI can override some keys for one session.", b: "A missing required key gives \"config file ... is missing: ...\". Invalid JSON gives \"cannot read config file\". Your local copy has chunk_size 500, the committed one has 800." },
+    { g: "Project root", o: ALL, p: "requirements.txt", n: 4, w: "The list of Python libraries to install: requests (talk to Ollama), numpy (cosine math), pypdf (read PDFs), pytest (tests).", in: ["requests>=2.31", "numpy>=1.26", "pypdf>=4.0", "pytest>=8"], t: "Used by pip install -r requirements.txt.", b: "ModuleNotFoundError for one of these libraries." },
+    { g: "Project root", o: ALL, p: "CONTRIBUTING.md", n: 136, w: "How the team works: branches, commit messages, how to run the tests.", in: ["Branch and commit conventions", "How to run tests"], t: "Humans.", b: "Nothing." },
+    { g: "Project root", o: ALL, p: ".gitignore", n: 0, w: "Tells git which files not to save: the virtual environment, caches, generated indexes and answers, the web workspace, memory sessions.", in: [".venv/, __pycache__/, *.index.json, answers.md, WEB-UI/workspace/, .sensai/, .claude/"], t: "Git.", b: "Generated files (indexes, answers) would be committed by mistake." },
+
+    /* ------------------------------------------------ src */
+    { g: "src/ : the program", o: ME, p: "src/cli.py", n: 288, w: "The entry point. It only orders the other modules: read arguments and settings, ingest the PDF once, loop over the questions, print a summary.", in: ["parse_args: the command-line options", "load_config / read_questions: input checks with clear errors (CliError)", "answer_question: retrieve + answer + judge + disagreement flag for ONE question", "build_summary / format_answer: what is printed", "next_section_number + interactive: prompt mode that never overwrites old sections", "main: the whole flow; exit codes 0, 1, 130"], t: "Calls ingestion, pipeline, judge, writer, eval_summary. Called by you (python -m src.cli) and by WEB-UI/server.py (answer_question, build_summary, load_config).", b: "Nothing runs. Errors print \"Error: ...\" and exit 1; one failing question is skipped, not fatal." },
+    { g: "src/ : the program", o: ME, p: "src/ingestion.py", n: 184, w: "Turns a PDF into searchable pieces and saves them: read each page, cut it into overlapping chunks that keep their page number, embed the chunks, save the index.", in: ["extract_pages: text per page + 5 safety checks, NoTextError for scans (< 50 chars)", "chunk_pages: windows of `size` characters, step size - overlap, never crossing a page", "index_path: course.pdf -> course.index.json", "_load_index: validates a saved index, says \"rebuild with --force\"", "ingest: reuse rule (index newer than the PDF), embeds in batches of 16, saves only when complete, optional progress callback", "a small debug main: python -m src.ingestion file.pdf [--chunks]"], t: "Calls ollama_client.embed and store.save/load. Called by cli.main and the web server.", b: "\"PDF not found\", \"is not a PDF file\", \"has no extractable text\", or \"saved index cannot be read, rebuild with --force\"." },
+    { g: "src/ : the program", o: ME, p: "src/writer.py", n: 137, w: "Owns answers.md. After each question it replaces exactly one section and leaves every other byte alone.", in: ["SECTION_RE: finds a block between <!-- sensai:section N --> markers", "_validate: refuses a failed or incomplete answer (WriterError)", "render_section: builds the Markdown of one section (page 0 shown as \"-\", Review needed line on disagreement; a refusal gets its own wording)", "sections(text): list the sections of a file", "_write_atomically + _target_mode: temp file in the same folder, os.replace, keep normal permissions", "upsert_section: replace / insert in numeric order / append"], t: "Called by cli.main, cli.interactive and the web server.", b: "WriterError and the file stays untouched. If it were wrong, answers.md could lose other answers: 23 tests guard it." },
+    { g: "src/ : the program", o: ME, p: "src/chat.py", n: 303, w: "The base terminal chatbot (task P1): talk to the model, see words appear live, history kept for the session. Also holds the /edit branching and the memory commands.", in: ["load_config, load_system_prompt", "stream_reply: streaming request, prints chunks as they arrive, closes the connection to stop generation", "find_user_indices, edit_and_branch: fork a conversation from an edited message", "main: the loop with commands /edit /history /branches /switch /memory /recall; saves the session on exit", "sys.path fix at the top so `python src/chat.py` works as a script"], t: "Calls memory.SessionMemory and Ollama directly with requests. Run by you: python src/chat.py.", b: "\"Cannot reach Ollama. Start it with: ollama serve\" or \"Model not found. Pull it with: ollama pull ...\"." },
+    { g: "src/ : the program", o: ME, p: "src/quote_check.py", n: 34, w: "The plain-code check (no AI): is the model's quote really inside the passages we gave it?", in: ["normalize: lower case, fold curly quotes/dashes/ligatures, collapse spaces", "quote_is_supported(quote, chunks): True if the normalized quote is inside a normalized chunk; an empty quote is never supported"], t: "Called by pipeline.answer (re-exported there).", b: "Every answer would show the wrong \"supported / not supported\" status." },
+    { g: "src/ : the program", o: MUR, p: "src/ollama_client.py", n: 197, w: "The phone to the model. All the HTTP to Ollama for the pipeline, judge and ingestion lives here, with clear error messages.", in: ["chat(messages, model, schema=...): text, or a parsed dict with a JSON schema (then think=False, temperature 0)", "embed(texts, model): one vector per text", "chat_events: streaming events for the web UI (thinking, token, done with token counts)", "list_models, get_model_context_length", "OllamaError, ModelNotFoundError"], t: "Calls Ollama on http://localhost:11434. Called by ingestion, pipeline, judge, memory, the web server.", b: "\"Cannot reach Ollama\", \"Ollama timed out\", \"Model 'x' not found\"." },
+    { g: "src/ : the program", o: MUR, p: "src/store.py", n: 69, w: "The card drawer: save the chunks and vectors to a JSON file, and find the chunks closest to a question vector.", in: ["save / load (JSON)", "search(chunks, vector, k): cosine similarity with every chunk (numpy), best k first", "StoreError for an empty or missing index"], t: "Called by ingestion (save/load), pipeline (search), memory.", b: "Wrong passages would be retrieved: the answer quality collapses." },
+    { g: "src/ : the program", o: MUR, p: "src/pipeline.py", n: 199, w: "One question to one checked answer: embed, search, build the prompt, force a JSON answer, validate, retry, quote check.", in: ["ANSWER_SCHEMA {answer, page, quote}", "retrieve_and_answer: embed question, store.search top_k, then answer", "answer: basic-query shortcut, context budget, prompt, up to 3 attempts, quote check", "budget_chunks_for_context + get_context_limit: never overflow num_ctx (read from config or asked from Ollama)", "AnswerError after all retries"], t: "Calls ollama_client, store, routing, quote_check. Called by cli.answer_question.", b: "\"Model failed to produce valid JSON after 3 attempts\": the question is reported failed." },
+    { g: "src/ : the program", o: MUR, p: "src/judge.py", n: 103, w: "The second opinion (EV1): a fresh model call that says if the answer is faithful to the passages.", in: ["VERDICT_SCHEMA with `reason` BEFORE `verdict` (tested: reason first is more reliable)", "evaluate: skips general questions, one retry, returns verdict unknown on failure or a missing model"], t: "Calls ollama_client.chat. Called by cli.answer_question.", b: "Verdict becomes \"unknown\" with the reason; the answer itself is kept." },
+    { g: "src/ : the program", o: MUR, p: "src/routing.py", n: 161, w: "Answers simple things without the model: arithmetic and greetings, so Sensai does not reply \"the document does not cover this\" to \"hello\".", in: ["is_math_query + _safe_eval: arithmetic through Python's ast, never eval()", "is_greeting_query, is_general_query", "solve_basic_query: builds a checked-answer dict (page 0, is_general True)"], t: "Called by pipeline.answer / retrieve_and_answer and judge.evaluate.", b: "Greetings and sums would go through the slow model path." },
+    { g: "src/ : the program", o: MUR, p: "src/eval_summary.py", n: 88, w: "Counts the quote-check and judge results of a run and lists the answers where they disagree.", in: ["summarize(checked_list) -> (text, disagreements)"], t: "Called by cli.build_summary.", b: "The run summary would be wrong or empty." },
+    { g: "src/ : the program", o: MUR, p: "src/memory.py", n: 249, w: "The \"second brain\" (M3): saves chat sessions, indexes them with embeddings, and recalls relevant past messages when you ask \"what did we discuss\".", in: ["SessionMemory: save_session, load_session, list_sessions, index_sessions, search_memory, is_recall_query (English and French patterns), format_memory_context", "stores under .sensai/sessions and .sensai/memory_index.json"], t: "Uses store and ollama_client. Called by chat.py and the web server.", b: "Recall finds nothing; normal chat still works (errors are swallowed on purpose)." },
+    { g: "src/ : the program", o: ALL, p: "src/__init__.py", n: 0, w: "An empty file that makes src a Python package, so `from src import cli` works.", in: [], t: "Python.", b: "ImportError: no module named src." },
+
+    /* ------------------------------------------------ prompts */
+    { g: "prompts/ : the instructions given to the model", o: ALL, p: "prompts/system_prompt.txt", n: 4, w: "The rules for answering: use ONLY the passages, give page and quote, refuse if the passages do not contain the answer, never invent a quote, reply with JSON only.", in: ["The refusal sentence: \"The document does not cover this.\" with page 0 and an empty quote"], t: "Read by pipeline.answer.", b: "The model may invent answers or break the JSON." },
+    { g: "prompts/ : the instructions given to the model", o: ALL, p: "prompts/answer_prompt.txt", n: 4, w: "The template of the user message: the numbered passages, then the question.", in: ["{passages} and {question} placeholders"], t: "Read by pipeline.answer.", b: "The model would not see the passages." },
+    { g: "prompts/ : the instructions given to the model", o: ALL, p: "prompts/judge_prompt.txt", n: 13, w: "Instructions for the judge: be a strict fact checker; write a short reason first, then the verdict; special rule for refusals.", in: ["faithful / partial / unfaithful definitions", "{question}, {passages}, {answer} placeholders"], t: "Read by judge.evaluate.", b: "Verdicts become unreliable." },
+    { g: "prompts/ : the instructions given to the model", o: ALL, p: "prompts/chat_prompt.txt", n: 2, w: "The persona for the plain chat: helpful, concise, honest when it does not know.", in: [], t: "Read by chat.py and the web server's chat.", b: "The chat still works with the model's defaults." },
+
+    /* ------------------------------------------------ WEB-UI */
+    { g: "WEB-UI/ : the web interface (X1)", o: ME, p: "WEB-UI/server.py", n: 588, w: "The web server, standard library only. It serves the page and runs the same backend as the CLI, streaming progress to the browser.", in: ["App: settings with validated overrides (EDITABLE), documents, uploads, status, the one-job lock", "run_job: ingest then answer each question, emitting start / ingest / question_start / question_done / question_failed / summary / done / error", "chat_job + prepare_chat: streaming chat with optional memory recall", "Handler: check_origin (Host + Origin), check_key (sharing key cookie), routing GET/POST, SSE, static files", "main: --host --port --config --allow-host --key"], t: "Imports src.cli, ingestion, ollama_client, writer, memory. Opened by the browser at http://127.0.0.1:8000.", b: "The page cannot load or run. Port busy: \"cannot listen on ...: try another --port\"." },
+    { g: "WEB-UI/ : the web interface (X1)", o: ME, p: "WEB-UI/index.html", n: 127, w: "The skeleton of the page: sidebar, top bar with the status pill, conversation area, composer, settings dialog, side panel, toasts. It has no logic.", in: ["Sidebar (New chat, demo, history, Settings, Theme)", "main with .scroller and .composer", "Settings modal, PDF drawer, toasts", "A tiny script that restores theme and sidebar state before first paint (no flash)"], t: "Loaded by the server at /. Uses static/style.css and static/app.js.", b: "A blank or broken page." },
+    { g: "WEB-UI/ : the web interface (X1)", o: ME, p: "WEB-UI/static/app.js", n: 1187, w: "All the behavior in the browser, in plain JavaScript with no library: status, conversations, running questions, streaming, settings, the PDF viewer.", in: ["icons (inline SVG), el() element helper, own Markdown renderer", "apiGet / apiPost / streamPost (reads the SSE stream)", "state + conversations in localStorage, history sidebar, edit and branch past messages", "startQa: handles each event (ingest, question_done ...) and draws answer cards, badges, summary tiles", "sendChat / streamBotTurn + context meter", "attach menu, upload, drag and drop, side panel for the PDF page", "settings dialog (build, apply, reset), theme, init()"], t: "Calls the server routes /api/status, /api/documents, /api/run, /api/chat, /api/config, /api/upload, /files/.", b: "Buttons do nothing; the page shows a message when the server is unreachable." },
+    { g: "WEB-UI/ : the web interface (X1)", o: ME, p: "WEB-UI/static/style.css", n: 240, w: "The whole look. Design tokens (colors, shadows, sizes) at the top, then layout, messages, composer, dialogs, animations, dark mode and the phone layout.", in: ["--bg, --ink, --accent, --shadow ... tokens; dark theme redefines them", "layout: .app, .sidebar (260px), .stage, .composer-wrap (768px column)", "animations: fadeUp, pop, slideIn, shimmer, sheen, spin, pulse", "@media max-width 820px (phone), prefers-reduced-motion, print"], t: "Linked by index.html.", b: "The page works but looks unstyled." },
+    { g: "WEB-UI/ : the web interface (X1)", o: ME, p: "WEB-UI/e2e/ui_check.py", n: 319, w: "61 end-to-end checks of the web UI in a real Chromium browser (Playwright): layout, dark mode, phone width, uploads, running the demo PDF, stopping, settings, chat.", in: ["check(): prints PASS/FAIL", "--quick skips checks that need the models (41 checks)", "--shots DIR saves screenshots of the main states"], t: "Run by you against a running server. Not in requirements (needs playwright).", b: "Not part of the 392 pytest tests." },
+    { g: "WEB-UI/ : the web interface (X1)", o: ME, p: "WEB-UI/workspace/", n: 0, w: "Where the web server keeps its files: uploads/ (PDFs you add) and outputs/ (the answers of each document). Created automatically, ignored by git.", in: ["uploads/*.pdf and the index next to each", "outputs/<source>-<name>.answers.md"], t: "Used by server.App.", b: "Uploads or answers cannot be saved." },
+    { g: "WEB-UI/ : the web interface (X1)", o: ME, p: "WEB-UI/README.md", n: 152, w: "How to run, share and test the web UI, with the route list and the security notes.", in: ["Run, share through a tunnel, tests, limits"], t: "Humans.", b: "Nothing." },
+
+    /* ------------------------------------------------ scripts */
+    { g: "scripts/ : helper programs", o: ME, p: "scripts/e2e_check.py", n: 106, w: "Scores a run: compares a generated answers.md with an expected-answers file and says how many covered questions were answered right (page + key phrase) and whether the uncovered one was refused.", in: ["expected line format: `number | page P | key phrase` or `number | none |`", "exit code 0 when the run passes"], t: "Run by you: python scripts/e2e_check.py data/answers.md data/expected_answers.md.", b: "You could not measure quality." },
+    { g: "scripts/ : helper programs", o: ME, p: "scripts/build_demo_pdf.py", n: 98, w: "Builds data/demo.pdf from data/demo_course.txt (one chapter per page) and verifies that each expected key phrase is on the right page and nowhere else.", in: ["wrap chapters, write the PDF, re-read it with src.ingestion, check the expectations"], t: "Uses src.ingestion.", b: "The demo PDF could drift from the expected answers." },
+
+    /* ------------------------------------------------ data */
+    { g: "data/ : the demo material", o: ME, p: "data/demo.pdf", n: 0, w: "The demo PDF: 24 pages of original course notes about computer networks (IPv6, DHCP, Ethernet, Wi-Fi, SSH ...).", in: ["one chapter per page", "34,597 characters in total"], t: "Input of every demo.", b: "No demo." },
+    { g: "data/ : the demo material", o: ME, p: "data/demo_course.txt", n: 262, w: "The source text of the demo PDF, so it can be rebuilt.", in: [], t: "Read by scripts/build_demo_pdf.py.", b: "The PDF could not be regenerated." },
+    { g: "data/ : the demo material", o: ME, p: "data/questions.txt", n: 9, w: "The nine demo questions, one per line. Question 9 (who invented the Web) is NOT in the PDF on purpose, to test the refusal.", in: ["8 covered questions + 1 uncovered"], t: "Input of the CLI.", b: "No questions to run." },
+    { g: "data/ : the demo material", o: ME, p: "data/questions_demo.txt", n: 3, w: "A short list of 3 questions for the live demo (about 3 minutes instead of 6).", in: ["IPv6 bits, Ethernet payload, who invented the Web"], t: "Input of the CLI and the web UI's quick run.", b: "The live demo takes longer." },
+    { g: "data/ : the demo material", o: ME, p: "data/expected_answers.md", n: 14, w: "The ground truth: for each question, the page and key phrase that a correct answer must contain.", in: ["`1 | page 13 | An IPv6 address is 128 bits long` ..."], t: "Read by scripts/e2e_check.py and build_demo_pdf.py.", b: "No scoring." },
+    { g: "data/ : the demo material", o: ME, p: "data/demo.index.json  and  data/answers.md", n: 0, w: "Generated files: the saved index (59 records with 768-number vectors) and the answers of the last run. Ignored by git; deleted before a clean demo.", in: [], t: "Made by ingestion and the writer.", b: "Just run again." },
+
+    /* ------------------------------------------------ tests */
+    { g: "tests/ : 392 automated tests (none needs Ollama)", o: ME, p: "tests/test_extract_pages.py, test_chunk_pages.py, test_ingest.py", n: 0, w: "Protect the ingestion: scanned PDF detection, page numbers, chunk sizes and overlap, invalid settings, the reuse rule, embedding batches, the corrupt index message.", in: [], t: "pytest. The model is replaced by a fake.", b: "A change that breaks chunking is caught immediately." },
+    { g: "tests/ : 392 automated tests (none needs Ollama)", o: ME, p: "tests/test_writer.py", n: 228, w: "Protect the writer: replace, insert in order, append, other sections byte-for-byte identical (checked with a hash), failed answer refused, atomic write, permissions.", in: [], t: "pytest.", b: "A writer bug could corrupt answers.md." },
+    { g: "tests/ : 392 automated tests (none needs Ollama)", o: ME, p: "tests/test_cli.py, test_e2e_check.py, test_integration_fixes.py", n: 0, w: "Protect the CLI: arguments, errors, exit codes, feature flags, interactive mode, summary; the scoring script; the schema-mode and retrieval wiring.", in: [], t: "pytest.", b: "CLI regressions." },
+    { g: "tests/ : 392 automated tests (none needs Ollama)", o: ME, p: "tests/test_chat.py, test_ollama_events.py", n: 0, w: "Protect the terminal chat (streaming, history, errors, Ctrl+C, and running it as a real script) and the web UI's streaming events.", in: ["test_runs_as_a_plain_script_from_any_folder: the regression test for the chat crash"], t: "pytest.", b: "Chat regressions." },
+    { g: "tests/ : 392 automated tests (none needs Ollama)", o: ME, p: "tests/test_web_ui.py", n: 557, w: "Protect the web server over real HTTP on a random port with the model faked: routes, security (403, 401, 413), uploads, one-job lock, settings validation.", in: [], t: "pytest.", b: "A security hole would be caught here." },
+    { g: "tests/ : 392 automated tests (none needs Ollama)", o: ME, p: "tests/test_quote_check.py, pdf_factory.py", n: 0, w: "The quote check rules, and a helper that builds tiny PDFs for tests without extra libraries.", in: [], t: "pytest.", b: "Quote check regressions." },
+    { g: "tests/ : 392 automated tests (none needs Ollama)", o: MUR, p: "tests/test_m1_ollama_client.py, test_m2_store.py, test_m3_m4_pipeline.py, test_m5_judge.py, test_m6_eval_summary.py", n: 0, w: "One test file per brain task: the Ollama client, the vector store, retrieval and JSON answers, the judge, the run summary.", in: [], t: "pytest.", b: "Brain regressions." },
+    { g: "tests/ : 392 automated tests (none needs Ollama)", o: MUR, p: "tests/test_general_fallback.py, test_dynamic_context.py, test_feature_flags.py, test_cross_session_memory.py, test_branching.py", n: 0, w: "The extra features: arithmetic and greetings, context-window budgeting, feature flags, cross-session memory, editing and branching.", in: [], t: "pytest.", b: "Feature regressions." },
+
+    /* ------------------------------------------------ docs */
+    { g: "docs/ : the written deliverables", o: ALL, p: "docs/ARCHITECTURE.md  and  ARCHITECTURE_EXPLAINED.md", n: 0, w: "The architecture in a diagram, then the same explained from zero with an example.", in: [], t: "Humans.", b: "-" },
+    { g: "docs/ : the written deliverables", o: ALL, p: "docs/EXPLANATION.md", n: 169, w: "Every concept explained from zero, and the seven classic keynote questions with short and long answers (section 6).", in: [], t: "Humans.", b: "-" },
+    { g: "docs/ : the written deliverables", o: ALL, p: "docs/USER_STORIES.md, USE_CASE.md", n: 0, w: "Who uses Sensai and why (Lea and her course notes), the features chosen and their user stories.", in: [], t: "Humans.", b: "-" },
+    { g: "docs/ : the written deliverables", o: ALL, p: "docs/RESULTS.md, EVALUATION.md, TESTING.md", n: 0, w: "What we measured (6/8, 1/1, timings), how the judge works and its limits, and every test you can run.", in: [], t: "Humans.", b: "-" },
+    { g: "docs/ : the written deliverables", o: ALL, p: "docs/MODEL_SELECTION.md", n: 0, w: "Which models and which hardware, and why.", in: [], t: "Humans.", b: "-" },
+    { g: "docs/ : the written deliverables", o: MUR, p: "docs/ABANDONED_FEATURES.md, BUSINESS_IMPACT.md, ETHICS_AND_LEGAL.md, PRIVACY_POLICY.md, RISKS_AND_REQUIREMENTS.md", n: 0, w: "The requested paperwork: features we dropped and the stories affected, business impact, legal and ethical limits, privacy policy (everything local), risks and requirements to run.", in: [], t: "Humans.", b: "-" },
+    { g: "docs/ : the written deliverables", o: ME, p: "docs/KEYNOTE.md, docs/slides/keynote.html, docs/slides/img/", n: 362, w: "The presentation: the script and demo steps, and the offline slide deck (a Prezi-style camera over one big canvas, O for overview, photo backgrounds with credits).", in: [], t: "Opened in a browser.", b: "-" },
+    { g: "docs/ : the written deliverables", o: ALL, p: "docs/SCREENSHOTS.md, docs/assets/, docs/examples/", n: 0, w: "Screenshots of the scenarios and tests, and a real recorded run (demo_run.txt, answers_demo.md) used as a fallback for the live demo.", in: [], t: "Humans.", b: "-" },
+    { g: "docs/ : the written deliverables", o: ME, p: "docs/defense/ (this kit)", n: 0, w: "The defense study kit: guide.html, files.html, quiz.html.", in: [], t: "Opened in a browser, works offline.", b: "-" }
+  ];
+
+  function $(id) { return document.getElementById(id); }
+  function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
+  var filter = "all", query = "";
+
+  function pill(o) { return o === ME ? '<span class="pill me">Pacôme</span>' : o === MUR ? '<span class="pill mur">Murchid</span>' : '<span class="pill all">team</span>'; }
+  function card(f) {
+    var ul = f.in.length ? "<h4>Inside</h4><ul>" + f.in.map(function (x) { return "<li>" + esc(x) + "</li>"; }).join("") + "</ul>" : "";
+    return '<details class="file"><summary><span class="path">' + esc(f.p) + "</span> " + pill(f.o) +
+      (f.n ? '<span class="meta">' + f.n + " lines</span>" : "") + "</summary>" +
+      "<h4>In plain words</h4><p>" + esc(f.w) + "</p>" + ul +
+      "<h4>Talks to</h4><p>" + esc(f.t) + "</p><h4>If it breaks</h4><p>" + esc(f.b) + "</p></details>";
+  }
+  function render() {
+    var q = query.trim().toLowerCase(), last = "", html = "", shown = 0;
+    FILES.forEach(function (f) {
+      if (filter !== "all" && f.o !== filter) return;
+      if (q && (f.p + " " + f.w + " " + f.in.join(" ") + " " + f.t + " " + f.b + " " + f.g).toLowerCase().indexOf(q) === -1) return;
+      if (f.g !== last) { html += '<h2 class="grp-title">' + esc(f.g) + "</h2>"; last = f.g; }
+      html += card(f); shown++;
+    });
+    $("list").innerHTML = html || '<p class="muted">Nothing matches. Try another word.</p>';
+    $("count").textContent = shown + " of " + FILES.length + " entries";
+  }
+  $("f-q").addEventListener("input", function (e) { query = e.target.value; render(); });
+  document.querySelectorAll(".filters button[data-f]").forEach(function (b) {
+    b.addEventListener("click", function () {
+      filter = b.dataset.f;
+      document.querySelectorAll(".filters button[data-f]").forEach(function (x) { x.classList.toggle("on", x === b); });
+      render();
+    });
+  });
+  render();
+})();
+</script>
+</body>
+</html>
