@@ -122,9 +122,17 @@
   }
 
   // Read a Server-Sent Events stream from a POST request, calling onEvent(name, data) for each event.
-  function streamPost(url, body, onEvent, signal) {
+  function streamPost(url, body, onEvent, signal, attempt) {
+    attempt = attempt || 0;
     return fetch(url, { method: "POST", headers: { "Content-Type": "application/json" },
                         body: JSON.stringify(body), signal: signal }).then(function (res) {
+      // After Stop, the server frees its one-job lock only when it notices the browser left (its next
+      // write). A redirect sent right away can meet that lock: wait a little and try again.
+      if (res.status === 409 && attempt < 40 && !(signal && signal.aborted)) {
+        return new Promise(function (resolve) { setTimeout(resolve, 500); }).then(function () {
+          return streamPost(url, body, onEvent, signal, attempt + 1);
+        });
+      }
       if (!res.ok) return readJson(res);
       var reader = res.body.getReader();
       var decoder = new TextDecoder();
@@ -389,26 +397,29 @@
     var conv = state.cur;
     if (conv && conv.branches && conv.branches.length > 0) {
       var turnIdx = conv.turns.indexOf(turn);
-      var matchingBranches = conv.branches.filter(function (b) { return b.turnIndex === turnIdx; });
-      if (matchingBranches.length > 0) {
+      var family = variantsAt(conv, turnIdx);
+      if (family.length > 1) {
+        var pos = family.findIndex(function (v) { return v.current; });
         var nav = el("div", { class: "user-branch-nav" });
-        var totalBranches = matchingBranches.length + 1;
-        var label = el("span", { class: "branch-count", text: totalBranches + " / " + totalBranches });
-        var prevBtn = el("button", { type: "button", class: "branch-btn", title: "Switch to previous branch", "aria-label": "Previous branch" }, [icon("chevron")]);
+        var prevBtn = el("button", { type: "button", class: "branch-btn", title: "Previous version", "aria-label": "Previous version" }, [icon("chevron")]);
         prevBtn.style.transform = "rotate(90deg)";
-        prevBtn.addEventListener("click", function () {
-          if (guardBusy()) return;
-          switchBranch(conv, matchingBranches[matchingBranches.length - 1], turnIdx);
-        });
+        prevBtn.disabled = pos <= 0;
+        prevBtn.addEventListener("click", function () { if (!guardBusy()) switchBranch(conv, family[pos - 1].branch, turnIdx); });
+        var nextBtn = el("button", { type: "button", class: "branch-btn", title: "Next version", "aria-label": "Next version" }, [icon("chevron")]);
+        nextBtn.style.transform = "rotate(-90deg)";
+        nextBtn.disabled = pos >= family.length - 1;
+        nextBtn.addEventListener("click", function () { if (!guardBusy()) switchBranch(conv, family[pos + 1].branch, turnIdx); });
         nav.appendChild(prevBtn);
-        nav.appendChild(label);
+        nav.appendChild(el("span", { class: "branch-count", text: (pos + 1) + " / " + family.length }));
+        nav.appendChild(nextBtn);
         actions.appendChild(nav);
       }
     }
 
     var editBtn = el("button", { type: "button", class: "icon-btn user-edit-btn", title: "Edit message & branch", "aria-label": "Edit message" }, [icon("edit")]);
     editBtn.addEventListener("click", function () {
-      if (guardBusy()) return;
+      if (state.busy && state.chatLive) interruptChat(null);   // editing mid-reply stops the reply first
+      else if (guardBusy()) return;
       startEditUserTurn(turn, node, bubble);
     });
     actions.appendChild(editBtn);
@@ -418,6 +429,23 @@
     return node;
   }
 
+  // Every version of the message at turnIdx that shares the same earlier history, oldest first.
+  // Each version has a stable number (turn.vid); the one on screen is marked current.
+  function sameHistory(a, b, n) {
+    for (var i = 0; i < n; i++) if (!a[i] || !b[i] || a[i].text !== b[i].text) return false;
+    return true;
+  }
+  function variantsAt(conv, turnIdx) {
+    var cur = conv.turns[turnIdx];
+    if (!cur) return [];
+    var list = [{ vid: cur.vid || 0, current: true, branch: null }];
+    (conv.branches || []).forEach(function (b) {
+      var t = b.turns[turnIdx];
+      if (b.turnIndex === turnIdx && t && sameHistory(b.turns, conv.turns, turnIdx)) list.push({ vid: t.vid || 0, current: false, branch: b });
+    });
+    list.sort(function (x, y) { return x.vid - y.vid; });
+    return list;
+  }
   function switchBranch(conv, targetBranch, turnIdx) {
     var branchIdx = conv.branches.indexOf(targetBranch);
     if (branchIdx < 0) return;
@@ -471,6 +499,8 @@
     if (turnIdx < 0) return;
 
     conv.branches = conv.branches || [];
+    if (!turn.vid) turn.vid = 1;   // the original message is version 1
+    var top = conv.branches.reduce(function (m, b) { return b.turns[turnIdx] ? Math.max(m, b.turns[turnIdx].vid || 0) : m; }, turn.vid);
     conv.branches.push({
       timestamp: Date.now(),
       turnIndex: turnIdx,
@@ -478,6 +508,7 @@
     });
 
     turn.text = newText;
+    turn.vid = top + 1;
     conv.turns = conv.turns.slice(0, turnIdx + 1);
     touch(conv, conv.turns[0].text);
     renderConv();
@@ -516,6 +547,7 @@
     var md = el("div", { class: "md" });
     renderMarkdown(md, turn.text || "");
     s.body.appendChild(md);
+    if (turn.stopped) s.body.appendChild(el("div", { class: "muted stopped-note", text: "Stopped. The text above is kept as the reply." }));
     s.body.appendChild(el("div", { class: "msg-actions" }, [copyButton(function () { return turn.text; }, "Copy reply")]));
     return s;
   }
@@ -877,7 +909,9 @@
       scrollEnd(false);
     }
     setBusy(true);
+    state.chatLive = true;
     state.abort = new AbortController();
+    var stoppedEarly = false;
     streamPost("/api/chat", { messages: messages }, function (name, data) {
       if (name === "token") {
         tokens += 1; reply += data.text;
@@ -895,7 +929,7 @@
     }, state.abort.signal).catch(function (e) {
       failed = true;
       var message = e.name === "AbortError" ? "(reply cancelled)" : e.message;
-      if (e.name === "AbortError" && reply) { failed = false; return; }
+      if (e.name === "AbortError" && reply) { failed = false; stoppedEarly = true; return; }
       s.node.classList.add("err");
       clear(s.body);
       s.body.textContent = message;
@@ -906,16 +940,27 @@
         if (thinking.parentNode) thinking.parentNode.removeChild(thinking);
         md.classList.remove("caret");
         renderMarkdown(md, reply);
+        if (stoppedEarly) s.body.appendChild(el("div", { class: "muted stopped-note", text: "Stopped. The text above is kept as the reply." }));
         s.body.appendChild(el("div", { class: "msg-actions" }, [copyButton(function () { return reply; }, "Copy reply")]));
-        conv.turns.push({ role: "bot", kind: "chat", text: reply });
+        conv.turns.push({ role: "bot", kind: "chat", text: reply, stopped: stoppedEarly || undefined });
         if (usage) { conv.usage = usage; updateMeter(usage); } else if (!reply) resetMeter();
       } else { resetMeter(); if (conv.usage) updateMeter(conv.usage); }
       state.abort = null;
+      state.chatLive = false;
       setBusy(false);
       touch(conv);
       scrollEnd(false);
       $("chat-input").focus({ preventScroll: true });
+      // Interrupt and redirect: a message sent while this reply was streaming goes out now.
+      var next = state.redirect;
+      state.redirect = null;
+      if (next) sendChat(next);
     });
+  }
+  // Stop the streaming chat reply. With text, that text is sent as soon as the stop has finished.
+  function interruptChat(text) {
+    if (text) state.redirect = text;
+    if (state.abort) state.abort.abort();
   }
 
   // ---------- composer ----------
@@ -924,12 +969,20 @@
     show($("chat-stop"), on);
     show($("send"), !on);
     updateSend();
+    if (!state.doc) $("chat-input").placeholder = on ? "Type to interrupt and redirect the reply (Enter)" : "Message SENSAI";
   }
   function updateSend() { $("send").disabled = state.busy || !$("chat-input").value.trim(); }
   function sendMessage() {
-    if (state.busy) return;
     var input = $("chat-input");
     var text = input.value.trim();
+    if (state.busy) {
+      // Interrupt: only a plain chat reply can be redirected; a PDF run must finish or be stopped.
+      if (!text || !state.chatLive || state.doc) { guardBusy(); return; }
+      input.value = "";
+      autosize(input, 192);
+      interruptChat(text);
+      return;
+    }
     if (!text) return;
     showNotice($("notice"), "", true);
     input.value = "";

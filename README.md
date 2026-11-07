@@ -42,7 +42,7 @@ The video shows the real web UI. The model's answers are scripted so it could be
 | **X1** Web UI | `WEB-UI/`: the same work in a browser: upload a PDF, write questions, watch answers stream in with clickable page links, re-run one question, chat with a live token meter, change settings; the backend is unchanged | 1 star |
 | **EV1** Automated eval and hallucination detection | a deterministic quote check plus an LLM judge score each answer; disagreements are flagged for review | 3 stars |
 | **M3** External structured memory | past chat sessions are saved as JSON files in `.sensai/` and indexed with embeddings; asking "what did we discuss earlier?" recalls them (`/memory`, `/recall <query>`). A lighter version than a database | 2 stars |
-| **X2** Branching (resume) | edit a past message in the terminal chat (`/edit`, `/branches`, `/switch`) or in the web UI and fork a new branch; the original history is kept | 2 stars |
+| **X2** Branching (resume & interrupt) | **Resume:** edit a past message in the terminal chat (`/edit`, `/branches`, `/switch`) or in the web UI (pencil icon, then `‹ 1 / 2 ›` to switch versions) and fork a new branch; the original history is kept. **Interrupt:** stop a reply mid-stream (Ctrl+C in the terminal, or just type and press Enter in the web UI) and redirect it: the text already written is kept and your new message steers the model | 2 stars |
 | **Feature flags** | switch retrieval, the judge or the quote check on or off from `config.json`, the command line or the web settings | extra |
 | **Basic questions** | arithmetic and greetings are answered directly (safe evaluator, no model call) instead of "the document does not cover this" | extra |
 | **Context budget** | the prompt is trimmed to the context window (`num_ctx`, never hard-coded) and the web UI shows how much of it a chat uses | extra |
@@ -86,7 +86,7 @@ curl http://localhost:11434                          # must print: Ollama is run
 
 Check the installation (no Ollama needed for the tests):
 ```bash
-python -m pytest -q          # 392 tests (all the ways to test the project: docs/TESTING.md)
+python -m pytest -q          # 398 tests (all the ways to test the project: docs/TESTING.md)
 ```
 
 ## Quick start (the demo)
@@ -235,7 +235,7 @@ prompts/            system, answer, judge and chat prompts
 data/               demo.pdf, questions.txt (9), questions_demo.txt (3, for the live demo), expected_answers.md, demo_course.txt (the source text)
 WEB-UI/             X1: server.py (standard library) and static/ (the page); see WEB-UI/README.md
 scripts/            e2e_check.py (score a run), build_demo_pdf.py (rebuild and verify the demo PDF), demo_video/ (builds the demo video)
-tests/              392 automated tests (no Ollama needed)
+tests/              398 automated tests (no Ollama needed)
 docs/               explanation, architecture, user stories, testing guide, results, keynote, model choice
 ```
 
@@ -259,7 +259,7 @@ Measured on `data/demo.pdf` (24 pages, 9 questions), full details in [docs/RESUL
 | Question not in the PDF correctly refused | **1 of 1** |
 | Invented answers | none in this run |
 | Time | about 1 minute per question on a CPU-only laptop with 7.6 GiB of RAM (5 min 31 s, 6 min 42 s and 8 min 57 s for the 9 questions in three full runs; it slows down when RAM is nearly full) |
-| Automated tests | 392, none needs Ollama |
+| Automated tests | 398, none needs Ollama |
 
 What does not work well, said honestly:
 - The 4B model sometimes **refuses a question that the PDF does cover** (2 of the 8 here), even though retrieval found the right passage. It did not invent answers, but it is not complete.
@@ -291,7 +291,7 @@ What does not work well, said honestly:
 | [docs/MODEL_SELECTION.md](docs/MODEL_SELECTION.md) | hardware, models and why |
 | [docs/RESULTS.md](docs/RESULTS.md) | measured results, what worked and what did not |
 | [WEB-UI/README.md](WEB-UI/README.md) | the web interface: how to run it, what it does, its API and security |
-| [docs/TESTING.md](docs/TESTING.md) | every test you can run: 392 automated tests, manual checks, failure tests, quality scoring |
+| [docs/TESTING.md](docs/TESTING.md) | every test you can run: 398 automated tests, manual checks, failure tests, quality scoring |
 | [docs/PRIVACY_POLICY.md](docs/PRIVACY_POLICY.md) | 100% local privacy guarantee, zero-egress charter and GDPR compliance |
 | [docs/ETHICS_AND_LEGAL.md](docs/ETHICS_AND_LEGAL.md) | copyright exceptions (EU TDM, CPI, Fair Use), exam ethics and user disclaimer |
 | [docs/BUSINESS_IMPACT.md](docs/BUSINESS_IMPACT.md) | economic impact, 11 hrs/wk time savings model and institutional ROI analysis |

@@ -150,3 +150,103 @@ def test_cli_history_and_branches_commands(monkeypatch, capsys):
     assert "[1] hello again" in out
     assert "[Branch 1]" in out
     assert "[Switched to branch 1]" in out
+
+
+# ---------- Interrupt and redirect (X2) ----------
+
+def _run_cli(monkeypatch, inputs, fake_stream):
+    typed = iter(inputs)
+    monkeypatch.setattr("builtins.input", lambda prompt="": next(typed))
+    monkeypatch.setattr(chat, "stream_reply", fake_stream)
+    monkeypatch.setattr(sys, "argv", ["chat.py"])
+    chat.main()
+
+
+def test_stream_reply_ctrl_c_mid_reply_raises_with_the_partial_text():
+    """Ctrl+C after some tokens: the text so far comes back, and the connection is closed (Ollama stops)."""
+    import json
+
+    def lines():
+        yield json.dumps({"message": {"content": "Once upon "}}).encode()
+        yield json.dumps({"message": {"content": "a time"}}).encode()
+        raise KeyboardInterrupt
+
+    response = mock.Mock(status_code=200)
+    response.iter_lines.return_value = lines()
+    with mock.patch("requests.post", return_value=response):
+        with pytest.raises(chat.ReplyInterrupted) as info:
+            chat.stream_reply("http://h", "m", [{"role": "user", "content": "story"}])
+    assert info.value.partial == "Once upon a time"
+    response.close.assert_called_once()
+
+
+def test_stream_reply_ctrl_c_before_any_text_is_a_plain_cancel():
+    def lines():
+        raise KeyboardInterrupt
+        yield b""  # pragma: no cover - makes this a generator
+
+    response = mock.Mock(status_code=200)
+    response.iter_lines.return_value = lines()
+    with mock.patch("requests.post", return_value=response):
+        with pytest.raises(KeyboardInterrupt):
+            chat.stream_reply("http://h", "m", [{"role": "user", "content": "story"}])
+
+
+def test_cli_interrupt_keeps_partial_reply_and_next_message_redirects(monkeypatch, capsys):
+    sent = []
+
+    def fake_stream(host, model, messages):
+        sent.append([dict(m) for m in messages])
+        if len(sent) == 1:
+            raise chat.ReplyInterrupted("Once upon a time, in a far")
+        return "A short one."
+
+    _run_cli(monkeypatch, ["write a long story", "make it shorter", "exit"], fake_stream)
+    redirect = sent[1]
+    assert redirect[-3:] == [
+        {"role": "user", "content": "write a long story"},
+        {"role": "assistant", "content": "Once upon a time, in a far"},
+        {"role": "user", "content": "make it shorter"},
+    ]
+    assert "Type your next message to redirect it" in capsys.readouterr().out
+
+
+def test_cli_cancel_before_any_text_drops_the_unanswered_question(monkeypatch):
+    sent = []
+
+    def fake_stream(host, model, messages):
+        sent.append([dict(m) for m in messages])
+        if len(sent) == 1:
+            raise KeyboardInterrupt
+        return "ok"
+
+    _run_cli(monkeypatch, ["first", "second", "exit"], fake_stream)
+    assert [m["content"] for m in sent[1] if m["role"] == "user"] == ["second"]
+
+
+def test_cli_interrupted_edit_keeps_partial_on_the_new_branch(monkeypatch):
+    sent = []
+
+    def fake_stream(host, model, messages):
+        sent.append([dict(m) for m in messages])
+        if len(sent) == 2:
+            raise chat.ReplyInterrupted("Paris is")
+        return "reply"
+
+    _run_cli(monkeypatch, ["capital of Italy?", "/edit capital of France?", "in one word", "exit"], fake_stream)
+    assert sent[2][-3:] == [
+        {"role": "user", "content": "capital of France?"},
+        {"role": "assistant", "content": "Paris is"},
+        {"role": "user", "content": "in one word"},
+    ]
+
+
+def test_cli_switch_swaps_in_place_so_numbers_stay_stable(monkeypatch, capsys):
+    replies = iter(["r1", "r2", "r3"])
+    _run_cli(monkeypatch, ["v1", "/edit v2", "/edit v3", "/switch 1", "/history", "/switch 1", "/history", "exit"],
+             lambda h, m, msgs: next(replies))
+    out = capsys.readouterr().out
+    # branch 1 = v1, branch 2 = v2, current = v3. /switch 1 -> v1 (v3 takes slot 1); /switch 1 again -> v3.
+    first, second = out.split("[Switched to branch 1]")[1:3]
+    assert "[1] v1" in first.split("[Switched")[0]
+    assert "[1] v3" in second

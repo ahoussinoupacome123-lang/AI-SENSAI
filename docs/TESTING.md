@@ -4,7 +4,7 @@ Everything you can run to check Sensai, from a one-second automated check to a f
 
 | Level | What | Needs Ollama | Time |
 |---|---|---|---|
-| **A. Automated tests** | 392 pytest tests | no | about 1 s |
+| **A. Automated tests** | 398 pytest tests | no | about 1 s |
 | **B. Manual checks without a model** | inspect a PDF, error messages, demo data, scoring a saved run | no | seconds |
 | **C. Manual checks with Ollama** | chatbot, short demo, full run, re-running one question, settings | yes | 30 s to 7 min |
 | **D. Failure tests** | server down, corrupt index, scanned PDF, wrong inputs | mostly no | seconds |
@@ -32,7 +32,7 @@ The commands below use the committed settings (`chunk_size` 800, `chunk_overlap`
 ## A. Automated tests (no Ollama, about 1 second)
 
 ```bash
-python -m pytest -q                  # expected: 392 passed
+python -m pytest -q                  # expected: 398 passed
 python -m pytest -q tests/test_writer.py        # one file
 python -m pytest -q -k quote                    # tests whose name contains "quote"
 python -m pytest -x -q                          # stop at the first failure
@@ -137,6 +137,7 @@ python src/chat.py
 | 2 | `My name is Sam. Reply in one short sentence.` then `What is my name?` | the second answer says Sam (history works) |
 | 3 | press Enter on an empty line | `(empty input, please type something)`, no crash |
 | 4 | ask something long, press Ctrl+C after `(thinking...)` | `(reply cancelled)`, no traceback, the chat still works |
+| 4b | ask for a long story, press Ctrl+C once text appears, then type `make it shorter` | `(reply stopped: what it said so far is kept...)`; the next reply continues from the cut text (interrupt and redirect, X2) |
 | 5 | at the empty prompt press Ctrl+C or Ctrl+D, or type `exit` | the program quits cleanly |
 | 6 | `python src/chat.py nomodel-xyz`, type `hi` | `Error: Model 'nomodel-xyz' not found. Pull it with: ollama pull nomodel-xyz` |
 | 7 | run `python src/chat.py qwen3:4b` | the first line says `Chatting with qwen3:4b.` |
@@ -290,11 +291,11 @@ curl -s -o /dev/null -w "%{http_code}
 curl -s -o /dev/null -w "%{http_code}
 " -X POST -H "Origin: http://evil.example.com" -H "Content-Type: application/json" -d '{"reset":true}' http://127.0.0.1:8000/api/config   # 403
 ```
-The page is also checked automatically in a real browser (headless Chromium) with `WEB-UI/e2e/ui_check.py`: 63 checks covering F1 to F16, accessibility basics, reduced motion and the phone layout, plus a real demo run and a real chat reply (about 5 minutes with the models; `--quick` skips those). It needs Playwright, which is not in `requirements.txt`:
+The page is also checked automatically in a real browser (headless Chromium) with `WEB-UI/e2e/ui_check.py`: 69 checks covering F1 to F16, accessibility basics, reduced motion and the phone layout, plus a real demo run and a real chat reply (about 5 minutes with the models; `--quick` skips those). It needs Playwright, which is not in `requirements.txt`:
 ```bash
 pip install playwright && playwright install chromium
 python WEB-UI/server.py &
-python WEB-UI/e2e/ui_check.py --shots /tmp/shots       # 63/63 expected
+python WEB-UI/e2e/ui_check.py --shots /tmp/shots       # 69/69 expected
 ```
 F1 to F16 are still worth repeating by eye once.
 

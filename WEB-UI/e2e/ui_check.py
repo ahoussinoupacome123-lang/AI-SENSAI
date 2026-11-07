@@ -317,6 +317,39 @@ def main():
             page.locator(".hist-del").nth(0).click()
             page.wait_for_timeout(300)
             check("history: a chat can be deleted", page.locator(".hist-row").count() == n - 1)
+
+            # X2: interrupt a reply mid-stream and redirect it, then edit a message and switch versions
+            wait_idle(page)
+            page.click("#new-chat")
+            page.fill("#chat-input", "Write a long story about a lighthouse keeper, at least 400 words.")
+            page.keyboard.press("Enter")
+            page.wait_for_function("(document.querySelector('.turn.bot .md') || {textContent: ''}).textContent.length > 40", timeout=300000)
+            check("interrupt: the composer invites a redirect while the reply streams",
+                  "redirect" in page.get_attribute("#chat-input", "placeholder"))
+            page.fill("#chat-input", "Stop the story. Reply with only the word OK.")
+            page.keyboard.press("Enter")
+            page.wait_for_function("document.querySelectorAll('.turn.user').length === 2 && document.querySelectorAll('.turn.bot').length === 2"
+                                   " && !document.querySelector('.md.caret') && document.querySelector('#chat-stop').hidden", timeout=300000)
+            check("interrupt: the stopped reply keeps its text and says it was stopped",
+                  page.locator(".stopped-note").count() == 1 and len(page.locator(".turn.bot .md").first.inner_text()) > 40)
+            check("interrupt: the redirect is answered right after, without waiting for the story",
+                  len(page.locator(".turn.bot .md").last.inner_text().strip()) > 0)
+            first_text = page.locator(".user-bubble").last.inner_text()
+            page.locator(".turn.user").last.hover()
+            page.locator(".user-edit-btn").last.click()
+            page.fill(".user-edit-area", "Reply with only the word YES.")
+            page.click("text=Save & Branch")
+            page.wait_for_function("document.querySelector('.branch-count') && !document.querySelector('.md.caret')"
+                                   " && document.querySelector('#chat-stop').hidden", timeout=300000)
+            check("branch: editing a message shows version 2 / 2", page.inner_text(".branch-count") == "2 / 2")
+            page.locator(".branch-btn").first.click()
+            page.wait_for_timeout(300)
+            check("branch: the previous arrow brings back version 1 / 2 with the original message",
+                  page.inner_text(".branch-count") == "1 / 2" and page.locator(".user-bubble").last.inner_text() == first_text)
+            page.locator(".branch-btn").last.click()
+            page.wait_for_timeout(300)
+            check("branch: the next arrow returns to version 2 / 2",
+                  page.inner_text(".branch-count") == "2 / 2" and "YES" in page.locator(".user-bubble").last.inner_text())
             ctx.close()
         browser.close()
 

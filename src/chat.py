@@ -41,8 +41,20 @@ def load_system_prompt(path):
         sys.exit(f"Error: cannot read system prompt file {p}: {e}")
 
 
+class ReplyInterrupted(Exception):
+    """Ctrl+C arrived after the model had already written some text; `partial` holds that text."""
+
+    def __init__(self, partial):
+        super().__init__("reply interrupted")
+        self.partial = partial
+
+
 def stream_reply(host, model, messages):
-    """Send the full history, print chunks as they arrive, return the full reply."""
+    """Send the full history, print chunks as they arrive, return the full reply.
+
+    Ctrl+C stops the model. With text already written, ReplyInterrupted(partial) is raised so the
+    caller can keep that text and let the user redirect; with nothing written, KeyboardInterrupt.
+    """
     try:
         r = requests.post(
             f"{host}/api/chat",
@@ -78,6 +90,12 @@ def stream_reply(host, model, messages):
             reply.append(text)
             if chunk.get("done"):
                 break
+    except KeyboardInterrupt:
+        partial = "".join(reply)
+        if partial.strip():
+            print()
+            raise ReplyInterrupted(partial) from None
+        raise
     finally:
         r.close()  # closing the connection makes Ollama stop generating
     print()
@@ -118,6 +136,41 @@ def edit_and_branch(messages, new_content, user_turn_number=None):
     return new_messages, archived
 
 
+def reply_to(host, model, messages, memory):
+    """Answer the last user message in `messages` and add the reply to it (changes `messages`).
+
+    Interrupt and redirect: Ctrl+C after some text keeps that text as the reply, so the next
+    message the user types is sent with it and steers the model. Ctrl+C before any text, or an
+    error, removes the unanswered user message so it does not pollute the history.
+    """
+    last = messages[-1]["content"]
+    messages_to_send = list(messages)
+    if memory.is_recall_query(last):
+        try:
+            recalled = memory.search_memory(last, top_k=3)
+            if recalled:
+                messages_to_send.insert(1, {"role": "system", "content": memory.format_memory_context(recalled)})
+        except Exception:
+            pass
+
+    print("bot> ", end="", flush=True)
+    try:
+        reply = stream_reply(host, model, messages_to_send)
+    except ReplyInterrupted as e:
+        messages.append({"role": "assistant", "content": e.partial})
+        print("(reply stopped: what it said so far is kept. Type your next message to redirect it.)")
+        return
+    except RuntimeError as e:
+        print(f"\nError: {e}")
+        messages.pop()  # failed turn must not pollute the history
+        return
+    except KeyboardInterrupt:
+        print("\n(reply cancelled)")
+        messages.pop()
+        return
+    messages.append({"role": "assistant", "content": reply})
+
+
 def main():
     parser = argparse.ArgumentParser(description="Ollama CLI chatbot")
     parser.add_argument("model", nargs="?", help="model name (overrides config)")
@@ -134,7 +187,7 @@ def main():
     branches = []
     memory = SessionMemory(embed_model=config.get("embed_model", "nomic-embed-text"), host=host)
 
-    print(f"Chatting with {model}. Type 'exit' or Ctrl+D to quit; Ctrl+C cancels a reply.")
+    print(f"Chatting with {model}. Type 'exit' or Ctrl+D to quit; Ctrl+C stops a reply (then type to redirect).")
     print("Wait for the 'you>' prompt before typing: input typed while the model answers is queued.")
     print("Commands: /edit <text>, /history, /branches, /switch <n>, /memory, /recall <query>.")
 
@@ -209,9 +262,10 @@ def main():
             if b_num < 1 or b_num > len(branches):
                 print(f"(branch {b_num} not found. Available: 1 to {len(branches)})")
                 continue
-            branches.append(list(messages))
-            messages = branches.pop(b_num - 1)
-            print(f"[Switched to branch {b_num}]")
+            # Swap in place: the conversation you leave takes branch n's slot, so numbers stay stable
+            # and /switch n again brings you back.
+            branches[b_num - 1], messages = messages, branches[b_num - 1]
+            print(f"[Switched to branch {b_num}] (your previous conversation is now branch {b_num})")
             continue
 
         # Edit and branch command
@@ -239,54 +293,13 @@ def main():
 
             branches.append(old_branch)
             messages = new_messages
-            print(f"[Branch created: editing turn {turn_num or len(find_user_indices(old_branch))}]")
-
-            messages_to_send = list(messages)
-            if memory.is_recall_query(new_text):
-                try:
-                    recalled = memory.search_memory(new_text, top_k=3)
-                    if recalled:
-                        block = memory.format_memory_context(recalled)
-                        messages_to_send.insert(1, {"role": "system", "content": block})
-                except Exception:
-                    pass
-
-            print("bot> ", end="", flush=True)
-            try:
-                reply = stream_reply(host, model, messages_to_send)
-            except RuntimeError as e:
-                print(f"\nError: {e}")
-                continue
-            except KeyboardInterrupt:
-                print("\n(reply cancelled)")
-                continue
-            messages.append({"role": "assistant", "content": reply})
+            print(f"[Branch created: editing turn {turn_num or len(find_user_indices(old_branch))}]"
+                  f" (the old conversation is saved as branch {len(branches)})")
+            reply_to(host, model, messages, memory)
             continue
 
         messages.append({"role": "user", "content": user_input})
-
-        messages_to_send = list(messages)
-        if memory.is_recall_query(user_input):
-            try:
-                recalled = memory.search_memory(user_input, top_k=3)
-                if recalled:
-                    block = memory.format_memory_context(recalled)
-                    messages_to_send.insert(1, {"role": "system", "content": block})
-            except Exception:
-                pass
-
-        print("bot> ", end="", flush=True)
-        try:
-            reply = stream_reply(host, model, messages_to_send)
-        except RuntimeError as e:
-            print(f"\nError: {e}")
-            messages.pop()  # failed turn must not pollute the history
-            continue
-        except KeyboardInterrupt:
-            print("\n(reply cancelled)")
-            messages.pop()
-            continue
-        messages.append({"role": "assistant", "content": reply})
+        reply_to(host, model, messages, memory)
 
     # Save session to external memory on exit
     if find_user_indices(messages):

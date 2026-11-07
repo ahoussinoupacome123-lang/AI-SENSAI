@@ -111,6 +111,8 @@ html[data-sidebar="closed"] .sidebar { margin-left:calc(-1 * var(--side-w)); }
 .branch-btn { background:none; border:0; color:var(--muted); padding:.2rem; border-radius:4px; display:inline-flex; align-items:center; cursor:pointer; }
 .branch-btn:hover { color:var(--ink); background:var(--side-hover); }
 .branch-count { font-variant-numeric:tabular-nums; }
+.branch-btn:disabled { opacity:.35; cursor:default; background:none; }
+.stopped-note { font-size:.82rem; margin-top:.35rem; }
 .turn.bot { display:block; }
 .avatar { display:none; }
 .bot-body { flex:1; min-width:0; }

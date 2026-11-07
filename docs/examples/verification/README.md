@@ -8,7 +8,7 @@ The outputs of the checks, kept in the repository so anyone can read and interpr
 | `cli_full_run.txt` | the real output of `python -m src.cli data/demo.pdf data/questions.txt`: one line per question, the run summary, and the total time | **8 min 57 s for 9 questions**, 9 of 9 answered, 0 failed |
 | `answers_full_run.md` | the `answers.md` that run produced | one section per question with answer, page, quote and both checks |
 | `e2e_score.txt` | `scripts/e2e_check.py` comparing that file with `data/expected_answers.md` | **6 of 8 right pages, the uncovered question refused: PASS** |
-| `pytest.txt` | `python -m pytest -v`, every test by name | **392 passed**, none needs Ollama |
+| `pytest.txt` | `python -m pytest -v`, every test by name | **398 passed**, none needs Ollama |
 | `ui_check.txt` | the real-browser checks of the web UI (Chromium, real models) | **63 of 63 passed** |
 
 ## Reading the model run honestly

@@ -118,6 +118,10 @@ Users: **Student** (prepares exams from course PDFs), **Researcher** (extracts a
 - The previous conversation branch is preserved in an archive without data loss.
 - CLI provides `/edit <turn> <text>`, `/history`, `/branches`, and `/switch <branch_id>` commands.
 
+**US-X2.3** As a user, I want to interrupt a reply while it is still being written and redirect it with a new instruction, so that I do not have to wait for a long wrong answer to finish.
+- Web UI: while a reply streams, typing a message and pressing Enter stops the reply, keeps the text written so far (marked "Stopped") and sends the new message at once.
+- CLI: Ctrl+C after some text keeps that text as the reply; the next message redirects the model. Ctrl+C before any text drops the unanswered question.
+
 **US-X2.2** As a Web UI user, I want an edit icon on my messages and branch switcher controls, so that I can explore alternative dialogue branches and seamlessly switch back and forth.
 - Hovering/focusing a user bubble reveals an edit button.
 - Saving updates the conversation state, forks the branch, streams the new response, and displays branch counter navigation (`< N / total >`).
@@ -164,7 +168,7 @@ Users: **Student** (prepares exams from course PDFs), **Researcher** (extracts a
 | X1 | US-X1.1, US-X1.2, US-X1.3, US-X1.4 | `tests/test_web_ui.py` (85 tests of the server), `tests/test_ollama_events.py`, `tests/test_ingest.py` (progress callback) | `python WEB-UI/server.py` and the checklist in `docs/TESTING.md`, level F |
 | EV1 | US-EV1.1, US-EV1.2, US-EV1.3 | `tests/test_m5_judge.py`, `tests/test_m6_eval_summary.py`, `tests/test_cli.py` | `Judge:` and `Review needed` lines in `answers.md` |
 | Fallback (D6) | US-GEN.1, US-GEN.2 | `tests/test_general_fallback.py` (8 unit tests for math, greetings, judge, and pipeline integration) | ask `1 + 1 = combien` or `hello` |
-| Branching (X2) | US-X2.1, US-X2.2 | `tests/test_branching.py` (8 unit tests for history truncation, branching, CLI commands, and state preservation) | `/edit` in CLI or edit icon in Web UI |
+| Branching (X2) | US-X2.1, US-X2.2, US-X2.3 | `tests/test_branching.py` (14 tests: history truncation, branching, CLI commands, stable `/switch` numbers, interrupt keeps the partial reply and redirects) and 6 real-browser checks in `WEB-UI/e2e/ui_check.py` | `/edit` in CLI or edit icon in Web UI; Ctrl+C or type-and-Enter to interrupt |
 | Feature flags | US-FLAG.1, US-FLAG.2 | `tests/test_feature_flags.py` (6 tests: config file, command line, web overrides) | `--no-judge` on the CLI; Settings, Features in the web UI |
 | Context window | US-CTX.1, US-CTX.2 | `tests/test_dynamic_context.py` (7 tests: limit from config or Ollama, trimming), `tests/test_ollama_events.py` (token counts) | the meter under the web composer |
 | Memory (M3) | US-M3.1, US-M3.2 | `tests/test_cross_session_memory.py` (8 unit tests for persistence, indexing, cosine recall, CLI injection, and API endpoints) | `/memory` and `/recall` in CLI or query cross-session facts |
